@@ -1,0 +1,22 @@
+
+# Dependencies và kết quả build trên máy Windows
+node_modules
+dist
+
+# Environment và thông tin nhạy cảm
+.env
+.env.*
+!.env.example
+
+# Git và cấu hình công cụ
+.git
+.github
+.agents
+.vscode
+
+# File không cần cho Image
+coverage
+*.log
+*.tsbuildinfo
+*.sql
+README.md

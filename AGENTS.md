@@ -105,6 +105,33 @@ Chỉ đánh dấu hoàn thành khi hành vi đáp ứng yêu cầu đã chốt,
 
 **Nguyên tắc cốt lõi:** *Phân tích đủ cho bước hiện tại → code → kiểm chứng → cập nhật tài liệu → tiếp tục*. Đọc đúng thứ cần đọc, nhưng không bỏ qua bằng chứng quan trọng chỉ để tiết kiệm token.
 
+## 11. Môi trường phát triển, Docker và PostgreSQL
+
+- **Phát triển thường ngày:** backend chạy trực tiếp trên Windows bằng `npm run dev` trong `backend/`; không bắt buộc chạy backend trong Docker khi sửa code.
+- **Docker Compose:** file `compose.yaml` ở gốc repository quản lý `backend` và `postgres`. PostgreSQL 17 trong Docker là database phát triển chính; backend Docker sử dụng hostname service `postgres`, không dùng `localhost` để kết nối database trong container.
+- **Dockerfile:** `backend/Dockerfile` dùng multi-stage build; runtime chạy JavaScript đã biên dịch (`dist/`), không tự đồng bộ source. Khi cần kiểm tra phiên bản container mới, build lại đúng service bằng `docker compose up -d --build --no-deps backend` sau khi xác nhận PostgreSQL đang chạy.
+- **Prisma:** dùng phiên bản được khóa trong `backend/package-lock.json` (hiện tại 7.10.1), schema và cấu hình Prisma hiện có. Không sử dụng lệnh/cấu hình chỉ hỗ trợ Prisma 8. Việc generate Prisma Client khi build Docker cần `DATABASE_URL` hợp lệ về cú pháp; không đưa mật khẩu thật vào Dockerfile hoặc image.
+- **Biến môi trường:** phân biệt `.env` tại gốc repository (phục vụ Compose) với `backend/.env` (phục vụ chạy backend trên máy). Không in giá trị secret ra log hoặc câu trả lời; kiểm tra cấu hình Compose bằng `docker compose config --quiet` khi phù hợp.
+- **Logical Replication:** PostgreSQL 17 Docker là publisher, PostgreSQL 18.3 trên Windows là subscriber một chiều. Replication hiện chỉ áp dụng cho bảng đã được thêm vào publication; **migration/DDL, bảng mới và thay đổi schema không tự đồng bộ**. Không mặc định replication bao phủ toàn bộ database.
+- **An toàn dữ liệu:** giữ nguyên volume `postgres_data`, publication, subscription, replication slot và cấu hình WAL. Không chạy `docker compose down -v`, `docker volume prune`, reset/drop database, thay đổi topology replication hoặc thao tác có thể mất dữ liệu khi chưa được người dùng chấp thuận rõ ràng.
+- **Kiểm chứng:** sau thay đổi liên quan Docker, xác minh service bằng `docker compose ps`, log phù hợp và endpoint `GET /api/health`. Endpoint này xác nhận HTTP API đang phản hồi; **không mặc định** nó kiểm tra trạng thái database ở mỗi request. Không khẳng định build/test/kết nối thành công khi chưa có kết quả thực tế.
+
+---
+
+## 12. Chiến lược kiểm thử, Mock và Seed Data
+
+- **Nguyên tắc:** cho phép và khuyến khích mock, stub, fake, fixture và seed dữ liệu **đúng mục đích**; test phải xác minh hành vi thực, không chỉ nhằm đạt PASS hoặc coverage.
+- **Unit test:** cô lập đơn vị đang kiểm thử bằng cách mock các dependency như repository, SMS provider, OAuth client hoặc clock. Không mock chính logic nghiệp vụ cần xác minh. Bao phủ luồng thành công, thất bại, trường hợp biên và quy tắc bảo mật quan trọng.
+- **Độ trung thực của mock:** giữ đúng interface, kiểu dữ liệu, lỗi và các tình huống có thể xảy ra trong thực tế. Không tạo mock luôn trả về thành công hoặc bỏ qua validation, phân quyền, thời hạn OTP và giới hạn thử khi các yếu tố này thuộc mục tiêu test.
+- **Integration test:** khi kiểm tra Prisma, transaction, constraint, migration hoặc repository, dùng PostgreSQL **test riêng**, không mock database. Khi kiểm tra HTTP, ưu tiên chạy qua Express app, middleware và validation thực. Có thể fake dịch vụ bên ngoài như SMS/Google OAuth để kiểm thử luồng tích hợp nội bộ.
+- **Test database:** không sử dụng database chính `looply_db`, database Windows subscriber hoặc dữ liệu đang tham gia logical replication cho test có ghi/xóa. Test database phải được cô lập, có cấu hình riêng, có cơ chế cleanup/reset chỉ trong phạm vi test đã xác nhận; không tự tạo/xóa database hoặc container hiện có khi chưa được phép.
+- **Fixtures/seed:** dữ liệu mẫu phải hợp lệ theo Prisma schema và nghiệp vụ, không dùng dữ liệu cá nhân hay credentials thật. Ưu tiên factory/fixture dễ tái sử dụng; mỗi test độc lập, chạy lại được, không phụ thuộc thứ tự test. Seed chỉ vào môi trường test được xác định rõ.
+- **Auth:** kiểm tra mật khẩu, OTP (hết hạn, sai mã, giới hạn thử, sử dụng lại), token/session (hết hạn, thu hồi nếu áp dụng), ownership và quyền truy cập. Mock provider không có nghĩa là đã xác minh kết nối SMS/Google thực tế.
+- **Quy trình:** sau mỗi thay đổi có ý nghĩa, viết/cập nhật test phù hợp → chạy test → sửa lỗi → chạy lại; kết hợp typecheck/build và kiểm tra tích hợp khi cần. Không thêm dependency hay cấu hình test mới khi chưa xem công cụ đã có.
+- **Báo cáo:** phân biệt rõ unit test với mock, integration test với database thật, E2E và kiểm thử provider thực. Nêu lệnh đã chạy, kết quả, giới hạn và phần chưa kiểm chứng. Không tuyên bố chức năng hoàn chỉnh nếu implementation còn placeholder hoặc chỉ có mock.
+
+---
+
 # Chú thích Mã nguồn và Độ dễ đọc (Code Comments & Readability)
 
 Khi viết hoặc chỉnh sửa mã nguồn, hãy luôn ưu tiên **độ dễ đọc**, **khả năng bảo trì** và **lời giải thích rõ ràng**.
