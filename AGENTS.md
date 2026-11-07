@@ -118,6 +118,20 @@ Chỉ đánh dấu hoàn thành khi hành vi đáp ứng yêu cầu đã chốt,
 
 ---
 
+## 12. Chiến lược kiểm thử, Mock và Seed Data
+
+- **Nguyên tắc:** cho phép và khuyến khích mock, stub, fake, fixture và seed dữ liệu **đúng mục đích**; test phải xác minh hành vi thực, không chỉ nhằm đạt PASS hoặc coverage.
+- **Unit test:** cô lập đơn vị đang kiểm thử bằng cách mock các dependency như repository, SMS provider, OAuth client hoặc clock. Không mock chính logic nghiệp vụ cần xác minh. Bao phủ luồng thành công, thất bại, trường hợp biên và quy tắc bảo mật quan trọng.
+- **Độ trung thực của mock:** giữ đúng interface, kiểu dữ liệu, lỗi và các tình huống có thể xảy ra trong thực tế. Không tạo mock luôn trả về thành công hoặc bỏ qua validation, phân quyền, thời hạn OTP và giới hạn thử khi các yếu tố này thuộc mục tiêu test.
+- **Integration test:** khi kiểm tra Prisma, transaction, constraint, migration hoặc repository, dùng PostgreSQL **test riêng**, không mock database. Khi kiểm tra HTTP, ưu tiên chạy qua Express app, middleware và validation thực. Có thể fake dịch vụ bên ngoài như SMS/Google OAuth để kiểm thử luồng tích hợp nội bộ.
+- **Test database:** không sử dụng database chính `looply_db`, database Windows subscriber hoặc dữ liệu đang tham gia logical replication cho test có ghi/xóa. Test database phải được cô lập, có cấu hình riêng, có cơ chế cleanup/reset chỉ trong phạm vi test đã xác nhận; không tự tạo/xóa database hoặc container hiện có khi chưa được phép.
+- **Fixtures/seed:** dữ liệu mẫu phải hợp lệ theo Prisma schema và nghiệp vụ, không dùng dữ liệu cá nhân hay credentials thật. Ưu tiên factory/fixture dễ tái sử dụng; mỗi test độc lập, chạy lại được, không phụ thuộc thứ tự test. Seed chỉ vào môi trường test được xác định rõ.
+- **Auth:** kiểm tra mật khẩu, OTP (hết hạn, sai mã, giới hạn thử, sử dụng lại), token/session (hết hạn, thu hồi nếu áp dụng), ownership và quyền truy cập. Mock provider không có nghĩa là đã xác minh kết nối SMS/Google thực tế.
+- **Quy trình:** sau mỗi thay đổi có ý nghĩa, viết/cập nhật test phù hợp → chạy test → sửa lỗi → chạy lại; kết hợp typecheck/build và kiểm tra tích hợp khi cần. Không thêm dependency hay cấu hình test mới khi chưa xem công cụ đã có.
+- **Báo cáo:** phân biệt rõ unit test với mock, integration test với database thật, E2E và kiểm thử provider thực. Nêu lệnh đã chạy, kết quả, giới hạn và phần chưa kiểm chứng. Không tuyên bố chức năng hoàn chỉnh nếu implementation còn placeholder hoặc chỉ có mock.
+
+---
+
 # Chú thích Mã nguồn và Độ dễ đọc (Code Comments & Readability)
 
 Khi viết hoặc chỉnh sửa mã nguồn, hãy luôn ưu tiên **độ dễ đọc**, **khả năng bảo trì** và **lời giải thích rõ ràng**.
