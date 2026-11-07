@@ -1,114 +1,135 @@
 # AGENTS.md — Looply
 
-> Quy tắc làm việc cho AI coding agents trong repository Looply. File này hướng dẫn **cách làm việc**, không thay thế đặc tả nghiệp vụ.
+> Quy tắc chung dành cho AI coding agents trong repository Looply. File này hướng dẫn **cách làm việc**, không thay thế đặc tả nghiệp vụ. Ưu tiên đọc có chọn lọc để tránh tiêu tốn context không cần thiết.
 
 ## 1. Mục tiêu
 
-Looply là nền tảng đăng tin giao dịch đồ đã qua sử dụng. Giai đoạn hiện tại là **Đồ án 1**. Phát triển từng bước nhỏ, có kiểm chứng, giữ khả năng mở rộng mà không triển khai sớm các chức năng tương lai.
+Looply là nền tảng giao dịch đồ đã qua sử dụng. Giai đoạn hiện tại là **Đồ án 1**. Phát triển từng bước nhỏ, có kiểm chứng, giữ khả năng mở rộng mà không triển khai sớm chức năng tương lai.
 
-Ưu tiên: đúng nghiệp vụ → an toàn và ổn định → dễ bảo trì → đơn giản → tiến độ thực tế.
+Ưu tiên: **đúng nghiệp vụ → an toàn, ổn định → dễ bảo trì → đơn giản → tiến độ thực tế**.
 
-## 2. Đọc tài liệu trước khi làm
+## 2. Nguồn thông tin và chiến lược đọc tiết kiệm context
 
-Đọc những file liên quan **nếu tồn tại**:
+Không đọc toàn bộ repository hoặc tất cả tài liệu ở đầu mỗi tác vụ. Trước tiên xác định tác vụ thuộc module nào, sau đó chỉ mở file và **đoạn nội dung** liên quan.
 
-| File | Nguồn thông tin |
+| Nguồn | Khi nào cần đọc |
 | --- | --- |
-| `docs/requirements/DO_AN_1/LOOPLY_DOAN1_REQUIREMENTS.md` | Nghiệp vụ và phạm vi Đồ án 1 |
-| `docs/technical/PROJECT_STRUCTURE.md` | Cấu trúc, trách nhiệm và ranh giới module |
-| `docs/technical/backend/BACKEND_PACKAGES.md` | Vai trò các package backend |
-| `docs/progress/DEVELOPMENT_PROGRESS.md` | Tiến độ đã được xác nhận |
-| `README.md` | Tổng quan và cách chạy |
-| `backend/package.json`, `frontend/package.json`, cấu hình, migration, source và test | Hiện trạng kỹ thuật thực tế |
+| `docs/requirements/DO_AN_1/LOOPLY_DOAN1_REQUIREMENTS.md` | Phần nghiệp vụ liên quan tới tác vụ |
+| `docs/technical/PROJECT_STRUCTURE.md` | Khi thêm/sửa module, quan hệ phụ thuộc hoặc cấu trúc |
+| `docs/technical/backend/BACKEND_PACKAGES.md` | Khi dùng, thêm, thay đổi package backend |
+| `docs/progress/DEVELOPMENT_PROGRESS.md` | Khi chọn việc tiếp theo, kiểm tra hoặc cập nhật tiến độ |
+| `README.md` | Khi cần tổng quan, setup, chạy dự án |
+| `backend/package.json`, `frontend/package.json`, config, migration, source, test | Kiểm tra hiện trạng thực tế của phần đang sửa |
 
-Không giả định những file được liệt kê đều đã tồn tại. Đọc đúng phần liên quan, không cần tải toàn bộ tài liệu cho mỗi việc nhỏ.
+**Quy trình tìm thông tin:** tìm đường dẫn/symbol/từ khóa → đọc đoạn phù hợp → mở rộng sang file phụ thuộc nếu cần → chỉ đọc toàn file khi cần hiểu toàn bộ. Giới hạn output tìm kiếm; bỏ qua `node_modules/`, `dist/`, `build/`, `coverage/`, `.git/` và file sinh tự động trừ khi tác vụ trực tiếp liên quan. Không sao chép lại các tài liệu dài vào câu trả lời.
 
-**Thứ tự xử lý mâu thuẫn:** yêu cầu mới, rõ ràng của người dùng → đặc tả đã chốt về hành vi mong muốn → hiện trạng code/test về những gì đã thực hiện. Khi yêu cầu mới thay đổi quyết định cũ hoặc các nguồn mâu thuẫn, nêu rõ và xác nhận trước khi sửa nghiệp vụ quan trọng. Tài liệu tiến độ không thay thế kiểm tra code.
+**Thứ tự xử lý mâu thuẫn:** yêu cầu mới rõ ràng của người dùng → đặc tả đã chốt về hành vi mong muốn → code/test/config về những gì thực sự đã triển khai. Nếu nguồn mâu thuẫn hoặc yêu cầu mới thay đổi nghiệp vụ quan trọng, nêu rõ và xác nhận trước. Tiến độ không thay thế việc kiểm tra code. Không giả định file liệt kê ở trên đều đã tồn tại.
 
-## 3. Phạm vi và công nghệ
+## 3. Skill hỗ trợ
 
-- Chỉ triển khai **Đồ án 1** trừ khi người dùng yêu cầu khác. Không tự thêm Admin, thanh toán, AI recommendation hay chức năng của Đồ án 2.
-- Backend: **Express.js + TypeScript**; frontend: **Angular + TypeScript**; database: **PostgreSQL**; ORM: **Prisma 7** (kiểm tra phiên bản thực tế).
+Khi công cụ AI Agent hỗ trợ repository skills, dùng theo **nhu cầu**, không tự động tải nội dung tất cả Skill:
+
+- `.github/skills/looply-development-workflow/SKILL.md`: quy trình phân tích → triển khai → kiểm chứng → cập nhật tài liệu; dùng khi thực hiện tác vụ phát triển.
+- `.github/skills/looply-context-optimizer/SKILL.md`: hướng dẫn tìm kiếm và đọc source/tài liệu có chọn lọc, quản lý context; dùng khi khám phá codebase hoặc tác vụ có nguy cơ đọc nhiều dữ liệu.
+
+Đường dẫn Skill chỉ là tham chiếu; kiểm tra file tồn tại và công cụ có hỗ trợ trước khi dùng. **Skill không ghi đè yêu cầu người dùng, nghiệp vụ đã chốt hoặc các quy tắc bảo mật trong file này.** Không đọc lại toàn bộ Skill ở mọi bước nếu nội dung đã có trong context và vẫn còn phù hợp.
+
+## 4. Phạm vi và công nghệ
+
+- Mặc định chỉ triển khai **Đồ án 1**, trừ khi người dùng yêu cầu khác. Không tự thêm Admin, thanh toán, AI recommendation hoặc chức năng Đồ án 2.
+- Backend: **Express.js + TypeScript**; frontend: **Angular + TypeScript**; database: **PostgreSQL**; ORM: **Prisma 7** (xác minh phiên bản thực tế).
 - Không tự đổi framework, ORM, database, package manager, kiến trúc monorepo hoặc nâng/hạ package.
-- Chỉ thêm dependency khi tác vụ hiện tại thực sự cần và sau khi kiểm tra package đang có; nêu lý do và xin xác nhận nếu ảnh hưởng đáng kể.
-- Package đã cài **không đồng nghĩa** tính năng đã triển khai.
-- Phân biệt quyết định **đã chốt**, **đang đề xuất** và **chưa chốt**. Không tự biến giả định thành yêu cầu chính thức.
+- Chỉ đề xuất dependency khi tác vụ cần, sau khi kiểm tra những gì đã có; giải thích và xin xác nhận nếu ảnh hưởng đáng kể.
+- Package đã cài **không có nghĩa** tính năng đã triển khai.
+- Phân biệt **đã chốt**, **đề xuất**, **chưa chốt**; không biến giả định thành quyết định chính thức.
 
-## 4. Quy trình cho mỗi tác vụ
+## 5. Quy trình thực hiện tác vụ
 
-### 4.1. Hiểu và kiểm tra
-1. Xác định mục tiêu, tiêu chí hoàn thành và phạm vi.
-2. Đọc nghiệp vụ liên quan; kiểm tra source, schema, API, test và cấu hình hiện có.
-3. Xác định tác động tới module khác, dữ liệu, bảo mật và tương thích.
+1. **Hiểu:** xác định mục tiêu, tiêu chí hoàn thành, module và phần nghiệp vụ liên quan.
+2. **Kiểm tra:** tìm file/symbol trước, đọc đúng đoạn source, schema, API, test và cấu hình cần thiết; kiểm tra tác động liên module.
+3. **Phân tích vừa đủ:** chọn phương án đơn giản phù hợp hiện trạng. Hỏi trước khi thay đổi nghiệp vụ đã chốt, public API, schema có nguy cơ phá tương thích, kiến trúc lớn hoặc bảo mật quan trọng.
+4. **Triển khai:** thay đổi nhỏ, đúng phạm vi; không refactor không liên quan, không nhồi nghiệp vụ vào controller/UI, không tạo code giả như đã hoạt động. Giữ TypeScript type-safe; tránh `any`, `@ts-ignore` và ép kiểu thiếu kiểm chứng.
+5. **Kiểm chứng:** xem scripts trước khi chạy; thực hiện typecheck, lint, test, build hoặc kiểm tra thủ công phù hợp. Bổ sung test cho nghiệp vụ và quyền truy cập khi cần. Báo rõ bước nào chưa thể chạy.
+6. **Đồng bộ:** cập nhật tài liệu kiến trúc/package khi có thay đổi thực tế; cập nhật tiến độ dựa trên bằng chứng, không đánh dấu hoàn thành theo dự đoán.
+7. **Báo cáo ngắn gọn:** nêu file đã sửa, kết quả, kiểm chứng và việc còn lại; không lặp lại toàn bộ code hoặc log dài nếu không được yêu cầu.
 
-### 4.2. Phân tích vừa đủ
-1. Đề xuất phương án đơn giản nhất phù hợp hiện trạng.
-2. Hỏi trước khi thay đổi nghiệp vụ đã chốt, public API, schema có nguy cơ phá vỡ tương thích, kiến trúc lớn hoặc cơ chế bảo mật quan trọng.
-3. Với quyết định kỹ thuật nhỏ, chọn hợp lý và giải thích ngắn gọn; không lập kế hoạch toàn bộ hệ thống trước.
+Không tự commit, push, merge, tạo PR hoặc deploy khi người dùng chưa yêu cầu.
 
-### 4.3. Triển khai
-1. Thay đổi nhỏ, tập trung đúng tác vụ; không refactor ngoài phạm vi.
-2. Giữ module đúng trách nhiệm; không nhồi nghiệp vụ vào controller hoặc giao diện.
-3. Giữ TypeScript type-safe; tránh lạm dụng `any`, `@ts-ignore`, ép kiểu thiếu kiểm chứng.
-4. Không thêm code giả, placeholder được mô tả như tính năng đã hoạt động.
-5. Không tự commit, push, merge, tạo PR hoặc deploy khi chưa được yêu cầu.
+## 6. Nguyên tắc kiến trúc
 
-### 4.4. Kiểm chứng
-1. Kiểm tra scripts thực tế trước khi chạy lệnh.
-2. Chạy typecheck, test, lint, build hoặc kiểm tra thủ công phù hợp với thay đổi và môi trường.
-3. Bổ sung/cập nhật test khi sửa nghiệp vụ; xét cả thành công, thất bại và phân quyền.
-4. Không tuyên bố đã test nếu chưa chạy. Nếu thiếu database, network, secret hoặc môi trường, nêu giới hạn cụ thể.
+- Mỗi module sở hữu đúng nghiệp vụ của mình; không tạo chức năng trùng lặp giữa module.
+- Backend thực thi validation, xác thực, ownership, quyền tham gia conversation và quy tắc nghiệp vụ; frontend validation cải thiện trải nghiệm, không thay thế backend.
+- Tách HTTP handling khỏi business logic; giữ API, error response và kiểu dữ liệu nhất quán.
+- Ưu tiên tái sử dụng hợp lý, tránh abstraction quá mức và tối ưu hóa sớm.
+- Với migration, đánh giá dữ liệu hiện có, tác động tương thích và khả năng phục hồi; không reset database tùy tiện.
+- Không thay đổi quyết định cũ chỉ vì phương án mới có vẻ hấp dẫn hơn.
 
-### 4.5. Đồng bộ và báo cáo
-1. Tóm tắt file đã thay đổi, hành vi mới, kết quả kiểm chứng và phần chưa hoàn tất.
-2. Cập nhật tài liệu kỹ thuật khi kiến trúc, cấu trúc hoặc package thực sự thay đổi.
-3. Cập nhật `DEVELOPMENT_PROGRESS.md` dựa trên bằng chứng thực tế, không tự đánh dấu hoàn thành vì đã viết code nhưng chưa kiểm chứng.
-4. Nếu tài liệu chưa tồn tại, nói rõ; không giả vờ đã cập nhật.
+## 7. Bảo mật
 
-## 5. Nguyên tắc kiến trúc
-
-- Mỗi module sở hữu nghiệp vụ thuộc trách nhiệm của mình; tôn trọng ranh giới module.
-- Backend luôn xác thực dữ liệu, quyền sở hữu, quyền tham gia conversation và quy tắc nghiệp vụ; frontend validation chỉ hỗ trợ trải nghiệm.
-- Tái sử dụng logic phù hợp, tránh trùng lặp; không tạo abstraction phức tạp khi chưa cần.
-- Giữ API, response lỗi và kiểu dữ liệu nhất quán.
-- Khi thay đổi database/migration, đánh giá dữ liệu cũ, tác động tương thích và khả năng phục hồi; không reset database tùy tiện.
-- Không thay đổi quyết định cũ chỉ vì một phương án mới có vẻ hấp dẫn hơn.
-
-## 6. Bảo mật
-
-- Không log, commit hoặc hiển thị mật khẩu, OTP, token, API key, secret hay connection string nhạy cảm.
+- Không log, commit hoặc tiết lộ mật khẩu, OTP, token, API key, secret hay connection string nhạy cảm.
 - Không hardcode secret; dùng biến môi trường và placeholder trong tài liệu.
-- Không chạy thao tác phá hủy (reset/drop database, xóa volume, force push, xóa dữ liệu) khi chưa có sự chấp thuận rõ ràng.
-- Backend phải validate input; dùng Prisma/parameterized queries thay vì ghép SQL từ input.
-- Bảo vệ endpoint và Socket.IO bằng xác thực và phân quyền phía server.
-- Upload cần kiểm tra định dạng, kích thước, quyền và nội dung phù hợp; không tin hoàn toàn tên file/MIME do client khai báo.
+- Không thực hiện thao tác phá hủy (reset/drop database, xóa volume, force push, xóa dữ liệu) khi chưa được chấp thuận rõ ràng.
+- Validate input ở backend; dùng Prisma/parameterized queries, không ghép SQL từ input.
+- Bảo vệ endpoint và Socket.IO bằng xác thực/phân quyền phía server.
+- Upload phải kiểm tra định dạng, kích thước, quyền và nội dung; không tin hoàn toàn filename/MIME do client cung cấp.
 - Không tự gửi dữ liệu dự án hoặc dữ liệu người dùng đến dịch vụ ngoài.
 
-## 7. Các điểm nghiệp vụ cần đặc biệt chú ý
+## 8. Các điểm nghiệp vụ dễ triển khai sai
 
-> Đây là lời nhắc, **không thay thế** file requirements.
+> Chỉ là lời nhắc; luôn đối chiếu phần tương ứng trong requirements khi triển khai.
 
-- Guest chỉ được duyệt, tìm kiếm/lọc và xem chi tiết tin; các tương tác cần đăng nhập.
+- Guest có thể duyệt, tìm kiếm/lọc và xem chi tiết tin; tương tác yêu cầu đăng nhập.
 - Vị trí hồ sơ bắt buộc khi đăng ký; thay đổi vị trí hồ sơ không tự sửa vị trí tin đăng cũ.
-- **Một cặp user có một conversation**, có thể liên quan nhiều tin đăng; không tạo một conversation cho mỗi tin.
-- Tin ẩn/không còn khả dụng/đã soft-delete không được khởi tạo chat mới từ tin; cuộc trò chuyện cũ vẫn được giữ theo quy tắc đã chốt.
+- **Một cặp user có một conversation**, có thể liên quan nhiều tin đăng; không tạo conversation mới cho mỗi tin.
+- Tin ẩn/không còn khả dụng/đã soft-delete không cho khởi tạo chat mới từ tin; chat cũ được giữ theo quy tắc đã chốt.
 - Sửa tin đã có chat cần cảnh báo/xác nhận và xử lý thông báo đúng đối tượng.
 - Không mặc định thông báo cho mọi hành động follow, block hay chỉnh sửa profile.
 - Không có trang Admin trong Đồ án 1.
-- Thời lượng video chính xác, N của feed, chi tiết OTP và những điểm còn mở phải được kiểm tra trước khi chốt triển khai.
+- Thời lượng video chính xác, N của feed, chính sách OTP và các điểm mở khác phải kiểm tra trước khi chốt triển khai.
 
-## 8. Giao tiếp với người dùng
+## 9. Giao tiếp và quản lý context
 
-- Dùng **tiếng Việt**, rõ ràng, thực tế, từng bước; tránh giải thích dài không phục vụ tác vụ.
-- Khi hướng dẫn lệnh, dựa vào hệ điều hành, terminal và cấu hình thực tế.
-- Nêu rõ điều gì đã làm, đang đề xuất, chưa xác minh hoặc cần người dùng quyết định.
-- Khi có lỗi, đọc lỗi và kiểm tra hiện trạng trước; không đề nghị cài lại/làm lại toàn bộ một cách phản xạ.
-- Không tuyên bố “đã sửa”, “đã chạy”, “đã test”, “đã commit” khi chưa thực sự làm.
+- Dùng **tiếng Việt**, rõ ràng, thực tế, từng bước; không kéo dài câu trả lời khi không cần.
+- Khi hướng dẫn lệnh, dựa trên hệ điều hành, terminal và cấu hình thực tế.
+- Không lặp lại nguyên văn yêu cầu hoặc dump cả file/log khi chỉ cần tóm tắt hay diff.
+- Với phiên dài, duy trì bản tóm tắt ngắn gồm **mục tiêu, quyết định đã chốt, file đã sửa, kết quả test, việc còn lại và điểm chưa chốt**; xác minh lại từ source khi tiếp tục.
+- Tiết kiệm token **không được đánh đổi** tính đúng đắn, bảo mật, kiểm thử hoặc việc đọc thông tin cần thiết.
+- Khi có lỗi, đọc thông báo và kiểm tra hiện trạng trước; không đề nghị cài lại toàn bộ theo phản xạ.
+- Không nói “đã sửa”, “đã chạy”, “đã test”, “đã commit” nếu chưa thực sự làm.
 
-## 9. Định nghĩa hoàn thành
+## 10. Định nghĩa hoàn thành
 
-Một tác vụ chỉ được đánh dấu hoàn thành khi đáp ứng yêu cầu đã chốt, thay đổi được tích hợp đúng vị trí, kiểm chứng khả thi đã chạy, kết quả được báo trung thực và tài liệu/tiến độ liên quan được đồng bộ. Nếu còn thiếu, ghi **hoàn thành một phần**, **chưa kiểm chứng** hoặc **đang bị chặn**.
+Chỉ đánh dấu hoàn thành khi hành vi đáp ứng yêu cầu đã chốt, thay đổi được tích hợp đúng vị trí, kiểm chứng khả thi đã chạy, kết quả được báo trung thực và tài liệu/tiến độ liên quan đã đồng bộ. Nếu còn thiếu, ghi **hoàn thành một phần**, **chưa kiểm chứng** hoặc **đang bị chặn**.
 
 ---
 
-**Nguyên tắc cốt lõi:** *Phân tích đủ cho bước hiện tại → code → kiểm chứng → cập nhật tài liệu → tiếp tục*. Giữ lại những quyết định đã chốt; chỉ thay đổi khi có lý do cụ thể và sự thống nhất của người dùng.
+**Nguyên tắc cốt lõi:** *Phân tích đủ cho bước hiện tại → code → kiểm chứng → cập nhật tài liệu → tiếp tục*. Đọc đúng thứ cần đọc, nhưng không bỏ qua bằng chứng quan trọng chỉ để tiết kiệm token.
+
+# Chú thích Mã nguồn và Độ dễ đọc (Code Comments & Readability)
+
+Khi viết hoặc chỉnh sửa mã nguồn, hãy luôn ưu tiên **độ dễ đọc**, **khả năng bảo trì** và **lời giải thích rõ ràng**.
+
+---
+
+## Quy tắc Viết Chú thích (Commenting Rules)
+
+1. **Tương quan với độ phức tạp:** Chú thích (comment) phải tỉ lệ thuận với độ phức tạp của mã nguồn.
+2. **Đoạn mã đơn giản:** Đối với các hàm, phương thức, lớp hoặc đoạn mã đơn giản, chỉ sử dụng chú thích ngắn gọn mô tả mục đích khi thấy cần thiết.
+3. **Logic phức tạp vừa phải:** Giải thích trách nhiệm chính và các điều kiện quan trọng.
+4. **Logic/Thuật toán phức tạp:** Đối với các thuật toán, quy trình làm việc (workflow), quy tắc nghiệp vụ (business rules) hoặc hành vi không trực quan, hãy cung cấp chú thích chi tiết giải thích cách logic hoạt động và lý do tại sao nó lại cần thiết.
+5. **Trường hợp biên & Quyết định thiết kế:** Giải thích các trường hợp biên (edge cases), giới hạn kỹ thuật và các quyết định thiết kế mà các lập trình viên sau này cần phải hiểu.
+6. **Tập trung vào lý do ("Why"):** Ưu tiên giải thích *tại sao* đoạn mã được viết như vậy hơn là chỉ lặp lại *cái gì* mà mã nguồn đã thể hiện rõ.
+7. **Tránh rườm rà:** Không viết chú thích dài dòng không cần thiết cho các thao tác đơn giản.
+8. **Tránh trùng lặp:** Tránh các chú thích dư thừa lặp lại các câu lệnh, gán biến hoặc lời gọi hàm đã rõ ràng.
+9. **Tên gọi & Cấu trúc mã:** Sử dụng tên biến/hàm có ý nghĩa và cấu trúc mã rõ ràng; chú thích nhằm hỗ trợ độ dễ đọc chứ không dùng để bù đắp cho mã nguồn rối rắm.
+10. **Cập nhật đồng bộ:** Giữ chú thích luôn chính xác và cập nhật lại mỗi khi logic liên quan thay đổi.
+11. **Chuẩn JSDoc:** Sử dụng JSDoc cho các hàm, lớp hoặc API khi việc tài liệu hóa các tham số, giá trị trả về, hợp đồng (contracts) hoặc hành vi quan trọng mang lại lợi ích.
+12. **Ngôn ngữ sử dụng:** Sử dụng **tiếng Việt** cho các chú thích giải thích để dự án dễ hiểu và nhất quán, đồng thời giữ nguyên các thuật ngữ kỹ thuật phổ biến khi cần thiết.
+
+---
+
+## Nguyên tắc Cốt lõi (Guiding Principle)
+
+> **Mã nguồn đơn giản cần lời giải thích đơn giản. Mã nguồn phức tạp cần lời giải thích rõ ràng và đủ chi tiết.**
+
+Mục tiêu không phải là tối đa hóa số lượng chú thích, mà là đảm bảo các nhà phát triển có thể hiểu được mục đích, hành vi và lý do đằng sau cách triển khai.
