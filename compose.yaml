@@ -33,5 +33,25 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    image: looply-backend:dev
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: ${DOCKER_DATABASE_URL:?DOCKER_DATABASE_URL is required}
+
+    ports:
+      - "127.0.0.1:3000:3000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:

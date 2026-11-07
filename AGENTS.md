@@ -105,6 +105,19 @@ Chỉ đánh dấu hoàn thành khi hành vi đáp ứng yêu cầu đã chốt,
 
 **Nguyên tắc cốt lõi:** *Phân tích đủ cho bước hiện tại → code → kiểm chứng → cập nhật tài liệu → tiếp tục*. Đọc đúng thứ cần đọc, nhưng không bỏ qua bằng chứng quan trọng chỉ để tiết kiệm token.
 
+## 11. Môi trường phát triển, Docker và PostgreSQL
+
+- **Phát triển thường ngày:** backend chạy trực tiếp trên Windows bằng `npm run dev` trong `backend/`; không bắt buộc chạy backend trong Docker khi sửa code.
+- **Docker Compose:** file `compose.yaml` ở gốc repository quản lý `backend` và `postgres`. PostgreSQL 17 trong Docker là database phát triển chính; backend Docker sử dụng hostname service `postgres`, không dùng `localhost` để kết nối database trong container.
+- **Dockerfile:** `backend/Dockerfile` dùng multi-stage build; runtime chạy JavaScript đã biên dịch (`dist/`), không tự đồng bộ source. Khi cần kiểm tra phiên bản container mới, build lại đúng service bằng `docker compose up -d --build --no-deps backend` sau khi xác nhận PostgreSQL đang chạy.
+- **Prisma:** dùng phiên bản được khóa trong `backend/package-lock.json` (hiện tại 7.10.1), schema và cấu hình Prisma hiện có. Không sử dụng lệnh/cấu hình chỉ hỗ trợ Prisma 8. Việc generate Prisma Client khi build Docker cần `DATABASE_URL` hợp lệ về cú pháp; không đưa mật khẩu thật vào Dockerfile hoặc image.
+- **Biến môi trường:** phân biệt `.env` tại gốc repository (phục vụ Compose) với `backend/.env` (phục vụ chạy backend trên máy). Không in giá trị secret ra log hoặc câu trả lời; kiểm tra cấu hình Compose bằng `docker compose config --quiet` khi phù hợp.
+- **Logical Replication:** PostgreSQL 17 Docker là publisher, PostgreSQL 18.3 trên Windows là subscriber một chiều. Replication hiện chỉ áp dụng cho bảng đã được thêm vào publication; **migration/DDL, bảng mới và thay đổi schema không tự đồng bộ**. Không mặc định replication bao phủ toàn bộ database.
+- **An toàn dữ liệu:** giữ nguyên volume `postgres_data`, publication, subscription, replication slot và cấu hình WAL. Không chạy `docker compose down -v`, `docker volume prune`, reset/drop database, thay đổi topology replication hoặc thao tác có thể mất dữ liệu khi chưa được người dùng chấp thuận rõ ràng.
+- **Kiểm chứng:** sau thay đổi liên quan Docker, xác minh service bằng `docker compose ps`, log phù hợp và endpoint `GET /api/health`. Endpoint này xác nhận HTTP API đang phản hồi; **không mặc định** nó kiểm tra trạng thái database ở mỗi request. Không khẳng định build/test/kết nối thành công khi chưa có kết quả thực tế.
+
+---
+
 # Chú thích Mã nguồn và Độ dễ đọc (Code Comments & Readability)
 
 Khi viết hoặc chỉnh sửa mã nguồn, hãy luôn ưu tiên **độ dễ đọc**, **khả năng bảo trì** và **lời giải thích rõ ràng**.
