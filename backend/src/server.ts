@@ -1,34 +1,32 @@
 import "dotenv/config";
-import { app } from "./app";
-import { prisma } from "./shared/database/prisma";
+import { createBackend } from "./bootstrap";
+import { loadConfig } from "./config/environment";
 
-const port = Number(process.env.PORT ?? 3000);
-
+/** Starts the composed backend and keeps process signals outside the reusable HTTP app. */
 async function main(): Promise<void> {
-  await prisma.$connect();
+  const backend = createBackend(loadConfig());
+  let stopping = false;
 
-  const server = app.listen(port, () => {
-    console.log(`Looply backend running on http://localhost:${port}`);
-  });
-
-  let shuttingDown = false;
-
+  /** Drains resources once; a failed deadline requires a final forced process exit. */
   async function shutdown(): Promise<void> {
-    if (shuttingDown) return;
-    shuttingDown = true;
-
-    server.close(async () => {
-      await prisma.$disconnect();
-      process.exit(0);
-    });
+    if (stopping) return;
+    stopping = true;
+    try {
+      await backend.runtime.stop();
+      process.exitCode = 0;
+    } catch {
+      backend.logger.fatal({ code: "SHUTDOWN_FAILED" }, "Backend could not stop safely");
+      process.exit(1);
+    }
   }
 
-  process.on("SIGINT", () => void shutdown());
-  process.on("SIGTERM", () => void shutdown());
+  process.once("SIGINT", () => void shutdown());
+  process.once("SIGTERM", () => void shutdown());
+  await backend.runtime.start();
 }
 
-main().catch(async (error: unknown) => {
-  console.error("Failed to start backend:", error);
-  await prisma.$disconnect();
+// Never serialize configuration, connection errors or arbitrary exception messages at startup.
+main().catch(() => {
+  console.error("Backend startup failed. Check configuration and database availability.");
   process.exitCode = 1;
 });

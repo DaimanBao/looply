@@ -25,15 +25,15 @@ Mọi lệnh `run` có working directory là `backend/`:
 4. `npm exec -- prisma generate --config prisma7.config.ts` sinh client bị Git ignore, cần cho typecheck, build và Prisma integration test trên checkout mới.
 5. Xác minh database CI như trên.
 6. `npm exec -- prisma migrate deploy --config prisma7.config.ts` áp dụng toàn bộ lịch sử migration vào database mới.
-7. `npm test` và `npm run test:integration`.
+7. `npm test`, `npm run test:api` và `npm run test:integration`.
 8. `npm run typecheck` và `npm exec -- tsc --project tests/tsconfig.json`.
 9. `npm run build`.
 
-Không cần sửa npm scripts, cấu hình Prisma/Vitest hoặc test helpers: workflow truyền environment riêng và chỉ rõ tên config Prisma thực tế. CI dừng tại bước thất bại, không bỏ qua hoặc tự sửa test.
+Backend Core thêm script `test:api`, config `vitest.api.config.ts` và bước API integration riêng vào workflow. Cấu hình Prisma, config unit/database test và database helpers được giữ nguyên. Workflow truyền environment riêng và chỉ rõ tên config Prisma thực tế. CI dừng tại bước thất bại, không bỏ qua hoặc tự sửa test.
 
 ## Kiểm chứng workflow
 
-Kết quả local ngày 12/11/2026: đã replay nguyên 11 bước `run` trong YAML trên container Linux `node:24-bookworm` (Node.js 24.22.3) cùng PostgreSQL 17 tạo mới. Backend được lấy từ Git, không sao chép `.env`, `node_modules` hoặc generated client từ máy phát triển.
+Kết quả local giai đoạn thiết lập CI ngày 12/11/2026, trước Backend Core: đã replay nguyên 11 bước `run` trong YAML trên container Linux `node:24-bookworm` (Node.js 24.22.3) cùng PostgreSQL 17 tạo mới. Backend được lấy từ Git, không sao chép `.env`, `node_modules` hoặc generated client từ máy phát triển. Workflow hiện có thêm bước API test; kết quả kiểm chứng Backend Core thuộc [`backend/README.md`](../../backend/README.md).
 
 | Kiểm tra đã thực sự chạy | Kết quả |
 | --- | --- |

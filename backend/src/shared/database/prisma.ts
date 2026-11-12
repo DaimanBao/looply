@@ -1,14 +1,13 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../../generated/prisma/client";
+import { PrismaClient, type Prisma } from "../../generated/prisma/client";
+import { validateDatabaseUrl } from "../../config/database-url";
+import type { AppConfig } from "../../config/environment";
 
-const databaseUrl = process.env.DATABASE_URL;
+export type DatabaseLifecycle = Pick<PrismaClient, "$connect" | "$disconnect">;
+export type DatabaseTransaction = Prisma.TransactionClient;
 
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is not configured");
+/** Creates an explicit client for the selected environment; import alone has no database side effects. */
+export function createPrismaClient(config: Pick<AppConfig, "databaseUrl" | "environment" | "databaseConnectTimeoutMs">): PrismaClient {
+  const connectionString = validateDatabaseUrl(config.databaseUrl, config.environment);
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString, connectionTimeoutMillis: config.databaseConnectTimeoutMs }) });
 }
-
-const adapter = new PrismaPg({
-  connectionString: databaseUrl,
-});
-
-export const prisma = new PrismaClient({ adapter });
