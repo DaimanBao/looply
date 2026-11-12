@@ -25,7 +25,7 @@ export const foreignKeys: ReadonlyArray<readonly [Table, string, Table]> = [
 ];
 
 export const uniqueKeys: ReadonlyArray<readonly [Table, readonly string[]]> = [
-  ["provinces", ["code"]], ["users", ["username"]], ["users", ["email"]],
+  ["provinces", ["code"]], ["users", ["username"]],
   ["users", ["phone"]], ["users", ["avatarMediaId"]],
   ["auth_sessions", ["refreshTokenHash"]], ["google_accounts", ["userId"]],
   ["google_accounts", ["googleSubject"]], ["user_follows", ["followerId", "followingId"]],

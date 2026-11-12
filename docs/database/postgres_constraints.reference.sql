@@ -5,9 +5,11 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 ALTER TABLE "users" ADD CONSTRAINT ck_user_username
-  CHECK (username ~ '^[a-z0-9_]{3,30}$' AND username ~ '[a-z0-9]');
+  CHECK (username ~ '^[a-z0-9_]{3,30}$');
 ALTER TABLE "users" ADD CONSTRAINT ck_user_verified_email
-  CHECK ((email IS NULL AND "emailVerifiedAt" IS NULL) OR (email IS NOT NULL AND "emailVerifiedAt" IS NOT NULL));
+  CHECK ("emailVerifiedAt" IS NULL OR email IS NOT NULL);
+-- Normalized verified-email index, lifecycle columns/check and display name:
+-- see authoritative migration 0004_auth_user_preparation; do not duplicate its DDL here.
 ALTER TABLE "users" ADD CONSTRAINT ck_user_verified_phone
   CHECK ((phone IS NULL AND "phoneVerifiedAt" IS NULL) OR (phone IS NOT NULL AND "phoneVerifiedAt" IS NOT NULL));
 ALTER TABLE "auth_sessions" ADD CONSTRAINT ck_session_version CHECK ("tokenVersion" >= 1);

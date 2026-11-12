@@ -34,7 +34,6 @@ describe("User database constraints", () => {
     ["spaces", "invalid user"],
     ["special characters", "invalid@user"],
     ["too short", "ab"],
-    ["only underscores", "___"],
   ])("rejects %s in username", async (_case, username) => {
     await withRollback(async (client) => {
       const user = testUser(username);
@@ -68,20 +67,16 @@ describe("User database constraints", () => {
     });
   });
 
-  it("rejects an email without verification", async () => {
+  it("accepts an email without verification", async () => {
     await withRollback(async (client) => {
       const user = testUser(`test_${randomUUID().slice(0, 8)}`);
 
-      await expect(
-        client.query(
-          `INSERT INTO users ("id", "username", "displayName", "email", "updatedAt")
-           VALUES ($1, $2, $3, $4, NOW())`,
-          [user.id, user.username, user.displayName, "test@example.com"],
-        ),
-      ).rejects.toMatchObject({
-        code: "23514",
-        constraint: "ck_user_verified_email",
-      });
+      const result = await client.query(
+        `INSERT INTO users ("id", "username", "displayName", "email", "updatedAt")
+         VALUES ($1, $2, $3, $4, NOW()) RETURNING email, "emailVerifiedAt"`,
+        [user.id, user.username, user.displayName, "test@example.com"],
+      );
+      expect(result.rows[0]).toMatchObject({ email: "test@example.com", emailVerifiedAt: null });
     });
   });
 

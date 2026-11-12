@@ -28,7 +28,19 @@
 - **Follow:** Không phát sinh Notification khi Follow/Unfollow; số lượng Followers/Following phản ánh quan hệ thực tế. Quan hệ Follow cũ vẫn được giữ khi có Block, nhưng không được tạo Follow mới theo cả hai chiều cho đến khi bỏ Block.
 - **Block:** Không tự Unfollow, xóa lịch sử Chat hay ẩn bài đăng; Chat chịu trách nhiệm từ chối gửi tin nhắn hai chiều trong thời gian Block. Không tạo quan hệ trùng; thao tác không hợp lệ không được gây thay đổi dữ liệu ngoài ý muốn.
 - **Avatar:** Khi xóa, hiển thị avatar mặc định; việc tải lên, kiểm tra và xử lý ảnh tuân theo Media.
-- **Thông tin liên hệ:** Email không có trong form đăng ký nội bộ; có thể bổ sung từ Profile. Mọi thay đổi email/phone phải qua OTP của Auth, không tin trạng thái xác minh do client tự khai báo.
+- **Thông tin liên hệ:** Email tùy chọn khi đăng ký và có thể chưa xác minh; quy tắc chuẩn hóa/quyền sở hữu thuộc [Auth](AUTH_REQUIREMENTS.md). Thay thế email/phone đã xác minh phải qua re-authentication theo thao tác và OTP tới địa chỉ mới; không tin trạng thái xác minh do client tự khai báo.
+- **Display Name:** bắt buộc, Unicode (bao gồm tiếng Việt), từ 1 đến 60 ký tự Unicode. Validation tương lai phải đếm Unicode code point, không dùng trực tiếp JavaScript `.length` cho ký tự ngoài BMP; không thêm quy tắc loại bỏ khoảng trắng chưa được phê duyệt.
+- **Username:** duy nhất, lowercase, 3–30 ký tự `[a-z0-9_]`; chỉ `_` vẫn hợp lệ. `usernameChangedAt = NULL` nghĩa là chưa từng đổi: được đổi ngay sau đăng ký, kể cả tài khoản Google dùng username tự sinh. Sau mỗi lần đổi thành công phải chờ đủ 30 × 24 giờ; service phải dùng conditional update/transaction để chống request đồng thời. Không dùng `updatedAt` làm mốc cooldown.
+- **Province:** catalog lưu trong PostgreSQL; server tra mã hợp lệ và trạng thái hoạt động. Dữ liệu 34 tỉnh/thành từ nguồn chính thống cần seed ở nhiệm vụ riêng, chưa triển khai trong đợt schema này.
+
+## Vòng đời xóa tài khoản đã duyệt
+
+- Chính xác bốn trạng thái: `ACTIVE -> PENDING_DELETION -> DELETING -> DELETED`; trạng thái mặc định là `ACTIVE`.
+- `ACTIVE` không có `deletionRequestedAt`; `PENDING_DELETION` và `DELETING` bắt buộc có mốc yêu cầu. `DELETED` cho phép giữ hoặc xóa mốc này khi ẩn danh hóa, tránh CHECK cản trở dọn dữ liệu.
+- Yêu cầu xóa phải qua re-authentication; chờ 30 ngày. Đăng nhập không tự khôi phục; hủy xóa cần xác nhận tường minh, đưa về `ACTIVE` và xóa mốc yêu cầu. Khi đã `DELETING` thì không thể hủy/khôi phục.
+- Trong thời gian chờ, ẩn Profile/Listing bằng điều kiện trạng thái User, không ghi đè trạng thái hiển thị gốc của Listing; cấm tương tác thông thường và gửi tin nhắn mới, giữ lịch sử cho người tham gia còn lại.
+- Xóa/ẩn danh phải idempotent, tiếp tục được sau lỗi một phần, hoàn tất các bước bắt buộc trước `DELETED`. Giữ nguyên User ID, tuyệt đối không tái sử dụng hoặc chuyển lịch sử sang tài khoản mới. Chỉ giải phóng username/email/phone cũ sau khi hoàn tất.
+- Service tương lai dùng conditional updates để kiểm soát chuyển trạng thái, thời gian chờ và tính không đảo ngược; CHECK chỉ bảo vệ tổ hợp state/timestamp. Chính sách dọn nội dung/PII xuyên module cần hoàn thiện trước worker. Chưa triển khai API/service/job/worker trong nhiệm vụ chuẩn bị schema.
 
 ## Ranh giới module
 

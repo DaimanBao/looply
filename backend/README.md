@@ -64,7 +64,7 @@ npm run build
 
 - Unit tests ở `src/**/*.spec.ts`: config, lỗi Prisma, serialization, pagination, logging và lifecycle bằng dependency fake.
 - API tests ở `tests/api/`: dùng app factory và Router synthetic; không load `.env`, tạo Prisma client hay kết nối database. Các route synthetic không được mount ở production hoặc đưa vào OpenAPI.
-- Database regression ở `tests/integration/`: giữ nguyên 337 test và helper hiện có. Trước khi chạy, phải xác minh `TEST_DATABASE_URL` và `SELECT current_database()` đúng `looply_test`; không fallback sang Development.
+- Database regression ở `tests/integration/`: các constraint và migration compatibility test dùng helper xác minh `TEST_DATABASE_URL` và `SELECT current_database()` đúng `looply_test`; không fallback sang Development. Kết quả mới nhất sau chuẩn bị Auth/User thuộc [Database Integration Tests](../docs/database/INTEGRATION_TESTS.md).
 - Transaction rollback của helper `pg` chỉ bao phủ connection đó. API use case tương lai chạy qua pool/connection khác cần transaction được inject đúng hoặc fixture có ID riêng và cleanup an toàn trên `looply_test`.
 - CI được bổ sung bước `test:api`; giữ các bước test database/typecheck/validate/build. Chi tiết trigger và PostgreSQL service thuộc [`docs/workflows/CI.md`](../docs/workflows/CI.md).
 
