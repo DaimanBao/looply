@@ -1,5 +1,7 @@
 # Required review before integration
 
+> Cập nhật kiểm thử 12/11/2026: `0002_fix_media_duration` và `0003_reject_nan_prices` đã sửa lỗi thời lượng video và NaN trên riêng `looply_test`; **337/337 integration test PASS**. Prisma validate, unit test, typecheck source/test và build đều PASS. Xem [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md) cho bằng chứng và phạm vi. Danh sách dưới đây vẫn là yêu cầu review và kiểm chứng rộng hơn ở tầng service/concurrency, không phải xác nhận đã triển khai module.
+
 ## Cross-table invariants (cannot be fully expressed by ordinary Prisma relations)
 1. User.avatarMediaId must point to ATTACHED PROFILE IMAGE uploaded by the same User. UNIQUE prevents two current avatars pointing at the same MediaAsset; historical unused PROFILE media is allowed. Changing avatar must be atomic with the pointer change. `User.avatarMediaId` creates an FK cycle in the schema, so create User first and avatar later.
 2. Listing must have 1–5 active attached images and exactly one cover, max one video; these *minimum/maximum count* constraints require locking Listing and validating in a transaction. Video <=100MB/180s; image <=10MB; verify actual MIME/file contents. `MediaAsset` is exclusively linked to a single Listing or current avatar; no copying the same asset ID to another target. TEMP may have no Listing. Deleting a Listing must revoke media access even if URL is known.
@@ -14,11 +16,11 @@
 11. SearchTitle is normalized from title by one canonical algorithm (Vietnamese accent folding including đ/Đ), kept in sync on edits. pg_trgm is an index choice, not an automatic accent normalizer. Search only active listings publicly. Cursor sort price puts EXCHANGE last using explicit query order.
 12. Province IDs are UUID FKs; code is UNIQUE and API-facing. Do not delete referenced provinces; administrative code changes require mapping.
 13. Listing contactPhone is optional and **must be explicitly supplied for publication**, never silently populated from private User.phone. Confirm if it is desired in MVP before implementation.
-14. `DECIMAL(15,0)` maps to Prisma Decimal; serialize as string for JSON/API and compare using decimal-safe operations, not JS floating point.
+14. `DECIMAL(15,0)` maps to Prisma Decimal; serialize as string for JSON/API and compare using decimal-safe operations, not JS floating point. All three price fields (`Listing.price`, `TransactionProposal.proposedPrice`, `TransactionProposal.listedPriceSnapshot`) reject NaN after `0003_reject_nan_prices`. Snapshot nullability and all previous price/type/unit/status rules are preserved; fixed precision already rejects positive/negative Infinity.
 15. Unique indexes and CHECK constraints in companion SQL are illustrative; confirm enum SQL literals, case, generated DDL, and historical data before applying. Avoid duplicate Prisma and SQL unique indexes.
 
 ## Required tests before any integration
-- Prisma format + validate using the locked 7.10.1 CLI and real `prisma.config.ts` in a safe checkout.
+- Use the installed Prisma 7.10.1 CLI with the actual `backend/prisma7.config.ts`; `prisma validate --config prisma7.config.ts` has passed. Review formatting without rewriting applied migrations.
 - Generate migration *without applying* and review generated SQL plus custom indexes/constraints.
 - Create a dedicated `_test` PostgreSQL database, verify URL points to it before running any migration.
 - Unit/integration tests for simultaneous conversation create, send retry same/different payload, message read cursor monotonicity, block/send race, concurrent proposal accept, media cover swap, TEMP cleanup/attach, notification read/new-message race, duplicate outbox retry, Worker crash and reconnect backfill.
@@ -29,4 +31,4 @@ Admin, payments, orders, shipping, rental calendar, ratings, group chat, voice/v
 ## Đồng bộ bổ sung từ yêu cầu module
 - `Message.imageMediaId` / `MediaPurpose.CHAT` phục vụ ảnh trong tin nhắn; phải bảo đảm chỉ một ảnh/tin nhắn và file hợp lệ, không tái sử dụng sai chủ sở hữu.
 - `TransactionProposal.listedPriceSnapshot` lưu giá tại thời điểm gửi; kiểm tra giá và đơn vị RENT bằng logic nghiệp vụ/transaction.
-- Chưa chạy Prisma CLI hoặc migration trong lần chỉnh sửa tài liệu này; mọi ràng buộc SQL là tham khảo đến khi review và test.
+- Trạng thái thực thi: `0001_init`, `0002_fix_media_duration`, `0003_reject_nan_prices` đã được xác minh thành công trên `looply_test`, checksum khớp file; `migration_lock.toml` khóa provider PostgreSQL. SQL trong `postgres_constraints.reference.sql` vẫn chỉ là tài liệu tham khảo chưa đồng bộ đầy đủ, không dùng thay lịch sử migration thực thi. Không suy ra trạng thái dev/prod từ kết quả test.
