@@ -12,3 +12,11 @@ coverage/
 !.vscode/extensions.json
 
 .DS_Store
+
+# Prisma generated client
+/backend/src/generated/prisma/
+
+# Prisma-generated AI Agent Skills
+/backend/.agents/skills/
+/backend/.claude/skills/
+/backend/.windsurf/skills/
