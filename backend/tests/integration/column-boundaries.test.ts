@@ -33,6 +33,7 @@ describe("Database column boundaries and defaults", () => {
   it("persists initial status, cycle, counters, timestamps and JSON payload defaults", async () => {
     await withTestTransaction(async (client) => {
       const rows = await createFixtures(client);
+      expect(rows.users).toMatchObject({ status: "ACTIVE", deletionRequestedAt: null, usernameChangedAt: null });
       expect(rows.listings).toMatchObject({ status: "ACTIVE", activeCycle: 1, version: 1, deletedAt: null });
       expect(rows.auth_sessions.tokenVersion).toBe(1);
       expect(rows.otp_challenges.attempts).toBe(0);

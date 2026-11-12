@@ -24,6 +24,7 @@
 | API contract / tài liệu | OpenAPI 3.1, `@scalar/express-api-reference` |
 | Object storage client | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` |
 | Background jobs | PostgreSQL outbox + Node.js worker |
+| OTP / re-authentication tạm thời | Redis đã được duyệt cho triển khai tương lai; chưa cài client, cấu hình dịch vụ hoặc thay bảng OTP hiện có |
 | Tests | Vitest, `@vitest/coverage-v8`, Supertest |
 | Development / code quality | `tsx`, ESLint, `typescript-eslint`, Prettier |
 
@@ -52,6 +53,6 @@
 
 - Phạm vi chỉ **Đồ án 1**: Auth, User, Listing, Media, Chat, Transaction Proposal, Notification, Reminder; không triển khai Admin Java/Spring Boot của Đồ án 2.
 - Không tự thêm/thay thế framework, thư viện lớn, nhà cung cấp dịch vụ hoặc nâng major version khi chưa được duyệt.
-- Không dùng NgRx, Redis, RabbitMQ hay microservices nếu chưa có yêu cầu mới.
+- Không dùng NgRx, RabbitMQ hay microservices nếu chưa có yêu cầu mới. Redis chỉ được duyệt cho OTP, re-authentication và giới hạn tần suất dùng chung; việc tích hợp thuộc nhiệm vụ sau.
 - Giữ REST API contract đồng bộ giữa Backend/Frontend; kiểm tra build, test và tích hợp thực tế, không coi việc cài dependency là hoàn thành chức năng.
 - Quy tắc nghiệp vụ xem trong `requirements/`; cấu trúc code xem trong `structures/`; quy trình xem trong `workflows/DEVELOPMENT_WORKFLOW.md`.

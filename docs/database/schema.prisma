@@ -9,6 +9,13 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserStatus {
+  ACTIVE
+  PENDING_DELETION
+  DELETING
+  DELETED
+}
+
 enum OtpChannel {
   SMS
   EMAIL
@@ -94,11 +101,15 @@ model User {
   id String @id @default(uuid()) @db.Uuid
   username String @unique @db.VarChar(30)
   passwordHash String? @db.Text
-  displayName String @db.VarChar(50)
+  usernameChangedAt DateTime? @db.Timestamptz(3)
+  displayName String @db.VarChar(60)
+  status UserStatus @default(ACTIVE)
+  deletionRequestedAt DateTime? @db.Timestamptz(3)
   bio String? @db.VarChar(300)
   avatarMediaId String? @unique @db.Uuid
   avatarMedia MediaAsset? @relation("CurrentAvatar", fields: [avatarMediaId], references: [id], onDelete: Restrict)
-  email String? @unique @db.VarChar(254)
+  // Verified ownership uses a normalized partial unique index in custom SQL.
+  email String? @db.VarChar(254)
   emailVerifiedAt DateTime? @db.Timestamptz(3)
   phone String? @unique @db.VarChar(20)
   phoneVerifiedAt DateTime? @db.Timestamptz(3)

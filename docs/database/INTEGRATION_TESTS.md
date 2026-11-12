@@ -1,5 +1,31 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Chuẩn bị Auth + User — 13/11/2026
+
+Đã áp dụng riêng `0004_auth_user_preparation` trên **`looply_test`**, sau khi xác minh URL, `current_database()`, ba migration trước đó và dữ liệu tương thích. Không kết nối Production, không áp dụng migration lên Development, không reset/seed hoặc chỉnh sửa dữ liệu User hiện có. Ba file migration cũ giữ nguyên; checksum test khớp nội dung sau xét LF/CRLF.
+
+| Kiểm tra thực sự đã chạy | Kết quả |
+| --- | --- |
+| `prisma validate --config prisma7.config.ts` | PASS, Prisma 7.10.1. |
+| `prisma generate --config prisma7.config.ts` | PASS, không bật preview feature. |
+| `vitest run --config vitest.integration.config.ts tests/integration/auth-user-migration.test.ts -t existing` trước deploy | 3 PASS; một ca kiểm tra lịch sử sau deploy không được chọn bởi filter. |
+| `prisma migrate deploy --config prisma7.config.ts` qua tiến trình gán `DATABASE_URL=TEST_DATABASE_URL` đã xác minh | PASS, chỉ áp dụng `0004_auth_user_preparation` vào `looply_test`. |
+| `prisma migrate status --config prisma7.config.ts` với URL test đã xác minh | PASS, đủ bốn migration và database up to date. |
+| `npm run test:integration` sau deploy và bổ sung regression lifecycle | **374/374 PASS, 19 file**, không skip/todo/only. |
+| `npm test` | **68/68 PASS, 7 file**. |
+| `npm run test:api` | **23/23 PASS, 1 file**. |
+| `npm run typecheck` và `tsc --project tests/tsconfig.json` | PASS. |
+| `npm run build` | PASS. |
+| `git diff --check`, đối chiếu ba migration cũ/dependencies và schema logic/thực thi | PASS; không đổi migration cũ/dependencies, hai schema đồng nhất về mô hình dữ liệu. |
+
+Phạm vi mới: email unverified được lưu/trùng, verified ownership được bảo vệ ở INSERT/UPDATE, case/ASCII/Unicode trim whitespace thống nhất với chuẩn hóa đã duyệt, không gộp dấu chấm/`+suffix`; username toàn `_` hợp lệ; timestamp đổi username nullable; lifecycle/default/tổ hợp timestamp, giữ unique username/email/phone qua cả bốn trạng thái cho đến cleanup tường minh; Display Name Unicode 1–60 (kể cả ký tự ngoài BMP), empty/overflow bị từ chối. Hai kỳ vọng cũ đã lỗi thời được thay đúng yêu cầu: cấm username toàn `_` và global email unique; các ca bảo vệ verified email vẫn được kiểm thử riêng.
+
+Migration compatibility test tái tạo ba migration cũ trong schema ngẫu nhiên trên cùng `looply_test`, tạo User có sẵn rồi thực thi SQL mới. Chỉ bỏ transaction envelope khi test để helper sở hữu transaction rollback; không sửa file migration. Xác minh giữ nguyên toàn bộ field cũ/verified ownership, gán ACTIVE/NULL cho field mới, dừng trước thay đổi khi normalized email trùng hoặc Display Name cũ rỗng. Schema/fixture được rollback; catalog test kiểm tra đủ bốn migration và checksum.
+
+Tổng persistence contract sau `0004`: vẫn 17 model, 36 FK RESTRICT/CASCADE, 17 PK ứng dụng và 17 cột VARCHAR; thêm hai CHECK (tổng 25), thay global email unique bằng partial expression index (18 unique thường và 7 partial unique), thêm một cột NOT NULL (106 lên 107). Đã đếm lại bằng catalog và replay schema cũ; con số 132 ghi trước đây trong tài liệu là sai. Các quan hệ và bảng OTP giữ nguyên. Sau test không còn fixture User/Province hoặc schema replay tồn dư.
+
+Giới hạn: chưa triển khai hoặc kiểm thử service cooldown 30 ngày, chuyển trạng thái theo thời gian, worker/ẩn danh hóa, atomic invalidation email, OTP/re-auth Redis, SMS/email provider hay Auth/User API. Test ràng buộc unique không thay thế kiểm thử concurrency của service tương lai. Cảnh báo Vitest/CommonJS hiện có vẫn xuất hiện nhưng không làm các kiểm tra thất bại. Bằng chứng các đợt trước được giữ dưới đây theo thời điểm, không phải kết quả mới nhất.
+
 ## Trạng thái ngày 12/11/2026
 
 **Đã sửa lỗi thời lượng video và NaN ở toàn bộ trường giá; kiểm chứng đạt toàn bộ Database Integration Test.** Sau khi áp dụng `0002_fix_media_duration`, `0003_reject_nan_prices` riêng trên `looply_test` theo phê duyệt của người dùng, lần chạy cuối có **337 PASS / 337 test**, thuộc 16 file. Không có test bị skip, todo hoặc only. Không đánh dấu hoàn thành chức năng trong checklist nghiệp vụ.
@@ -40,7 +66,7 @@ npm run build
 | Notification | isRead/readAt; một MESSAGE chưa đọc/chưa xóa mỗi recipient/conversation; read/deleted/type/recipient khác; eventKey không trùng theo recipient, vẫn bảo vệ sau khi xóa; NULL eventKey được phép. |
 | Outbox, ProcessedEvent | Attempts không âm; enum; JSON payload và giá trị mặc định; receipt UNIQUE consumer/event, consumer khác được phép. |
 | Tất cả trường giá | `Listing.price`, `TransactionProposal.proposedPrice`, `TransactionProposal.listedPriceSnapshot`: NaN bị từ chối ở INSERT và UPDATE; kiểm tra SALE/RENT, LISTED_PRICE/NEGOTIATED_PRICE, snapshot EXCHANGE và các trạng thái proposal; Infinity/-Infinity bị kiểu numeric(15,0) từ chối; giá trị hữu hạn 1/max, snapshot NULL, EXCHANGE không có giá vẫn hợp lệ. |
-| Toàn schema | 23 CHECK có assertion; 36 FK có ca orphan và đối chiếu catalog; 19 UNIQUE thường, 6 partial UNIQUE, 17 primary key; 132 cột NOT NULL; cả giới hạn đúng và overflow của 17 cột VARCHAR. Kiểm tra RESTRICT trên các bảng cha có lịch sử và CASCADE cập nhật Province; inventory test xác nhận đủ 3 cột numeric(15,0). |
+| Toàn schema | 23 CHECK có assertion; 36 FK có ca orphan và đối chiếu catalog; 19 UNIQUE thường, 6 partial UNIQUE, 17 primary key; 106 cột NOT NULL (đã sửa số đếm tài liệu theo replay schema cũ); cả giới hạn đúng và overflow của 17 cột VARCHAR. Kiểm tra RESTRICT trên các bảng cha có lịch sử và CASCADE cập nhật Province; inventory test xác nhận đủ 3 cột numeric(15,0). |
 
 FK `Conversation.initiatorId` và `contactUserId` bị ràng buộc bằng nhau trong shape LISTING: ca orphan phải thay cả hai để không bị CHECK chặn trước; PostgreSQL báo FK initiator trước. Catalog test kiểm tra riêng sự tồn tại và RESTRICT/CASCADE của cả hai FK, không tuyên bố đã cô lập lỗi runtime riêng cho FK contact.
 

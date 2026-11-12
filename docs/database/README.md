@@ -7,7 +7,7 @@
 - [`INTEGRATION_TESTS.md`](INTEGRATION_TESTS.md): phạm vi, cách chạy an toàn, kết quả và lỗi còn tồn tại của Database Integration Test.
 
 ## Trạng thái và nguồn sự thật
-`docs/database/schema.prisma` là bản thiết kế logic xuất phát từ full draft. Schema thực thi hiện nằm tại [`backend/prisma/schema.prisma`](../../backend/prisma/schema.prisma), cùng lịch sử migration trong [`backend/prisma/migrations/`](../../backend/prisma/migrations/). Giai đoạn kiểm thử trên `looply_test` đã xác minh thành công ba migration `0001_init`, `0002_fix_media_duration`, `0003_reject_nan_prices`. Toàn bộ **337 Database Integration Test PASS**, Prisma validate và các kiểm tra source/test đều đạt; xem bằng chứng và giới hạn tại [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Trạng thái Development được xác minh riêng như dưới đây; không suy ra hoàn thành chức năng từ việc database test đạt.
+`docs/database/schema.prisma` là bản thiết kế logic xuất phát từ full draft. Schema thực thi hiện nằm tại [`backend/prisma/schema.prisma`](../../backend/prisma/schema.prisma), cùng lịch sử migration trong [`backend/prisma/migrations/`](../../backend/prisma/migrations/). Trên `looply_test` đã áp dụng bốn migration từ `0001_init` đến `0004_auth_user_preparation`; bằng chứng kiểm thử mới nhất và giới hạn thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Trạng thái Development được ghi riêng như dưới đây; không suy ra hoàn thành chức năng từ việc database test đạt.
 
 Nghiệp vụ chính thức thuộc `../requirements/modules/`. SQL tham khảo chưa đồng bộ đầy đủ với migration thực thi, đặc biệt phần CHAT media, message ảnh và kiểm tra NULL; không dùng thay migration.
 
@@ -25,6 +25,20 @@ PostgreSQL 17 local chạy bằng Docker theo [`compose.yaml`](../../compose.yam
 CI dùng PostgreSQL service riêng trên runner; dù cũng đặt tên database là `looply_test`, dữ liệu và kết nối độc lập với local. Chi tiết thuộc [`workflows/CI.md`](../workflows/CI.md). Credentials chỉ nằm trong cấu hình môi trường cục bộ hoặc môi trường thực thi phù hợp, không ghi vào tài liệu.
 
 **Development đã xác minh ngày 12/11/2026:** `DATABASE_URL` và `SELECT current_database()` đều xác nhận `looply_dev`. Đã áp dụng thành công `0001_init`, `0002_fix_media_duration`, `0003_reject_nan_prices` bằng Prisma Migrate Deploy; lịch sử và checksum hợp lệ, đủ 17 bảng ứng dụng, các constraint/index hợp lệ và Prisma validate PASS. Không chạy integration test trên Development. Production là môi trường riêng; kết quả local không xác nhận trạng thái production.
+
+## Chuẩn bị schema Auth + User
+
+Migration [`0004_auth_user_preparation`](../../backend/prisma/migrations/0004_auth_user_preparation/migration.sql) chỉ chuẩn bị database cho năm nhóm thay đổi đã duyệt; không triển khai chức năng ứng dụng:
+
+- `User.email` không còn global unique. `uq_user_verified_email` là partial unique expression index chỉ với `emailVerifiedAt IS NOT NULL`; CHECK chỉ yêu cầu có email khi có timestamp xác minh. Khai báo chưa xác minh không chiếm quyền sở hữu.
+- Index so sánh lowercase sau khi trim tập whitespace của JavaScript `trim()` (bao gồm tab/newline và Unicode whitespace), giữ dấu chấm/`+suffix`. Service tương lai phải lưu `email.trim().toLowerCase()` và vô hiệu hóa atomic các khai báo xung đột; index không tự sửa giá trị đã lưu hoặc làm việc dọn khai báo. Không bật Prisma preview feature; expression index/CHECK được quản lý bằng SQL migration. Email không còn là khóa `findUnique` trong Prisma Client; repository tương lai phải tra verified ownership tường minh.
+- Username CHECK chính xác `^[a-z0-9_]{3,30}$`, giữ unique. `usernameChangedAt` nullable, không index hoặc backfill giả; cooldown do service thực thi theo [User requirements](../requirements/modules/USER_REQUIREMENTS.md).
+- `UserStatus` gồm đúng `ACTIVE`, `PENDING_DELETION`, `DELETING`, `DELETED`; thêm `status` mặc định `ACTIVE` và `deletionRequestedAt` nullable. CHECK: ACTIVE không có mốc; PENDING_DELETION/DELETING phải có mốc; DELETED có thể giữ hoặc xóa mốc khi ẩn danh. CHECK không kiểm soát thứ tự chuyển trạng thái; service phải dùng conditional updates.
+- `displayName` là `varchar(60) NOT NULL` với CHECK 1–60 ký tự Unicode (`char_length`); không tự sửa dữ liệu cũ.
+
+Migration khóa bảng User trong transaction, preflight verified email sau chuẩn hóa và Display Name, tạo unique index mới trước khi bỏ index cũ. Nếu có dữ liệu xung đột/không hợp lệ thì dừng, không UPDATE/DELETE User. Việc khóa có thể chặn truy cập bảng trong lúc tạo index; cần chọn thời điểm phù hợp khi áp dụng cho database có dữ liệu lớn. Không sửa ba migration lịch sử.
+
+Giữ nguyên 17 model, toàn bộ quan hệ/FK, AuthSession, GoogleAccount, Follow/Block, Province và OtpChallenge. Không thêm job/token history/re-auth table hoặc index dự phòng. Province catalog/seed và tích hợp Redis là công việc sau; dữ liệu và API Auth/User chưa được xem là hoàn thành. Bằng chứng áp dụng và kiểm thử thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md); không tự áp dụng `0004` lên Development/Production.
 
 ## Các điểm cần xác nhận / triển khai kỹ thuật
 - Ràng buộc 1–5 ảnh/Listing và bắt buộc đúng 1 cover cần service + transaction/locking. Migration có partial unique index giới hạn tối đa 1 cover và 1 video chưa xóa; Message có một trường ảnh và UNIQUE ngăn dùng cùng asset cho nhiều tin nhắn. Prisma schema đơn thuần chưa thể hiện hết các quy tắc này.
