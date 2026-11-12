@@ -1,5 +1,5 @@
-// Looply DA1 — complete 17-model logical schema draft for Prisma ORM 7.10.1.
-// REVIEW before integration. Never run migrations against an existing database without a data migration plan.
+// Looply DA1 — logical 17-model design for Prisma ORM 7.10.1; executable schema: backend/prisma/schema.prisma.
+// Generator paths are illustrative here; custom CHECK constraints and partial indexes live in backend/prisma/migrations.
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"

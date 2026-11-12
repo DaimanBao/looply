@@ -1,0 +1,33 @@
+import { constraintCases } from "../helpers/constraint-cases";
+
+// These cases cover row CHECKs; counts, ownership and file inspection belong to services.
+constraintCases("media_assets", [
+  { name: "accepts minimum positive size", changes: { sizeBytes: 1 } },
+  { name: "rejects zero size", changes: { sizeBytes: 0 }, constraint: "ck_media_size" },
+  { name: "rejects negative size", changes: { sizeBytes: -1 }, constraint: "ck_media_size" },
+  { name: "accepts image without duration", changes: { durationSeconds: null } },
+  { name: "rejects duration on image", changes: { durationSeconds: 1 }, constraint: "ck_media_duration" },
+  { name: "accepts video at one second", changes: { type: "VIDEO", mimeType: "video/mp4", durationSeconds: 1 } },
+  { name: "accepts video at 180 seconds", changes: { type: "VIDEO", mimeType: "video/mp4", durationSeconds: 180 } },
+  { name: "rejects zero duration video", changes: { type: "VIDEO", durationSeconds: 0 }, constraint: "ck_media_duration" },
+  { name: "rejects video without duration", changes: { type: "VIDEO", durationSeconds: null }, constraint: "ck_media_duration" },
+  { name: "rejects negative duration video", changes: { type: "VIDEO", durationSeconds: -1 }, constraint: "ck_media_duration" },
+  { name: "rejects video over 180 seconds", changes: { type: "VIDEO", durationSeconds: 181 }, constraint: "ck_media_duration" },
+  { name: "accepts TEMP listing upload before attachment", changes: { status: "TEMP", listingId: null } },
+  { name: "rejects attached listing asset without listing", changes: { listingId: null }, constraint: "ck_media_attached" },
+  { name: "rejects deleting listing asset without listing", changes: { status: "DELETING", listingId: null }, constraint: "ck_media_purpose" },
+  { name: "accepts detached PROFILE image", changes: { purpose: "PROFILE", listingId: null } },
+  { name: "accepts detached CHAT image", changes: { purpose: "CHAT", listingId: null } },
+  { name: "rejects PROFILE video", changes: { purpose: "PROFILE", listingId: null, type: "VIDEO", durationSeconds: 1 }, constraint: "ck_media_purpose" },
+  { name: "rejects CHAT video", changes: { purpose: "CHAT", listingId: null, type: "VIDEO", durationSeconds: 1 }, constraint: "ck_media_purpose" },
+  { name: "rejects PROFILE linked to listing", changes: { purpose: "PROFILE" }, constraint: "ck_media_purpose" },
+  { name: "rejects CHAT linked to listing", changes: { purpose: "CHAT" }, constraint: "ck_media_purpose" },
+  { name: "rejects PROFILE display position", changes: { purpose: "PROFILE", listingId: null, position: 1 }, constraint: "ck_media_purpose" },
+  { name: "rejects CHAT display position", changes: { purpose: "CHAT", listingId: null, position: 1 }, constraint: "ck_media_purpose" },
+  { name: "accepts attached listing image cover", changes: { isCover: true } },
+  { name: "rejects video cover", changes: { type: "VIDEO", durationSeconds: 1, isCover: true }, constraint: "ck_media_cover" },
+  { name: "rejects temporary cover", changes: { status: "TEMP", isCover: true }, constraint: "ck_media_cover" },
+  { name: "rejects deleting cover", changes: { status: "DELETING", isCover: true }, constraint: "ck_media_cover" },
+  { name: "rejects soft deleted cover", changes: { deletedAt: new Date(), isCover: true }, constraint: "ck_media_cover" },
+  { name: "rejects invalid media enum", changes: { type: "AUDIO" }, code: "22P02" },
+]);
