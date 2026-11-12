@@ -14,3 +14,8 @@ coverage/
 .DS_Store
 
 backend/src/generated/prisma/
+
+# Prisma-generated AI Agent Skills
+/backend/.agents/skills/
+/backend/.claude/skills/
+/backend/.windsurf/skills/
