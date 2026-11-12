@@ -7,7 +7,7 @@
 - **Kiến trúc:** Modular Monolith; một sản phẩm, Backend Express.js và Frontend Angular tách biệt.
 - **Runtime / quản lý gói:** Node.js 24, npm; lưu và tôn trọng `package-lock.json`.
 - **Ngôn ngữ:** TypeScript cho cả Backend và Frontend.
-- **Database:** PostgreSQL; Prisma **7.10.1**. `looply_dev`, `looply_test`, `looply_prod` phải tách biệt; production dùng PostgreSQL Docker volume bền vững.
+- **Database:** PostgreSQL **17**, development chạy bằng Docker; Prisma **7.10.1**. `looply_dev`, `looply_test`, `looply_prod` phải tách biệt; production dùng PostgreSQL Docker volume bền vững. Chi tiết môi trường xem [`database/README.md`](database/README.md).
 - **Triển khai:** Docker / Docker Compose; GitHub Actions cho CI.
 
 ## Backend

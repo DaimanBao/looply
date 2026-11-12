@@ -7,11 +7,24 @@
 - [`INTEGRATION_TESTS.md`](INTEGRATION_TESTS.md): phạm vi, cách chạy an toàn, kết quả và lỗi còn tồn tại của Database Integration Test.
 
 ## Trạng thái và nguồn sự thật
-`docs/database/schema.prisma` là bản thiết kế logic xuất phát từ full draft. Schema thực thi hiện nằm tại [`backend/prisma/schema.prisma`](../../backend/prisma/schema.prisma), cùng lịch sử migration trong [`backend/prisma/migrations/`](../../backend/prisma/migrations/). Ngày 12/11/2026, đã xác minh `0001_init` áp dụng thành công và áp dụng thêm `0002_fix_media_duration`, `0003_reject_nan_prices` trên **riêng `looply_test`** theo phê duyệt của người dùng. Toàn bộ **337 Database Integration Test PASS**, Prisma validate và các kiểm tra source/test đều đạt; xem bằng chứng và giới hạn tại [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Không chạy migration trên development/production. Không suy ra hoàn thành chức năng từ việc database test đạt.
+`docs/database/schema.prisma` là bản thiết kế logic xuất phát từ full draft. Schema thực thi hiện nằm tại [`backend/prisma/schema.prisma`](../../backend/prisma/schema.prisma), cùng lịch sử migration trong [`backend/prisma/migrations/`](../../backend/prisma/migrations/). Giai đoạn kiểm thử trên `looply_test` đã xác minh thành công ba migration `0001_init`, `0002_fix_media_duration`, `0003_reject_nan_prices`. Toàn bộ **337 Database Integration Test PASS**, Prisma validate và các kiểm tra source/test đều đạt; xem bằng chứng và giới hạn tại [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Trạng thái Development được xác minh riêng như dưới đây; không suy ra hoàn thành chức năng từ việc database test đạt.
 
 Nghiệp vụ chính thức thuộc `../requirements/modules/`. SQL tham khảo chưa đồng bộ đầy đủ với migration thực thi, đặc biệt phần CHAT media, message ảnh và kiểm tra NULL; không dùng thay migration.
 
 Bản `schema_auth_user.prisma` cũ chỉ là **bản nháp từng giai đoạn**, đã bỏ khỏi cây tài liệu chính để tránh hai nguồn schema mâu thuẫn. Không tự `db push`, `migrate reset` hoặc chạy SQL tham khảo lên database dev/prod. Khi khởi tạo project mới, rà soát schema, kiểm tra Prisma 7 config, validate, sinh migration và kiểm thử trên database riêng.
+
+## Môi trường database
+
+PostgreSQL 17 local chạy bằng Docker theo [`compose.yaml`](../../compose.yaml); cổng truy cập từ máy phát triển là `localhost:5435`, ánh xạ tới cổng `5432` trong container. Prisma ORM sử dụng phiên bản **7.10.1** và cấu hình [`backend/prisma7.config.ts`](../../backend/prisma7.config.ts).
+
+| Môi trường | Database | Biến kết nối trong Backend | Mục đích |
+| --- | --- | --- | --- |
+| Development | `looply_dev` | `DATABASE_URL` | Phát triển Backend; không dùng cho database integration tests. |
+| Testing local | `looply_test` | `TEST_DATABASE_URL` | Database kiểm thử riêng trên cùng PostgreSQL server Docker local; test xác minh database thực tế và rollback dữ liệu. |
+
+CI dùng PostgreSQL service riêng trên runner; dù cũng đặt tên database là `looply_test`, dữ liệu và kết nối độc lập với local. Chi tiết thuộc [`workflows/CI.md`](../workflows/CI.md). Credentials chỉ nằm trong cấu hình môi trường cục bộ hoặc môi trường thực thi phù hợp, không ghi vào tài liệu.
+
+**Development đã xác minh ngày 12/11/2026:** `DATABASE_URL` và `SELECT current_database()` đều xác nhận `looply_dev`. Đã áp dụng thành công `0001_init`, `0002_fix_media_duration`, `0003_reject_nan_prices` bằng Prisma Migrate Deploy; lịch sử và checksum hợp lệ, đủ 17 bảng ứng dụng, các constraint/index hợp lệ và Prisma validate PASS. Không chạy integration test trên Development. Production là môi trường riêng; kết quả local không xác nhận trạng thái production.
 
 ## Các điểm cần xác nhận / triển khai kỹ thuật
 - Ràng buộc 1–5 ảnh/Listing và bắt buộc đúng 1 cover cần service + transaction/locking. Migration có partial unique index giới hạn tối đa 1 cover và 1 video chưa xóa; Message có một trường ảnh và UNIQUE ngăn dùng cùng asset cho nhiều tin nhắn. Prisma schema đơn thuần chưa thể hiện hết các quy tắc này.
