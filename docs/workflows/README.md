@@ -10,3 +10,5 @@
 6. [`COMPLETION.md`](COMPLETION.md) — xác nhận và cập nhật checklist.
 
 Nếu không đạt điều kiện chuyển bước, quay lại giai đoạn phù hợp; không đánh dấu chức năng hoàn thành khi chưa có bằng chứng.
+
+[`CI.md`](CI.md) mô tả Backend CI trên GitHub Actions, database test riêng, thứ tự kiểm tra và giới hạn kiểm chứng local.

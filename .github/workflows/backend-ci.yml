@@ -1,0 +1,119 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # Disposable service credentials, used only inside this CI job.
+          POSTGRES_USER: looply_ci
+          POSTGRES_PASSWORD: ci_only_password
+          POSTGRES_DB: looply_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U looply_ci -d looply_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://looply_ci:ci_only_password@127.0.0.1:5432/looply_test?schema=public
+      TEST_DATABASE_URL: postgresql://looply_ci:ci_only_password@127.0.0.1:5432/looply_test?schema=public
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Check Prisma versions
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          for (const name of ['prisma', '@prisma/client', '@prisma/adapter-pg']) {
+            const manifest = require(`./node_modules/${name}/package.json`);
+            assert.equal(manifest.version, '7.10.1', name);
+            console.log(`${name}: ${manifest.version}`);
+          }
+          NODE
+          npm exec -- prisma --version
+
+      - name: Validate Prisma schema
+        run: npm exec -- prisma validate --config prisma7.config.ts
+
+      - name: Generate Prisma client
+        run: npm exec -- prisma generate --config prisma7.config.ts
+
+      - name: Verify isolated test database
+        run: |
+          node --require tsx/cjs <<'NODE'
+          const { Client } = require('pg');
+          const { getTestDatabaseUrl, verifyTestDatabase } = require('./tests/helpers/test-database.ts');
+
+          /** Verifies both migration and test URLs on the actual PostgreSQL connection before migration. */
+          async function verifyCiDatabase() {
+            const testUrl = getTestDatabaseUrl();
+            if (process.env.DATABASE_URL !== testUrl) {
+              throw new Error('DATABASE_URL must match the isolated TEST_DATABASE_URL');
+            }
+            const client = new Client({ connectionString: testUrl, connectionTimeoutMillis: 5000 });
+            await client.connect();
+            try {
+              await verifyTestDatabase(client);
+              console.log('Verified CI database: looply_test');
+            } finally {
+              await client.end();
+            }
+          }
+
+          verifyCiDatabase().catch(() => {
+            console.error('CI database verification failed; refusing migrations.');
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Apply test database migrations
+        run: npm exec -- prisma migrate deploy --config prisma7.config.ts
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Run database integration tests
+        run: npm run test:integration
+
+      - name: Typecheck backend source
+        run: npm run typecheck
+
+      - name: Typecheck source and tests
+        run: npm exec -- tsc --project tests/tsconfig.json
+
+      - name: Build backend
+        run: npm run build
