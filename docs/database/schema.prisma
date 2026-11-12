@@ -1,0 +1,410 @@
+// Looply DA1 — complete 17-model logical schema draft for Prisma ORM 7.10.1.
+// REVIEW before integration. Never run migrations against an existing database without a data migration plan.
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OtpChannel {
+  SMS
+  EMAIL
+}
+enum OtpPurpose {
+  REGISTER_PHONE
+  LOGIN_PHONE
+  CHANGE_PHONE
+  VERIFY_EMAIL
+  CHANGE_EMAIL
+}
+enum ListingType {
+  SALE
+  EXCHANGE
+  RENT
+}
+enum ListingStatus {
+  ACTIVE
+  HIDDEN
+  DELETED
+}
+enum RentalUnit {
+  DAY
+  MONTH
+}
+enum MediaPurpose {
+  PROFILE
+  LISTING
+  CHAT
+}
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+enum MediaStatus {
+  TEMP
+  ATTACHED
+  DELETING
+}
+enum ConversationType {
+  LISTING
+  DIRECT
+}
+enum MessageType {
+  TEXT
+  TRANSACTION_CARD
+}
+enum ProposalKind {
+  LISTED_PRICE
+  NEGOTIATED_PRICE
+  EXCHANGE_CONTACT
+}
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+enum NotificationType {
+  MESSAGE
+  TRANSACTION
+  LISTING_UPDATED
+}
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+model Province {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(32)
+  name String @db.VarChar(150)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  users User[]
+  listings Listing[]
+  @@map("provinces")
+}
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  username String @unique @db.VarChar(30)
+  passwordHash String? @db.Text
+  displayName String @db.VarChar(50)
+  bio String? @db.VarChar(300)
+  avatarMediaId String? @unique @db.Uuid
+  avatarMedia MediaAsset? @relation("CurrentAvatar", fields: [avatarMediaId], references: [id], onDelete: Restrict)
+  email String? @unique @db.VarChar(254)
+  emailVerifiedAt DateTime? @db.Timestamptz(3)
+  phone String? @unique @db.VarChar(20)
+  phoneVerifiedAt DateTime? @db.Timestamptz(3)
+  provinceId String? @db.Uuid
+  province Province? @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  authSessions AuthSession[]
+  otpChallenges OtpChallenge[]
+  googleAccount GoogleAccount?
+  followingRelations UserFollow[] @relation("FollowFrom")
+  followerRelations UserFollow[] @relation("FollowTo")
+  blockingRelations UserBlock[] @relation("BlockFrom")
+  blockedRelations UserBlock[] @relation("BlockTo")
+  listings Listing[]
+  listingFollows ListingFollow[]
+  uploads MediaAsset[] @relation("MediaUploader")
+  initiatedConversations Conversation[] @relation("ConversationInitiator")
+  listingContacts Conversation[] @relation("ListingContact")
+  directLowConversations Conversation[] @relation("DirectUserLow")
+  directHighConversations Conversation[] @relation("DirectUserHigh")
+  conversationParticipants ConversationParticipant[]
+  sentMessages Message[]
+  proposals TransactionProposal[]
+  notifications Notification[]
+  @@index([provinceId])
+  @@map("users")
+}
+
+model AuthSession {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  refreshTokenHash String @unique @db.Text
+  tokenVersion Int @default(1)
+  expiresAt DateTime @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  lastUsedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model OtpChallenge {
+  id String @id @default(uuid()) @db.Uuid
+  userId String? @db.Uuid
+  user User? @relation(fields: [userId], references: [id], onDelete: Restrict)
+  destination String @db.VarChar(254)
+  channel OtpChannel
+  purpose OtpPurpose
+  codeHash String @db.Text
+  attempts Int @default(0)
+  expiresAt DateTime @db.Timestamptz(3)
+  consumedAt DateTime? @db.Timestamptz(3)
+  invalidatedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@index([destination, purpose, createdAt])
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("otp_challenges")
+}
+
+model GoogleAccount {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  googleSubject String @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@map("google_accounts")
+}
+
+model UserFollow {
+  id String @id @default(uuid()) @db.Uuid
+  followerId String @db.Uuid
+  followingId String @db.Uuid
+  follower User @relation("FollowFrom", fields: [followerId], references: [id], onDelete: Restrict)
+  following User @relation("FollowTo", fields: [followingId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([followerId, followingId])
+  @@index([followingId])
+  @@map("user_follows")
+}
+
+model UserBlock {
+  id String @id @default(uuid()) @db.Uuid
+  blockerId String @db.Uuid
+  blockedId String @db.Uuid
+  blocker User @relation("BlockFrom", fields: [blockerId], references: [id], onDelete: Restrict)
+  blocked User @relation("BlockTo", fields: [blockedId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+model Listing {
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String @db.Uuid
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  title String @db.VarChar(150)
+  searchTitle String @db.Text
+  description String @db.Text
+  type ListingType
+  status ListingStatus @default(ACTIVE)
+  price Decimal? @db.Decimal(15, 0)
+  rentalUnit RentalUnit?
+  provinceId String @db.Uuid
+  province Province @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  // Optional explicitly published contact; never auto-copy User.phone into public listing.
+  contactPhone String? @db.VarChar(20)
+  activeCycle Int @default(1)
+  version Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  media MediaAsset[] @relation("ListingMedia")
+  followers ListingFollow[]
+  conversations Conversation[]
+  proposals TransactionProposal[]
+  notifications Notification[]
+  @@index([status, createdAt, id])
+  @@index([status, provinceId, createdAt, id])
+  @@index([status, type, createdAt, id])
+  @@index([status, price, id])
+  @@index([ownerId, createdAt])
+  @@map("listings")
+}
+
+model ListingFollow {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  listingId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([userId, listingId])
+  @@index([listingId])
+  @@map("listing_follows")
+}
+
+model MediaAsset {
+  id String @id @default(uuid()) @db.Uuid
+  uploadedById String @db.Uuid
+  uploadedBy User @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  purpose MediaPurpose
+  type MediaType
+  listingId String? @db.Uuid
+  listing Listing? @relation("ListingMedia", fields: [listingId], references: [id], onDelete: Restrict)
+  currentAvatarOf User? @relation("CurrentAvatar")
+  chatMessage Message? @relation("ChatMessageImage")
+  storageKey String @unique @db.Text
+  mimeType String @db.VarChar(100)
+  sizeBytes BigInt
+  durationSeconds Int?
+  position Int?
+  isCover Boolean @default(false)
+  status MediaStatus @default(TEMP)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt DateTime? @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  @@index([listingId, position])
+  @@index([status, expiresAt])
+  @@index([uploadedById, createdAt])
+  @@map("media_assets")
+}
+
+model Conversation {
+  id String @id @default(uuid()) @db.Uuid
+  type ConversationType
+  listingId String? @db.Uuid
+  listing Listing? @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  initiatorId String @db.Uuid
+  initiator User @relation("ConversationInitiator", fields: [initiatorId], references: [id], onDelete: Restrict)
+  contactUserId String? @db.Uuid
+  contactUser User? @relation("ListingContact", fields: [contactUserId], references: [id], onDelete: Restrict)
+  directUserLowId String? @db.Uuid
+  directUserLow User? @relation("DirectUserLow", fields: [directUserLowId], references: [id], onDelete: Restrict)
+  directUserHighId String? @db.Uuid
+  directUserHigh User? @relation("DirectUserHigh", fields: [directUserHighId], references: [id], onDelete: Restrict)
+  lastMessageAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  participants ConversationParticipant[]
+  messages Message[]
+  proposals TransactionProposal[]
+  notifications Notification[]
+  @@unique([listingId, contactUserId])
+  @@unique([directUserLowId, directUserHighId])
+  @@index([lastMessageAt, id])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id String @id @default(uuid()) @db.Uuid
+  conversationId String @db.Uuid
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  hiddenAt DateTime? @db.Timestamptz(3)
+  lastReadMessageId String? @db.Uuid
+  lastReadMessage Message? @relation("ParticipantReadCursor", fields: [lastReadMessageId], references: [id], onDelete: Restrict)
+  joinedAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([conversationId, userId])
+  @@index([userId, hiddenAt])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id String @id @default(uuid()) @db.Uuid
+  conversationId String @db.Uuid
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  senderId String @db.Uuid
+  sender User @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  requestId String @db.Uuid
+  type MessageType
+  content String? @db.Text
+  proposalId String? @unique @db.Uuid
+  imageMediaId String? @unique @db.Uuid
+  imageMedia MediaAsset? @relation("ChatMessageImage", fields: [imageMediaId], references: [id], onDelete: Restrict)
+  proposal TransactionProposal? @relation("ProposalCard", fields: [proposalId], references: [id], onDelete: Restrict)
+  payloadHash String @db.VarChar(128)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  readCursorFor ConversationParticipant[] @relation("ParticipantReadCursor")
+  latestInNotifications Notification[] @relation("NotificationLatestMessage")
+  @@unique([conversationId, senderId, requestId])
+  @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)])
+  @@map("messages")
+}
+
+model TransactionProposal {
+  id String @id @default(uuid()) @db.Uuid
+  conversationId String @db.Uuid
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  listingId String @db.Uuid
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  proposerId String @db.Uuid
+  proposer User @relation(fields: [proposerId], references: [id], onDelete: Restrict)
+  type ListingType
+  proposalKind ProposalKind
+  status ProposalStatus @default(PENDING)
+  listedPriceSnapshot Decimal? @db.Decimal(15, 0)
+  proposedPrice Decimal? @db.Decimal(15, 0)
+  rentalUnit RentalUnit?
+  createdCycle Int
+  acceptedCycle Int?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  resolvedAt DateTime? @db.Timestamptz(3)
+  card Message? @relation("ProposalCard")
+  notifications Notification[]
+  @@index([conversationId, createdAt])
+  @@index([listingId, status, acceptedCycle])
+  @@map("transaction_proposals")
+}
+
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  recipientId String @db.Uuid
+  recipient User @relation(fields: [recipientId], references: [id], onDelete: Restrict)
+  type NotificationType
+  conversationId String? @db.Uuid
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  listingId String? @db.Uuid
+  listing Listing? @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  proposalId String? @db.Uuid
+  proposal TransactionProposal? @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  eventKey String? @db.VarChar(200)
+  lastEventId String? @db.Uuid
+  latestMessageId String? @db.Uuid
+  latestMessage Message? @relation("NotificationLatestMessage", fields: [latestMessageId], references: [id], onDelete: Restrict)
+  isRead Boolean @default(false)
+  readAt DateTime? @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@index([recipientId, deletedAt, isRead, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([conversationId])
+  @@map("notifications")
+}
+
+model OutboxEvent {
+  id String @id @default(uuid()) @db.Uuid
+  eventType String @db.VarChar(100)
+  aggregateType String @db.VarChar(100)
+  aggregateId String @db.Uuid
+  payload Json @db.JsonB
+  status OutboxStatus @default(PENDING)
+  attempts Int @default(0)
+  nextRetryAt DateTime? @db.Timestamptz(3)
+  lockedUntil DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  processedAt DateTime? @db.Timestamptz(3)
+  lastError String? @db.Text
+  processedBy ProcessedEvent[]
+  @@index([status, nextRetryAt, createdAt])
+  @@index([lockedUntil])
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_events")
+}
+
+model ProcessedEvent {
+  id String @id @default(uuid()) @db.Uuid
+  consumerName String @db.VarChar(100)
+  eventId String @db.Uuid
+  event OutboxEvent @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  processedAt DateTime @default(now()) @db.Timestamptz(3)
+  @@unique([consumerName, eventId])
+  @@map("processed_events")
+}
