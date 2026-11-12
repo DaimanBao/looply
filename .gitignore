@@ -12,5 +12,3 @@ coverage/
 !.vscode/extensions.json
 
 .DS_Store
-
-backend/src/generated/prisma/
