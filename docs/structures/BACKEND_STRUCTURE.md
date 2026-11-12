@@ -12,10 +12,13 @@ backend/
 ├── src/
 │   ├── app.ts                    # Khởi tạo Express, middleware, mount routes
 │   ├── server.ts                 # Khởi chạy HTTP và realtime, shutdown
+│   ├── bootstrap.ts              # Ghép app, logger, Prisma và HTTP server
+│   ├── runtime/                  # Lifecycle startup/shutdown, không đọc environment
 │   ├── config/                   # Đọc và xác thực cấu hình môi trường
 │   ├── shared/
 │   │   ├── database/             # Prisma client/adapter, quản lý kết nối
 │   │   ├── errors/               # Lỗi ứng dụng và xử lý lỗi chung
+│   │   ├── http/                 # Serialization Decimal và contract cursor chung
 │   │   ├── middleware/           # Auth request, validation, error handling
 │   │   ├── logger/               # Logging có kiểm soát dữ liệu nhạy cảm
 │   │   ├── utils/                # Tiện ích thực sự dùng chung
@@ -32,10 +35,16 @@ backend/
 │   ├── jobs/                    # Worker/outbox nếu triển khai
 │   └── routes/                  # Router tổng hợp hoặc health endpoint
 ├── tests/                       # Integration/E2E và test helpers
+│   ├── api/                     # HTTP integration với dependency test, không mở database
+│   ├── integration/             # Database integration riêng trên looply_test
+│   └── helpers/                 # App factory, fixture và connection guard cho test
+├── README.md                    # Cấu hình, chạy và kiểm chứng Backend Core
 ├── .env.example
 ├── package.json
 ├── tsconfig.json
-└── vitest.config.ts
+├── vitest.config.ts             # Unit tests trong src/
+├── vitest.api.config.ts         # HTTP integration trong tests/api/
+└── vitest.integration.config.ts # Database integration trong tests/integration/
 ```
 
 ## Cấu trúc bên trong một module

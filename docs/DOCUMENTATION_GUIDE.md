@@ -15,6 +15,8 @@ Giúp AI Agent tìm đúng tài liệu, hiểu yêu cầu và cập nhật đún
 | Quy trình phát triển tổng thể | `docs/workflows/DEVELOPMENT_WORKFLOW.md` |
 | Yêu cầu chức năng và quy tắc nghiệp vụ | `docs/requirements/FUNCTIONAL_REQUIREMENTS.md` và `docs/requirements/modules/` |
 | Thiết kế dữ liệu, mô hình quan hệ và ràng buộc | `docs/database/` |
+| Hợp đồng HTTP và quy ước API | `docs/api/openapi.json` (OpenAPI 3.1), `docs/api/CONVENTIONS.md` |
+| Cấu hình, chạy và kiểm thử Backend Core | `backend/README.md` |
 | Cấu trúc Root, Backend, Frontend | `docs/structures/` |
 | Hướng dẫn từng giai đoạn phân tích, thiết kế, triển khai, kiểm thử, review, hoàn tất | `docs/workflows/` |
 
