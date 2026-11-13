@@ -32,7 +32,7 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          # Disposable service credentials, used only inside this CI job.
+          # Thông tin xác thực dùng tạm cho service, chỉ sử dụng trong CI job này.
           POSTGRES_USER: looply_ci
           POSTGRES_PASSWORD: ci_only_password
           POSTGRES_DB: looply_test
@@ -91,7 +91,7 @@ jobs:
           const { Client } = require('pg');
           const { getTestDatabaseUrl, verifyTestDatabase } = require('./tests/helpers/test-database.ts');
 
-          /** Verifies both migration and test URLs on the actual PostgreSQL connection before migration. */
+          /** Xác minh cả URL migration và test trên kết nối PostgreSQL thực trước khi migration. */
           async function verifyCiDatabase() {
             const testUrl = getTestDatabaseUrl();
             if (process.env.DATABASE_URL !== testUrl) {

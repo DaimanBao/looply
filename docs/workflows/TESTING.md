@@ -12,6 +12,7 @@
 - Tận dụng CI đã PASS cho đúng commit và phạm vi cần kiểm chứng; không lặp full suite local nếu CI đã bao phủ. CI đang chờ, thất bại, commit cũ hoặc không bao phủ rủi ro không được tính là bằng chứng đạt.
 - Khi sửa lỗi, bổ sung regression test tái hiện lỗi và chạy targeted tests liên quan.
 - Documentation-only: kiểm tra Markdown, liên kết liên quan và `git diff --check`; không chạy unit/integration/API tests hoặc build. Thay đổi contract/nội dung thực thi trong tài liệu cần kiểm tra đặc tả/nội dung tương ứng.
+- Thuần formatting/comment: review diff và `git diff --check`, không chạy riêng unit/integration/E2E Backend hoặc regression tests. Tách template/style Angular: chạy build một lần và targeted tests của component bị ảnh hưởng theo [Code Formatting](../standards/CODE_FORMATTING.md); chỉ mở rộng khi có lỗi hoặc rủi ro thực tế.
 
 ## Nhiệm vụ của AI Agent
 1. Chọn kiểm tra kiểu dữ liệu, lint, build, runtime/API và test theo loại thay đổi và rủi ro; không mặc định chạy tất cả. Dùng lệnh đã có, không thay đổi dependencies/CI để phục vụ việc chọn test. Ghi nhận lệnh và kết quả thực tế.

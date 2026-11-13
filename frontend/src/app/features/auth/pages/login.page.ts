@@ -36,7 +36,8 @@ export class LoginPage {
     nonNullable: true,
     validators: [Validators.required, phoneValidator],
   });
-  /** Exchanges the chosen credential and routes pending accounts to their cancellation screen. */
+
+  /** Trao đổi credential đã chọn và đưa tài khoản chờ xóa đến màn hình hủy. */
   async submit(): Promise<void> {
     if (this.mode() === 'password' ? this.form.invalid : this.phone.invalid || !this.proof()) {
       this.form.markAllAsTouched();

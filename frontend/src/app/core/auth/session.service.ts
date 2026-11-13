@@ -19,7 +19,7 @@ import type { AccountStatus, SessionTokens } from '../http/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class SessionService {
-  // Bypass interceptors for cookie-only endpoints to avoid a dependency cycle or refresh recursion.
+  // Bỏ qua interceptor cho endpoint chỉ cookie để tránh vòng phụ thuộc hoặc đệ quy refresh.
   private readonly http = new HttpClient(inject(HttpBackend));
   private readonly base = inject(API_BASE);
   private readonly timeout = inject(API_TIMEOUT_MS);
@@ -35,12 +35,12 @@ export class SessionService {
   readonly active = computed(() => this.status() === 'ACTIVE');
   readonly startupError = signal(false);
 
-  /** Identifies login/clear boundaries without treating ordinary token rotation as a new identity. */
+  /** Nhận diện ranh giới đăng nhập/xóa quyền, không coi luân chuyển token thường là danh tính mới. */
   identityVersion(): number {
     return this.generation;
   }
 
-  /** Distinguishes an invalid one-use credential from a revoked session without replaying a mutation. */
+  /** Phân biệt credential dùng một lần sai với phiên bị thu hồi mà không phát lại thay đổi. */
   validateAuthority(): Observable<void> {
     const generation = this.generation;
     const token = this.token();
@@ -65,12 +65,13 @@ export class SessionService {
       );
   }
 
-  /** Installs only a validated API response; pending deletion never becomes active implicitly. */
+  /** Chỉ áp dụng response API đã kiểm tra; tài khoản chờ xóa không ngầm trở lại hoạt động. */
   accept(payload: unknown): SessionTokens {
     this.generation++;
     return this.install(payload);
   }
-  /** Applies a validated session while letting the caller control stale-response invalidation. */
+
+  /** Áp dụng phiên đã kiểm tra, để bên gọi kiểm soát vô hiệu hóa response cũ. */
   private install(payload: unknown): SessionTokens {
     const tokens = decodeTokens(payload);
     if (tokens.status === 'DELETING' || tokens.status === 'DELETED') {
@@ -83,19 +84,21 @@ export class SessionService {
     this.startupError.set(false);
     return tokens;
   }
-  /** Invalidates in-flight refresh responses as well as in-memory authority. */
+
+  /** Vô hiệu hóa response refresh đang chạy cùng quyền trong bộ nhớ. */
   clear(): void {
     this.generation++;
     this.expiresAt = 0;
     this.accessToken.set(null);
     this.accountStatus.set(null);
   }
-  /** Refreshes before mutation submission, avoiding replay of a one-use OTP/proof after expiry. */
+
+  /** Refresh trước khi gửi thay đổi, tránh phát lại OTP/proof dùng một lần sau hết hạn. */
   expiresSoon(): boolean {
     return this.expiresAt <= Date.now() + 30000;
   }
 
-  /** Shares one rotation among concurrent subscribers and never retries a failed rotation. */
+  /** Dùng chung một lượt luân chuyển cho subscriber đồng thời, không thử lại lượt luân chuyển lỗi. */
   refresh(): Observable<SessionTokens> {
     if (this.loggingOut) return throwError(() => new Error('Đang đăng xuất.'));
     if (this.refreshRequest) return this.refreshRequest;
@@ -122,7 +125,8 @@ export class SessionService {
       );
     return this.refreshRequest;
   }
-  /** Restores a reload session before route guards; infrastructure errors remain visible. */
+
+  /** Khôi phục phiên khi tải lại trước route guard; lỗi hạ tầng vẫn hiển thị. */
   async restore(): Promise<void> {
     try {
       await firstValueFrom(this.refresh());
@@ -130,7 +134,8 @@ export class SessionService {
       this.startupError.set(!(error instanceof HttpErrorResponse && error.status === 401));
     }
   }
-  /** Revokes server authority before clearing memory; failure stays visible and can be retried. */
+
+  /** Thu hồi quyền server trước khi xóa bộ nhớ; lỗi vẫn hiển thị và có thể thử lại. */
   logout(): Observable<void> {
     return defer(() => {
       this.loggingOut = true;
@@ -143,7 +148,7 @@ export class SessionService {
             )
           : of(undefined)
       ).pipe(
-        // Cookie rotation finishes first so logout revokes the replacement token.
+        // Luân chuyển cookie hoàn tất trước để đăng xuất thu hồi token thay thế.
         switchMap(() =>
           this.http.post<void>(
             `${this.base}/auth/logout`,

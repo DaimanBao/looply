@@ -1,0 +1,50 @@
+<section class="card form-card">
+  <span class="eyebrow">QUYỀN KIỂM SOÁT CỦA BẠN</span>
+  <h1>Xóa tài khoản</h1>
+  <app-feedback [state]="state" />
+  @if (store.profile(); as profile) {
+    @if (profile.status === 'PENDING_DELETION') {
+      <div class="notice warning">
+        <h2>Tài khoản đang chờ xóa</h2>
+        <p>
+          Đã yêu cầu lúc {{ profile.deletionRequestedAt | date: 'dd/MM/yyyy HH:mm' }}. Thời gian chờ
+          là 30 ngày.
+        </p>
+        <p>
+          Hồ sơ và bài đăng được ẩn; các tương tác thông thường bị tạm ngừng. Đăng nhập không tự hủy
+          yêu cầu xóa.
+        </p>
+      </div>
+      <label class="check-label"
+        ><input type="checkbox" [formControl]="confirmCancel" /> Tôi muốn hủy yêu cầu xóa và sử dụng
+        lại tài khoản.</label
+      >
+      <button class="primary" (click)="cancel()" [disabled]="state.busy() || !confirmCancel.value">
+        Xác nhận hủy yêu cầu xóa
+      </button>
+    } @else if (profile.status === 'ACTIVE') {
+      <p>
+        Bạn có 30 ngày chờ sau khi yêu cầu xóa. Trong thời gian này, hãy đăng nhập và hủy yêu cầu
+        một cách tường minh nếu đổi ý.
+      </p>
+      <p>
+        Sau khi quá trình xóa bắt đầu, tài khoản không thể khôi phục. Lịch sử hội thoại và tệp Chat
+        thông thường được giữ cho người tham gia còn lại; người gửi được ẩn danh.
+      </p>
+      <form (submit)="$event.preventDefault(); request()">
+        <app-reauth-input
+          operation="DELETE_ACCOUNT"
+          [phone]="profile.phoneVerifiedAt ? profile.phone || '' : ''"
+        /><label class="check-label"
+          ><input type="checkbox" [formControl]="confirmRequest" /> Tôi hiểu và muốn yêu cầu xóa tài
+          khoản.</label
+        ><button class="danger" [disabled]="state.busy() || !confirmRequest.value">
+          Yêu cầu xóa tài khoản
+        </button>
+      </form>
+      <p><a routerLink="/account">Quay lại tài khoản</a></p>
+    } @else {
+      <p class="notice">Tài khoản đã ngừng hoạt động và không thể khôi phục.</p>
+    }
+  }
+</section>

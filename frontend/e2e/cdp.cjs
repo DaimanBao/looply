@@ -1,8 +1,8 @@
 const assert = require('node:assert/strict');
 
-/** Minimal Chromium protocol client using Node 24 WebSocket; adds no project dependency. */
+/** Client giao thức Chromium tối thiểu dùng WebSocket Node 24; không thêm dependency dự án. */
 class BrowserPage {
-  /** Associates protocol responses with their callers and keeps safe event listeners separate. */
+  /** Gắn response giao thức với bên gọi và giữ riêng listener sự kiện an toàn. */
   constructor(socket) {
     this.socket = socket;
     this.sequence = 0;
@@ -21,7 +21,7 @@ class BrowserPage {
       } else for (const listener of this.listeners) listener(message);
     });
   }
-  /** Opens the selected disposable browser tab. */
+  /** Mở tab trình duyệt tạm đã chọn. */
   static async connect(url) {
     const socket = new WebSocket(url);
     await new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ class BrowserPage {
     await page.send('Network.enable');
     return page;
   }
-  /** Bounds protocol commands so a broken browser cannot hang the test indefinitely. */
+  /** Giới hạn lệnh giao thức để trình duyệt lỗi không làm treo test vô hạn. */
   send(method, params = {}) {
     return new Promise((resolve, reject) => {
       const id = ++this.sequence;
@@ -46,7 +46,7 @@ class BrowserPage {
       this.socket.send(JSON.stringify({ id, method, params }));
     });
   }
-  /** Evaluates UI operations without serializing secret results to the test report. */
+  /** Thực thi thao tác UI mà không tuần tự hóa kết quả bí mật vào báo cáo test. */
   async evaluate(expression) {
     const result = await this.send('Runtime.evaluate', {
       expression,
@@ -56,7 +56,7 @@ class BrowserPage {
     if (result.exceptionDetails) throw new Error('Browser evaluation failed');
     return result.result?.value;
   }
-  /** Polls a UI condition with a bounded timeout rather than fixed slow sleeps. */
+  /** Thăm dò điều kiện UI với timeout giới hạn thay vì chờ cố định lâu. */
   async wait(expression, label, timeout = 15000) {
     const until = Date.now() + timeout;
     while (Date.now() < until) {
@@ -65,7 +65,7 @@ class BrowserPage {
     }
     throw new Error(`UI timeout: ${label}`);
   }
-  /** Sets a native form value and dispatches the input/change events Angular consumes. */
+  /** Đặt giá trị form native và phát sự kiện input/change mà Angular nhận. */
   async fill(selector, value) {
     assert.equal(
       await this.evaluate(
@@ -75,19 +75,19 @@ class BrowserPage {
       `Missing input ${selector}`,
     );
   }
-  /** Clicks the uniquely labelled button instead of relying on visual coordinates. */
+  /** Bấm nút có nhãn duy nhất thay vì dựa vào tọa độ hiển thị. */
   async click(text) {
     const result = await this.evaluate(
       `(()=>{const e=[...document.querySelectorAll('button')].find(e=>e.textContent.trim().replace(/\\s*→$/,'').trim()===${JSON.stringify(text)});if(!e||e.disabled)return false;e.click();return true})()`,
     );
     assert.equal(result, true, `Missing or disabled button: ${text}`);
   }
-  /** Navigates through the real browser location and waits for Angular's form or page. */
+  /** Điều hướng bằng location trình duyệt thật và chờ form hoặc trang Angular. */
   async navigate(path, ready) {
     await this.send('Page.navigate', { url: `http://localhost:4200${path}` });
     await this.wait(ready, path);
   }
-  /** Closes the protocol connection after the browser process is stopped. */
+  /** Đóng kết nối giao thức sau khi tiến trình trình duyệt dừng. */
   close() {
     this.socket.close();
   }

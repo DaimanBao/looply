@@ -12,15 +12,15 @@ type RuntimeDependencies = {
   services?: { start(): Promise<void>; stop(): Promise<void> };
 };
 
-/** Waits for HTTP binding and removes its temporary error handler after success or failure. */
+/** Chờ bind HTTP và gỡ error handler tạm sau thành công hoặc thất bại. */
 function listen(server: Server, config: RuntimeDependencies["config"]): Promise<void> {
   return new Promise((resolve, reject) => {
-    /** Prevents a startup socket failure from leaving a listening callback registered. */
+    /** Ngăn lỗi socket khởi động để sót callback lắng nghe đã đăng ký. */
     function onError(error: Error): void {
       server.off("listening", onListening);
       reject(error);
     }
-    /** Marks binding complete and hands subsequent shutdown to the runtime. */
+    /** Đánh dấu bind hoàn tất và giao shutdown tiếp theo cho runtime. */
     function onListening(): void {
       server.off("error", onError);
       resolve();
@@ -31,29 +31,41 @@ function listen(server: Server, config: RuntimeDependencies["config"]): Promise<
   });
 }
 
-/** Drains active HTTP requests and closes idle keep-alive sockets before database disconnect. */
+/** Chờ yêu cầu HTTP đang chạy và đóng socket keep-alive rảnh trước khi ngắt database. */
 function closeHttp(server: Server): Promise<void> {
   if (!server.listening) return Promise.resolve();
   return new Promise((resolve, reject) => {
-    server.close((error) => error ? reject(error) : resolve());
+    server.close((error) => (error ? reject(error) : resolve()));
     server.closeIdleConnections();
   });
 }
 
-/** Owns HTTP/database lifecycle with idempotent cleanup and one total shutdown deadline. */
-export function createServerRuntime({ server, database, logger, config, services }: RuntimeDependencies): ServerRuntime {
+/** Quản lý vòng đời HTTP/database với cleanup idempotent và một deadline shutdown tổng. */
+export function createServerRuntime({
+  server,
+  database,
+  logger,
+  config,
+  services,
+}: RuntimeDependencies): ServerRuntime {
   let startup: Promise<void> | undefined;
   let shutdown: Promise<void> | undefined;
   let disconnect: Promise<void> | undefined;
   let stopping = false;
 
-  /** Ensures startup failure and signal shutdown cannot disconnect the pool twice. */
+  /** Bảo đảm lỗi khởi động và tín hiệu shutdown không ngắt pool hai lần. */
   function disconnectOnce(): Promise<void> {
-    disconnect ??= (async () => { try { await services?.stop(); } finally { await database.$disconnect(); } })();
+    disconnect ??= (async () => {
+      try {
+        await services?.stop();
+      } finally {
+        await database.$disconnect();
+      }
+    })();
     return disconnect;
   }
 
-  /** Establishes the database before accepting HTTP traffic, cleaning up failed startups. */
+  /** Kết nối database trước khi nhận HTTP và cleanup khi khởi động lỗi. */
   async function startResources(): Promise<void> {
     try {
       await database.$connect();
@@ -71,7 +83,7 @@ export function createServerRuntime({ server, database, logger, config, services
     }
   }
 
-  /** Preserves in-flight requests; cleanup still runs when startup or close fails. */
+  /** Giữ yêu cầu đang chạy; cleanup vẫn chạy khi startup hoặc close lỗi. */
   async function closeResources(): Promise<void> {
     try {
       await startup;
@@ -81,7 +93,7 @@ export function createServerRuntime({ server, database, logger, config, services
     }
   }
 
-  /** Bounds both HTTP draining and database disconnect; entrypoint handles a forced process exit. */
+  /** Giới hạn cả chờ HTTP và ngắt database; entrypoint xử lý thoát tiến trình cưỡng chế. */
   async function stopWithinDeadline(): Promise<void> {
     let timer: NodeJS.Timeout | undefined;
     const deadline = new Promise<never>((_resolve, reject) => {
@@ -100,13 +112,13 @@ export function createServerRuntime({ server, database, logger, config, services
   }
 
   return {
-    /** Shares one startup attempt and prevents restarting an already stopped runtime. */
+    /** Dùng chung một lần thử khởi động, ngăn khởi động lại runtime đã dừng. */
     start(): Promise<void> {
       if (stopping) return Promise.reject(new Error("Backend is stopping"));
       startup ??= startResources();
       return startup;
     },
-    /** Shares one shutdown operation across repeated or concurrent signals. */
+    /** Dùng chung thao tác shutdown cho tín hiệu lặp hoặc đồng thời. */
     stop(): Promise<void> {
       stopping = true;
       shutdown ??= stopWithinDeadline();

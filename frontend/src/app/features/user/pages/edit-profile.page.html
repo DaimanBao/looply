@@ -1,0 +1,55 @@
+<p><a routerLink="/account">← Tài khoản</a></p>
+<section class="card form-card">
+  <h1>Chỉnh sửa hồ sơ</h1>
+  <app-feedback [state]="loading" />
+  @if (loading.error()) {
+    <button (click)="load()">Thử lại</button>
+  }
+  @if (ready()) {
+    @if (store.profile(); as profile) {
+      <div class="avatar-edit">
+        <app-avatar [profile]="profile" />
+        <div>
+          <label
+            >Ảnh đại diện<input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              (change)="upload($event)"
+              [disabled]="state.busy()" /></label
+          ><small>JPEG, PNG, WebP · Tối đa 10 MiB</small>
+          @if (profile.avatarUrl) {
+            <button
+              class="text-button"
+              type="button"
+              (click)="removeAvatar()"
+              [disabled]="state.busy()"
+            >
+              Xóa ảnh đại diện
+            </button>
+          }
+        </div>
+      </div>
+    }
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <label>Tên hiển thị<input formControlName="displayName" autocomplete="nickname" /></label
+      ><small>1–60 ký tự Unicode.</small
+      ><label>Giới thiệu<textarea formControlName="bio" rows="4"></textarea></label
+      ><small>Tối đa 300 ký tự Unicode.</small
+      ><label
+        >Tỉnh / thành phố<select formControlName="provinceCode">
+          <option value="">Chọn tỉnh / thành phố</option>
+          @for (province of provinces(); track province.code) {
+            <option [value]="province.code">{{ province.name }}</option>
+          }
+        </select></label
+      >
+      @if (form.touched && form.invalid) {
+        <p role="alert" class="notice error">
+          Tên hiển thị, giới thiệu hoặc tỉnh/thành phố chưa hợp lệ.
+        </p>
+      }
+      <button class="primary" [disabled]="state.busy()">Lưu thay đổi</button>
+    </form>
+  }
+  <app-feedback [state]="state" />
+</section>

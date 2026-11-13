@@ -36,7 +36,7 @@ export const INITIAL_FILTERS: DiscoveryFilters = {
   sort: 'RANDOM',
 };
 
-/** Builds only contract-valid combinations; normalization/search semantics remain server-owned. */
+/** Chỉ tạo tổ hợp hợp lệ theo contract; chuẩn hóa/ngữ nghĩa tìm kiếm thuộc server. */
 export function discoveryQuery(filters: DiscoveryFilters): {
   query: DiscoveryQuery | null;
   error: string;
@@ -64,7 +64,7 @@ export function discoveryQuery(filters: DiscoveryFilters): {
   };
 }
 
-/** Explains invalid input before an HTTP request, preserving exact integer VND comparisons. */
+/** Giải thích đầu vào sai trước yêu cầu HTTP, giữ so sánh VND số nguyên chính xác. */
 function filterError(filters: DiscoveryFilters, sort: ListingSort): string {
   if (filters.q.includes('\u0000') || [...filters.q].length > 150)
     return 'Từ khóa tối đa 150 ký tự và không chứa ký tự NUL.';

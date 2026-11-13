@@ -6,7 +6,7 @@ import { SessionService } from './session.service';
 
 export const ANONYMOUS = new HttpContextToken<boolean>(() => false);
 
-/** Limits credentials to this API and retries a bearer request at most once after shared rotation. */
+/** Giới hạn credential trong API này và chỉ thử lại yêu cầu bearer tối đa một lần sau luân chuyển chung. */
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const session = inject(SessionService);
   const base = inject(API_BASE);
@@ -16,7 +16,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   if (request.context.get(ANONYMOUS)) return next(request);
   const token = session.token();
   const identityVersion = session.identityVersion();
-  /** A retry that is still unauthorized cannot retain the same local authority. */
+  /** Lần thử lại vẫn chưa được xác thực không thể giữ cùng quyền local. */
   const send = (accessToken: string) =>
     next(request.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } })).pipe(
       catchError((error: unknown) => {
@@ -41,7 +41,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
       if (!(error instanceof HttpErrorResponse) || error.status !== 401 || !token)
         return throwError(() => error);
       if (identityVersion !== session.identityVersion()) return throwError(() => error);
-      // An invalid OTP/password is also a 401: do not replay credential mutations.
+      // OTP/mật khẩu sai cũng trả 401: không phát lại thao tác thay đổi credential.
       if (!['GET', 'HEAD'].includes(request.method))
         return session.validateAuthority().pipe(switchMap(() => throwError(() => error)));
       const current = session.token();

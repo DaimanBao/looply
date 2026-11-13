@@ -1,0 +1,20 @@
+<p><a routerLink="/account">← Tài khoản</a></p>
+<section class="card form-card">
+  <h1>Đổi tên đăng nhập</h1>
+  <p class="muted">Sau mỗi lần đổi thành công, bạn cần chờ đủ 30 ngày để đổi tiếp.</p>
+  @if (nextChange(); as date) {
+    <p class="notice">
+      Lần đổi tiếp theo từ {{ date | date: 'dd/MM/yyyy HH:mm' }}. Máy chủ sẽ kiểm tra thời hạn chính
+      xác.
+    </p>
+  }
+  <form (submit)="$event.preventDefault(); submit()">
+    <label>Tên đăng nhập mới<input [formControl]="username" autocomplete="username" /></label
+    ><small>3–30 chữ cái, chữ số hoặc dấu gạch dưới.</small><app-feedback [state]="state" /><button
+      class="primary"
+      [disabled]="state.busy()"
+    >
+      Lưu tên đăng nhập
+    </button>
+  </form>
+</section>

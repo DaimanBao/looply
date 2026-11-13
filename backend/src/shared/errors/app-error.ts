@@ -1,7 +1,7 @@
 export type ValidationIssue = { path: string; code: string };
 
 export class AppError extends Error {
-  /** Carries only an intentional public message; internal causes must never be placed here. */
+  /** Chỉ mang thông báo công khai có chủ đích; không đặt nguyên nhân nội bộ ở đây. */
   constructor(
     public readonly status: number,
     public readonly code: string,

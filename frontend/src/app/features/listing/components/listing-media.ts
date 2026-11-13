@@ -35,7 +35,7 @@ export class ListingMedia {
   readonly failed = signal(false);
   private readonly retryVersion = signal(0);
 
-  /** Cancels old byte requests and revokes Blob URLs on asset, identity, or lifecycle changes. */
+  /** Hủy yêu cầu byte cũ và thu hồi Blob URL khi tài nguyên, danh tính hoặc vòng đời đổi. */
   constructor() {
     effect((onCleanup) => {
       const id = this.listingId();
@@ -50,24 +50,26 @@ export class ListingMedia {
       });
       if (!this.browser) return;
       let url = '';
-      // Subscription runs interceptors synchronously; keep their token reads outside this effect.
+      // Subscription chạy interceptor đồng bộ; giữ việc đọc token của chúng ngoài effect này.
       const request = untracked(() =>
-        this.api.media(
-          id,
-          asset,
-          asset.type === 'VIDEO' ? 'original' : thumbnail ? 'thumbnail' : 'detail',
-        ).subscribe({
-          next: (blob) => {
-            if (identity !== this.session.identityVersion()) return;
-            if (blob.type !== asset.mimeType) {
-              this.mediaError();
-              return;
-            }
-            url = URL.createObjectURL(blob);
-            this.source.set(url);
-          },
-          error: () => this.mediaError(),
-        }),
+        this.api
+          .media(
+            id,
+            asset,
+            asset.type === 'VIDEO' ? 'original' : thumbnail ? 'thumbnail' : 'detail',
+          )
+          .subscribe({
+            next: (blob) => {
+              if (identity !== this.session.identityVersion()) return;
+              if (blob.type !== asset.mimeType) {
+                this.mediaError();
+                return;
+              }
+              url = URL.createObjectURL(blob);
+              this.source.set(url);
+            },
+            error: () => this.mediaError(),
+          }),
       );
       onCleanup(() => {
         request.unsubscribe();
@@ -75,15 +77,18 @@ export class ListingMedia {
       });
     });
   }
-  /** Allows a failed download or decode to be retried explicitly. */
+
+  /** Cho phép thử lại tường minh khi tải hoặc giải mã lỗi. */
   retry(): void {
     this.retryVersion.update((version) => version + 1);
   }
-  /** Reports successful native image/video decoding, beyond just HTTP completion. */
+
+  /** Báo giải mã ảnh/video native thành công, không chỉ HTTP hoàn tất. */
   loaded(): void {
     this.loading.set(false);
   }
-  /** Replaces broken media with actionable feedback while retaining the listing. */
+
+  /** Thay media lỗi bằng phản hồi có hành động xử lý và giữ listing. */
   mediaError(): void {
     this.loading.set(false);
     this.failed.set(true);

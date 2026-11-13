@@ -43,17 +43,20 @@ export class RegisterPage implements OnInit {
       validators: [Validators.email, Validators.maxLength(254)],
     }),
   });
-  /** Loads live catalog data before accepting registration. */
+
+  /** Nạp danh mục hiện hành trước khi chấp nhận đăng ký. */
   ngOnInit(): void {
     void this.loadProvinces();
   }
-  /** Makes catalog failures recoverable without losing the form. */
+
+  /** Cho phép khôi phục lỗi danh mục mà không mất form. */
   async loadProvinces(): Promise<void> {
     await this.catalogState.run(async () => {
       this.provinces.set(await this.users.provinces());
     });
   }
-  /** Registration uses a delivered SMS proof and immediately adopts the server-issued session. */
+
+  /** Đăng ký dùng proof SMS đã gửi và nhận ngay phiên do server cấp. */
   async submit(): Promise<void> {
     const proof = this.proof();
     if (this.form.invalid || !proof) {

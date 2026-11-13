@@ -1,6 +1,6 @@
 import { Validators, type ValidatorFn } from '@angular/forms';
 
-/** Matches server Unicode length rules for passwords, display names and biography. */
+/** Khớp quy tắc độ dài Unicode của server cho mật khẩu, tên hiển thị và tiểu sử. */
 export function codePointLength(min: number, max: number): ValidatorFn {
   return (control) => {
     const count = typeof control.value === 'string' ? [...control.value].length : 0;

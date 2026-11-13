@@ -22,12 +22,9 @@ describe("Development OTP inspector with actual Redis lifecycle", () => {
         namespace: fixture.prefix,
       },
     );
-    await new Promise<void>((resolve) =>
-      server.listen(0, "127.0.0.1", resolve),
-    );
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
-    if (!address || typeof address === "string")
-      throw new Error("Missing inspector address");
+    if (!address || typeof address === "string") throw new Error("Missing inspector address");
     url = `http://127.0.0.1:${address.port}/inspect`;
   });
   afterAll(async () => {
@@ -66,9 +63,7 @@ describe("Development OTP inspector with actual Redis lifecycle", () => {
       challenge.challengeId,
       code,
     );
-    expect((await fetch(url, { method: "POST", headers, body })).status).toBe(
-      404,
-    );
+    expect((await fetch(url, { method: "POST", headers, body })).status).toBe(404);
     const expiredDestination = `+849${randomInt(10000000, 100000000)}`;
     const expired = await fixture.otp.request({
       purpose: "REGISTER_PHONE",
@@ -92,8 +87,6 @@ describe("Development OTP inspector with actual Redis lifecycle", () => {
       ).status,
     ).toBe(404);
     await fixture.redis.close();
-    expect((await fetch(url, { method: "POST", headers, body })).status).toBe(
-      503,
-    );
+    expect((await fetch(url, { method: "POST", headers, body })).status).toBe(503);
   });
 });

@@ -1,5 +1,5 @@
-// Looply DA1 — logical 17-model design for Prisma ORM 7.10.1; executable schema: backend/prisma/schema.prisma.
-// Generator paths are illustrative here; custom CHECK constraints and partial indexes live in backend/prisma/migrations.
+// Looply DA1 — thiết kế logic 17 model cho Prisma ORM 7.10.1; schema thực thi: backend/prisma/schema.prisma.
+// Đường dẫn generator ở đây chỉ minh họa; CHECK constraint và partial index tùy chỉnh nằm trong backend/prisma/migrations.
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -108,7 +108,7 @@ model User {
   bio String? @db.VarChar(300)
   avatarMediaId String? @unique @db.Uuid
   avatarMedia MediaAsset? @relation("CurrentAvatar", fields: [avatarMediaId], references: [id], onDelete: Restrict)
-  // Verified ownership uses a normalized partial unique index in custom SQL.
+  // Quyền sở hữu đã xác minh dùng partial unique index chuẩn hóa trong SQL tùy chỉnh.
   email String? @db.VarChar(254)
   emailVerifiedAt DateTime? @db.Timestamptz(3)
   phone String? @unique @db.VarChar(20)
@@ -219,7 +219,7 @@ model Listing {
   rentalUnit RentalUnit?
   provinceId String @db.Uuid
   province Province @relation(fields: [provinceId], references: [id], onDelete: Restrict)
-  // Optional explicitly published contact; never auto-copy User.phone into public listing.
+  // Thông tin liên hệ công khai tùy chọn; không tự sao chép User.phone vào bài đăng.
   contactPhone String? @db.VarChar(20)
   activeCycle Int @default(1)
   version Int @default(1)

@@ -9,7 +9,7 @@ const requestSchema = z
   .object({ challengeId: z.uuid(), destination: z.string().min(1).max(254) })
   .strict();
 
-/** Creates a separate authenticated loopback listener; no public Auth/User router imports this tool. */
+/** Tạo listener loopback riêng có xác thực; router Auth/User công khai không import công cụ này. */
 export function createOtpInspector(
   environment: string,
   config: InspectorConfig,
@@ -70,9 +70,7 @@ export function createOtpInspector(
         response.writeHead(404).end();
         return;
       }
-      response
-        .writeHead(200, { "Content-Type": "application/json" })
-        .end(JSON.stringify({ code }));
+      response.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ code }));
     } catch {
       response.writeHead(503).end();
     }

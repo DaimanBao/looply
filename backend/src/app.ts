@@ -12,7 +12,7 @@ import { createRequestLogger } from "./shared/middleware/request-logger";
 
 export type AppDependencies = { config: HttpConfig; logger: Logger; featureRouters?: Router[] };
 
-/** Composes HTTP behavior without reading environment variables, opening databases or listening. */
+/** Lắp ghép hành vi HTTP mà không đọc biến môi trường, mở database hoặc lắng nghe kết nối. */
 export function createApp({ config, logger, featureRouters = [] }: AppDependencies): Express {
   const app = express();
   app.disable("x-powered-by");

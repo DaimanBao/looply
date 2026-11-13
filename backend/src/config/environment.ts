@@ -20,7 +20,7 @@ export type AppConfig = {
   http: HttpConfig;
 };
 
-/** Parses environment inputs once; test mode exclusively selects TEST_DATABASE_URL. */
+/** Phân tích biến môi trường một lần; chế độ test chỉ chọn TEST_DATABASE_URL. */
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
   const result = environmentSchema.safeParse(environment);
   if (!result.success) {
@@ -33,13 +33,19 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
     input.NODE_ENV,
   );
   return {
-    environment: input.NODE_ENV, host: input.HOST, port: input.PORT,
-    databaseUrl, databaseConnectTimeoutMs: input.DATABASE_CONNECT_TIMEOUT_MS,
-    logLevel: input.LOG_LEVEL, shutdownTimeoutMs: input.SHUTDOWN_TIMEOUT_MS,
+    environment: input.NODE_ENV,
+    host: input.HOST,
+    port: input.PORT,
+    databaseUrl,
+    databaseConnectTimeoutMs: input.DATABASE_CONNECT_TIMEOUT_MS,
+    logLevel: input.LOG_LEVEL,
+    shutdownTimeoutMs: input.SHUTDOWN_TIMEOUT_MS,
     http: {
-      corsOrigins: input.CORS_ORIGINS, corsCredentials: input.CORS_CREDENTIALS,
+      corsOrigins: input.CORS_ORIGINS,
+      corsCredentials: input.CORS_CREDENTIALS,
       jsonBodyLimitBytes: input.JSON_BODY_LIMIT_BYTES,
-      rateLimitWindowMs: input.RATE_LIMIT_WINDOW_MS, rateLimitMax: input.RATE_LIMIT_MAX,
+      rateLimitWindowMs: input.RATE_LIMIT_WINDOW_MS,
+      rateLimitMax: input.RATE_LIMIT_MAX,
     },
   };
 }

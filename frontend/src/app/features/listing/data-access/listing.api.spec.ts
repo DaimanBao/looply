@@ -58,12 +58,10 @@ describe('Listing API contract boundary', () => {
     let failed = false;
     const fixture = listingFixture();
     api.detail(fixture.id).subscribe({ error: () => (failed = true) });
-    http
-      .expectOne(`/api/listings/${fixture.id}`)
-      .flush({
-        ...fixture,
-        cover: { ...fixture.cover, deliveryPath: 'https://unexpected.invalid/private' },
-      });
+    http.expectOne(`/api/listings/${fixture.id}`).flush({
+      ...fixture,
+      cover: { ...fixture.cover, deliveryPath: 'https://unexpected.invalid/private' },
+    });
     expect(failed).toBe(true);
     let owner: unknown;
     api.detail(fixture.id).subscribe((listing) => (owner = listing.owner));

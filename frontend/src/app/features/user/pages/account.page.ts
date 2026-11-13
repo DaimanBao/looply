@@ -7,77 +7,18 @@ import { Avatar } from '../components/avatar';
 
 @Component({
   imports: [RouterLink, Feedback, Avatar],
-  template: `
-    <div class="page-heading">
-      <div>
-        <span class="eyebrow">GÓC CỦA BẠN</span>
-        <h1>Tài khoản của tôi</h1>
-      </div>
-      <a class="button secondary" routerLink="/account/edit">Chỉnh sửa hồ sơ</a>
-    </div>
-    <app-feedback [state]="state" />
-    @if (state.error()) {
-      <button (click)="load()">Thử lại</button>
-    }
-    @if (store.profile(); as profile) {
-      <section class="card profile-hero">
-        <app-avatar [profile]="profile" />
-        <div>
-          <h2>{{ profile.displayName }}</h2>
-          <p class="muted">
-            {{ '@' + profile.username }} ·
-            {{ profile.province?.name || 'Chưa chọn tỉnh / thành phố' }}
-          </p>
-          <p class="bio">{{ profile.bio || 'Thêm vài dòng để cộng đồng hiểu bạn hơn.' }}</p>
-          <div class="stats">
-            <a [routerLink]="['/users', profile.id, 'followers']"
-              ><strong>{{ profile.followers }}</strong> người theo dõi</a
-            ><a [routerLink]="['/users', profile.id, 'following']"
-              ><strong>{{ profile.following }}</strong> đang theo dõi</a
-            >
-          </div>
-        </div>
-      </section>
-      <div class="settings-grid">
-        <section class="card">
-          <h2>Thông tin liên hệ</h2>
-          <dl>
-            <dt>Số điện thoại</dt>
-            <dd>
-              {{ profile.phone || 'Chưa thêm' }} ·
-              {{ profile.phoneVerifiedAt ? 'Đã xác minh' : 'Chưa xác minh' }}
-            </dd>
-            <dt>Email</dt>
-            <dd>
-              {{ profile.email || 'Chưa thêm' }} ·
-              {{ profile.emailVerifiedAt ? 'Đã xác minh' : 'Chưa xác minh' }}
-            </dd>
-          </dl>
-          <a routerLink="/account/contacts">Quản lý thông tin liên hệ →</a>
-        </section>
-        <section class="card">
-          <h2>Bảo mật & quyền riêng tư</h2>
-          <nav class="link-list">
-            <a routerLink="/account/password">Đổi mật khẩu</a
-            ><a routerLink="/account/username">Đổi tên đăng nhập</a
-            ><a routerLink="/account/sessions">Thiết bị & phiên đăng nhập</a
-            ><a routerLink="/account/blocked">Tài khoản đã chặn</a
-            ><a routerLink="/account/deletion">Xóa tài khoản</a>
-          </nav>
-        </section>
-      </div>
-      <p><a [routerLink]="['/users', profile.id]">Xem hồ sơ công khai của tôi →</a></p>
-    }
-  `,
+  templateUrl: './account.page.html',
 })
 export class AccountPage implements OnInit {
   readonly store = inject(ProfileStore);
   readonly state = new ActionState();
-  /** Refreshes private data on entry. */
+
+  /** Làm mới dữ liệu riêng khi vào trang. */
   ngOnInit(): void {
     void this.load();
   }
-  /** Supports retry after a transient API failure. */
+
+  /** Hỗ trợ thử lại sau lỗi API tạm thời. */
   async load(): Promise<void> {
     this.store.profile.set(null);
     await this.state.run(async () => {

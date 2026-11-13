@@ -16,13 +16,13 @@ const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'looply-frontend-e2e-'))
 const artifacts = path.join(root, 'frontend/tmp/e2e');
 fs.mkdirSync(artifacts, { recursive: true });
 
-/** Starts an isolated child without printing its environment, credentials or request bodies. */
+/** Khởi động tiến trình con cô lập, không in môi trường, credential hoặc request body. */
 function start(command, args, options) {
   const child = spawn(command, args, { ...options, windowsHide: true, stdio: 'ignore' });
   children.push(child);
   return child;
 }
-/** Waits for an HTTP listener with a bounded deadline. */
+/** Chờ listener HTTP với deadline giới hạn. */
 async function ready(url, timeout = 60000) {
   const until = Date.now() + timeout;
   while (Date.now() < until) {
@@ -34,13 +34,13 @@ async function ready(url, timeout = 60000) {
   }
   throw new Error('Development listener did not become ready');
 }
-/** Reports only named checks, never tokens, OTPs, credentials or contact values. */
+/** Chỉ báo kiểm tra theo tên, không token, OTP, credential hoặc giá trị liên hệ. */
 function passed(name) {
   report.push(name);
   console.log(`PASS ${name}`);
 }
 
-/** Exercises Angular forms against actual isolated PostgreSQL/Redis and fake delivery only. */
+/** Kiểm tra form Angular với PostgreSQL/Redis thật cô lập và chỉ bản gửi giả. */
 async function main() {
   const env = { ...process.env, ...dotenv.parse(fs.readFileSync(path.join(backend, '.env'))) };
   const target = new URL(env.TEST_DATABASE_URL);
@@ -62,7 +62,7 @@ async function main() {
   } finally {
     await database.end();
   }
-  // Uses ephemeral keys for this run, with no edits to .env and no migrations/seed/cleanup on development.
+  // Dùng khóa tạm cho lượt chạy này, không sửa .env hoặc migration/seed/cleanup development.
   const inspectorKey = randomBytes(48).toString('base64url');
   Object.assign(env, {
     NODE_ENV: 'development',
@@ -143,7 +143,7 @@ async function main() {
         })
         .catch(() => {});
   });
-  /** Reads a single delivered code through the separate authenticated loopback tool. */
+  /** Đọc một mã đã gửi qua công cụ loopback riêng có xác thực. */
   async function inspect(challengeId, destination) {
     const code = execFileSync(
       process.execPath,
@@ -159,7 +159,7 @@ async function main() {
     assert.ok(/^[0-9]{6}$/.test(code), 'CLI must return a live delivered code');
     return code;
   }
-  /** Completes the visible OTP control without bypassing challenge verification. */
+  /** Hoàn tất control OTP hiển thị mà không bỏ qua xác minh challenge. */
   async function otp(destination) {
     lastOtp = undefined;
     await page.click('Gửi mã xác minh');
@@ -170,7 +170,7 @@ async function main() {
     await page.fill('app-otp-input input', code);
     return code;
   }
-  /** Creates isolated fixture setup through the same API, without direct credential/database inserts. */
+  /** Tạo fixture cô lập qua cùng API, không thêm trực tiếp credential/database. */
   async function api(pathname, { method = 'GET', body, token } = {}) {
     const response = await fetch(`http://127.0.0.1:3000/api${pathname}`, {
       method,
@@ -281,7 +281,7 @@ async function main() {
   );
   passed('Verify email with OTP and password re-authentication');
   const newPhone = `+849${randomInt(10000000, 100000000)}`;
-  // A new control instance separates resend cooldown state for two different contacts.
+  // Control instance mới tách trạng thái thời gian chờ gửi lại cho hai liên hệ khác nhau.
   await page.navigate('/account/contacts', `!!document.querySelector('app-reauth-input')`);
   await page.click('Số điện thoại');
   await page.fill('input[type=tel]', newPhone);
@@ -370,7 +370,7 @@ async function main() {
   const changedPassword = `Looply ${randomBytes(20).toString('base64url')}!`;
   await page.navigate('/account/password', `!!document.querySelector('app-reauth-input')`);
   await page.fill('form > label input', changedPassword);
-  // Honor the real destination cooldown; no Redis counter or server clock changes.
+  // Tuân thủ thời gian chờ đích thực; không đổi bộ đếm Redis hoặc đồng hồ server.
   while (Date.now() - phoneIssuedAt < 61000)
     await new Promise((resolve) => setTimeout(resolve, 500));
   await page.click('OTP số đã xác minh');
@@ -424,7 +424,7 @@ async function main() {
   await page.wait(`location.pathname==='/auth/login'`, 'logout');
   await page.navigate('/account', `location.pathname==='/auth/login'`);
   passed('Logout revokes cookie authority and protects reload');
-  // Honor real Redis cooldowns; neither browser clocks nor Redis counters are modified.
+  // Tuân thủ thời gian chờ Redis thực; không sửa đồng hồ trình duyệt hoặc bộ đếm Redis.
   while (Date.now() - reauthPhoneIssuedAt < 61000)
     await new Promise((resolve) => setTimeout(resolve, 500));
   await page.wait(`!!document.querySelector('[formcontrolname=username]')`, 'phone login page');
@@ -509,5 +509,5 @@ main()
       page.close();
     }
     for (const child of children.reverse()) child.kill();
-    // Temporary browser files are left in the OS temp directory; never recursively delete a computed path here.
+    // Giữ file trình duyệt tạm trong thư mục tạm hệ điều hành; không xóa đệ quy đường dẫn tính toán tại đây.
   });

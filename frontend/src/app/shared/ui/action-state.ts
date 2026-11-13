@@ -1,12 +1,13 @@
 import { signal } from '@angular/core';
 import { apiError } from '../../core/http/api-error';
 
-/** Owns the loading/feedback lifecycle of a single visible user action. */
+/** Quản lý vòng đời loading/phản hồi của một hành động người dùng hiển thị. */
 export class ActionState {
   readonly busy = signal(false);
   readonly error = signal('');
   readonly message = signal('');
-  /** Prevents duplicate submissions and always releases the loading state. */
+
+  /** Ngăn gửi trùng và luôn giải phóng trạng thái loading. */
   async run(action: () => Promise<void>, success = ''): Promise<void> {
     if (this.busy()) return;
     this.busy.set(true);

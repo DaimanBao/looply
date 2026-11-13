@@ -1,6 +1,6 @@
 import type { ListingDetail } from '../models/listing.models';
 
-/** Provides contract-shaped public data with stable IDs for focused Listing tests. */
+/** Cung cấp dữ liệu công khai đúng contract với ID ổn định cho test Listing tập trung. */
 export function listingFixture(overrides: Partial<ListingDetail> = {}): ListingDetail {
   const id = '00000000-0000-4000-8000-000000000001';
   const cover = {

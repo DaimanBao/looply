@@ -54,7 +54,7 @@ export class DiscoveryPage {
   private queryTimer?: Subscription;
   private catalogRevision = 0;
 
-  /** Resets stale data immediately and coalesces input changes; identity changes invalidate viewer-bound cursors. */
+  /** Xóa dữ liệu cũ ngay và gộp thay đổi đầu vào; đổi danh tính vô hiệu hóa cursor gắn người xem. */
   constructor() {
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.filtersChanged());
     const destroy = inject(DestroyRef);
@@ -73,7 +73,8 @@ export class DiscoveryPage {
     });
     void this.loadProvinces();
   }
-  /** Loads the shared server catalog; failure does not prevent National discovery. */
+
+  /** Nạp danh mục server chung; lỗi không chặn khám phá toàn quốc. */
   async loadProvinces(): Promise<void> {
     const revision = ++this.catalogRevision;
     this.provinceLoading.set(true);
@@ -87,7 +88,8 @@ export class DiscoveryPage {
       if (revision === this.catalogRevision) this.provinceLoading.set(false);
     }
   }
-  /** Starts each tab with its own default order and no previous continuation. */
+
+  /** Bắt đầu mỗi tab với thứ tự mặc định riêng, không giữ phân trang trước. */
   selectTab(tab: DiscoveryFilters['tab']): void {
     if (tab === this.tab()) return;
     this.tab.set(tab);
@@ -97,7 +99,8 @@ export class DiscoveryPage {
     );
     this.filtersChanged();
   }
-  /** Clears monetary fields when the chosen type/unit makes comparison invalid. */
+
+  /** Xóa trường tiền khi loại/đơn vị được chọn làm so sánh không hợp lệ. */
   private filtersChanged(): void {
     const values = this.form.getRawValue();
     if (values.sort === 'RANDOM' && values.q.trim())
@@ -116,7 +119,8 @@ export class DiscoveryPage {
     this.values.set(this.form.getRawValue());
     this.refresh();
   }
-  /** Invalidates in-flight list/suggestion responses before the 300 ms debounce begins. */
+
+  /** Vô hiệu hóa response danh sách/gợi ý đang chạy trước khi bắt đầu debounce 300 ms. */
   private refresh(): void {
     this.queryTimer?.unsubscribe();
     this.suggestionRequest?.unsubscribe();
@@ -128,7 +132,7 @@ export class DiscoveryPage {
     const result = discoveryQuery(filters);
     this.validation.set(result.error);
     this.waiting.set(result.query !== null);
-    // Title suggestions are independent of province and price constraints.
+    // Gợi ý tiêu đề độc lập với ràng buộc tỉnh và giá.
     const validTitle = !filters.q.includes('\u0000') && [...filters.q].length <= 150;
     this.queryTimer = timer(300).subscribe(() => {
       this.waiting.set(false);

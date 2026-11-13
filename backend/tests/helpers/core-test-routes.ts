@@ -1,11 +1,17 @@
 import { Router } from "express";
 import { validateRequest } from "../../src/shared/middleware/validate-request";
 import {
-  echoValidated, failAfterHeaders, failAsynchronously, failForbidden, failInternally,
-  failPrisma, failUnauthenticated, fixtureRequestSchema,
+  echoValidated,
+  failAfterHeaders,
+  failAsynchronously,
+  failForbidden,
+  failInternally,
+  failPrisma,
+  failUnauthenticated,
+  fixtureRequestSchema,
 } from "./core-test-handlers";
 
-/** Wires synthetic test endpoints; this router is never imported by production bootstrap. */
+/** Nối endpoint test tổng hợp; bootstrap production không import router này. */
 export function createCoreTestRouter(): Router {
   const router = Router();
   router.post("/validation", validateRequest(fixtureRequestSchema), echoValidated);

@@ -11,40 +11,7 @@ import { Feedback } from '../../../shared/ui/feedback';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink, OtpInput, Feedback],
-  template: `
-    <section class="card form-card">
-      <span class="eyebrow">LẤY LẠI QUYỀN TRUY CẬP</span>
-      <h1>Khôi phục mật khẩu</h1>
-      <p class="muted">
-        Sử dụng email hoặc số điện thoại đã xác minh. Thành công sẽ đăng xuất tất cả thiết bị.
-      </p>
-      <form [formGroup]="form" (ngSubmit)="submit()">
-        <label
-          >Email hoặc số điện thoại<input
-            formControlName="destination"
-            autocomplete="username"
-            (input)="proof.set(null)" /></label
-        ><small>Số điện thoại dùng định dạng +84…</small>
-        <app-otp-input
-          purpose="RESET_PASSWORD"
-          [destination]="form.controls.destination.valid ? form.controls.destination.value : ''"
-          (proof)="proof.set($event)"
-        />
-        <label
-          >Mật khẩu mới<input
-            type="password"
-            formControlName="password"
-            autocomplete="new-password" /></label
-        ><small>8–128 ký tự Unicode.</small> <app-feedback [state]="state" /><button
-          class="primary"
-          [disabled]="state.busy()"
-        >
-          Đặt mật khẩu mới
-        </button>
-      </form>
-      <p><a routerLink="/auth/login">Quay lại đăng nhập</a></p>
-    </section>
-  `,
+  templateUrl: './reset.page.html',
 })
 export class ResetPage {
   private readonly api = inject(AuthApi);
@@ -58,7 +25,8 @@ export class ResetPage {
     }),
     password: new FormControl('', { nonNullable: true, validators: [codePointLength(8, 128)] }),
   });
-  /** Uses a verified contact challenge and clears obsolete client authority after recovery. */
+
+  /** Dùng challenge liên hệ đã xác minh và xóa quyền client cũ sau khôi phục. */
   async submit(): Promise<void> {
     const proof = this.proof();
     if (this.form.invalid || !proof) {

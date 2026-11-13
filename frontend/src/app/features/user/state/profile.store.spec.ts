@@ -26,7 +26,7 @@ describe('Private profile cache', () => {
       const store = TestBed.inject(ProfileStore);
       TestBed.tick();
       const loading = scenario === 'read' ? store.load() : store.retainResponse(() => response);
-      // Observe rejection before completing the stale request.
+      // Theo dõi rejection trước khi hoàn tất yêu cầu cũ.
       const settled = loading.catch(() => undefined);
       session.clear();
       if (scenario === 'another login')

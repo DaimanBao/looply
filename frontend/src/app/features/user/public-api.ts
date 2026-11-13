@@ -1,2 +1,2 @@
-// Auth registration consumes the User-owned province catalog via the same API client.
+// Đăng ký Auth dùng danh mục tỉnh do User quản lý qua cùng API client.
 export { UserApi } from './data-access/user.api';

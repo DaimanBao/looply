@@ -22,26 +22,29 @@ export class ListingApi {
   private readonly base = inject(API_BASE);
   private readonly mediaTimeout = inject(LISTING_MEDIA_TIMEOUT_MS);
 
-  /** Repeats the exact query and opaque cursor; the national seed is server-owned inside after. */
+  /** Gửi lại đúng query và cursor opaque; seed toàn quốc do server quản lý trong after. */
   discover(query: DiscoveryQuery, after?: string): Observable<ListingPage> {
     let params = new HttpParams();
     for (const [key, value] of Object.entries(query)) params = params.set(key, value);
     if (after) params = params.set('after', after);
     return this.http.get<unknown>(`${this.base}/listings`, { params }).pipe(map(decodeListingPage));
   }
-  /** Lets the Backend perform Vietnamese accent folding and visibility filtering. */
+
+  /** Để Backend chuẩn hóa dấu tiếng Việt và lọc quyền hiển thị. */
   suggestions(q: string): Observable<ListingSuggestion[]> {
     return this.http
       .get<unknown>(`${this.base}/listings/suggestions`, { params: { q } })
       .pipe(map(decodeSuggestions));
   }
-  /** Reads public or authorized owner detail using the existing optional Bearer stack. */
+
+  /** Đọc chi tiết công khai hoặc của chủ có quyền bằng hệ thống Bearer tùy chọn hiện có. */
   detail(id: string): Observable<ListingDetail> {
     return this.http
       .get<unknown>(`${this.base}/listings/${encodeURIComponent(id)}`)
       .pipe(map(decodeListingDetail));
   }
-  /** Fetches protected bytes rather than putting credentials in a native media URL. */
+
+  /** Lấy byte được bảo vệ thay vì đưa credential vào URL media native. */
   media(
     listingId: string,
     asset: ListingMedia,

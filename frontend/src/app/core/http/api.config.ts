@@ -1,12 +1,12 @@
 import { InjectionToken } from '@angular/core';
 
-// Same-origin /api is forwarded by the development proxy; production supplies its reverse proxy.
+// /api cùng origin được chuyển qua proxy development; production cung cấp reverse proxy riêng.
 export const API_BASE = new InjectionToken<string>('API_BASE', {
   providedIn: 'root',
   factory: () => '/api',
 });
 
-// Bounds network stalls; deployment providers may override this without changing components.
+// Giới hạn mạng bị treo; provider triển khai có thể ghi đè mà không đổi component.
 export const API_TIMEOUT_MS = new InjectionToken<number>('API_TIMEOUT_MS', {
   providedIn: 'root',
   factory: () => 15000,

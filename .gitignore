@@ -15,10 +15,10 @@ coverage/
 
 .DS_Store
 
-# Prisma generated client
+# Prisma client được sinh tự động
 /backend/src/generated/prisma/
 
-# Prisma-generated AI Agent Skills
+# AI Agent Skills được Prisma sinh tự động
 /backend/.agents/skills/
 /backend/.claude/skills/
 /backend/.windsurf/skills/

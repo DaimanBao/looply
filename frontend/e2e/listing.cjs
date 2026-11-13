@@ -18,32 +18,32 @@ let fixture;
 let listener;
 let page;
 
-/** Starts only test-owned processes, hiding Windows helper windows and withholding credentials. */
+/** Chỉ khởi động tiến trình thuộc test, ẩn cửa sổ helper Windows và giữ kín credential. */
 function start(command, args, options) {
   const child = spawn(command, args, { ...options, windowsHide: true, stdio: 'ignore' });
   children.push(child);
   return child;
 }
-/** Waits for a test listener without leaving an unbounded process running. */
+/** Chờ listener test mà không để tiến trình chạy vô thời hạn. */
 async function ready(url) {
   const until = Date.now() + 60000;
   while (Date.now() < until) {
     try {
       if ((await fetch(url)).ok) return;
     } catch {
-      /* Listener is still starting. */
+      /* Listener vẫn đang khởi động. */
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   throw new Error('Test listener timed out');
 }
-/** Records safe evidence only; no fixture token/password/contact is printed. */
+/** Chỉ ghi bằng chứng an toàn; không in token/mật khẩu/liên hệ fixture. */
 function passed(name) {
   checks.push(name);
   console.log(`PASS ${name}`);
 }
 
-/** Exercises public Angular discovery and browser decoding against the real API/database/media adapters. */
+/** Kiểm tra khám phá Angular công khai và giải mã trình duyệt với adapter API/database/media thật. */
 async function main() {
   const target = new URL(process.env.TEST_DATABASE_URL);
   assert.equal(target.pathname, '/looply_test');
@@ -64,7 +64,7 @@ async function main() {
   process.chdir(backend);
   const { createAuthFixture } = require(path.join(backend, 'tests/helpers/auth-fixture.ts'));
   const { LocalObjectStore } = require(path.join(backend, 'src/modules/media/object-store.ts'));
-  // The shared fixture verifies SELECT current_database() before any writes and owns all cleanup IDs.
+  // Fixture chung xác minh SELECT current_database() trước mọi ghi và sở hữu mọi ID cleanup.
   fixture = await createAuthFixture(new LocalObjectStore(path.join(directory, 'objects')));
   const request = require(path.join(backend, 'node_modules/supertest'));
   const sharp = require(path.join(backend, 'node_modules/sharp'));
@@ -78,7 +78,7 @@ async function main() {
   })
     .png()
     .toBuffer();
-  /** Uploads synthetic bytes through normal validation and storage, keeping credentials within this process. */
+  /** Upload byte tổng hợp qua validation và storage thông thường, giữ credential trong tiến trình này. */
   async function upload(bytes) {
     const result = await request(fixture.app)
       .post('/api/media/listing-uploads')
@@ -293,7 +293,7 @@ main()
       try {
         await page.send('Browser.close');
       } catch {
-        /* Browser may already have exited. */
+        /* Trình duyệt có thể đã thoát. */
       }
       page.close();
     }
@@ -303,5 +303,5 @@ main()
       await new Promise((resolve) => listener.close(resolve));
     }
     if (fixture) await fixture.dispose();
-    // OS temp contains only synthetic media and a disposable browser profile; no recursive shell deletion.
+    // Thư mục tạm hệ điều hành chỉ chứa media tổng hợp và hồ sơ trình duyệt tạm; không xóa đệ quy bằng shell.
   });

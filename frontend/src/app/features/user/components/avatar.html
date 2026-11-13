@@ -1,0 +1,7 @@
+@if (image()) {
+  <img class="avatar" [src]="image()" [alt]="'Ảnh đại diện của ' + profile().displayName" />
+} @else {
+  <span class="avatar avatar-placeholder" aria-hidden="true">{{
+    profile().displayName.slice(0, 1).toUpperCase()
+  }}</span>
+}

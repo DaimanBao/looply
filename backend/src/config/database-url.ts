@@ -1,17 +1,22 @@
 import type { Environment } from "./environment.schema";
 
 const databaseNames: Record<Environment, string> = {
-  development: "looply_dev", test: "looply_test", production: "looply_prod",
+  development: "looply_dev",
+  test: "looply_test",
+  production: "looply_prod",
 };
 
-/** Enforces the project database boundary without exposing the supplied connection string. */
+/** Áp dụng ranh giới database của dự án mà không tiết lộ chuỗi kết nối. */
 export function validateDatabaseUrl(value: string | undefined, environment: Environment): string {
   if (!value) throw new Error("Missing database configuration");
   try {
     const url = new URL(value);
-    if (!["postgres:", "postgresql:"].includes(url.protocol)
-      || url.pathname !== `/${databaseNames[environment]}`
-      || url.searchParams.has("dbname") || url.searchParams.has("database")) {
+    if (
+      !["postgres:", "postgresql:"].includes(url.protocol) ||
+      url.pathname !== `/${databaseNames[environment]}` ||
+      url.searchParams.has("dbname") ||
+      url.searchParams.has("database")
+    ) {
       throw new Error("Invalid target");
     }
     if (url.searchParams.has("schema") && url.searchParams.get("schema") !== "public") {

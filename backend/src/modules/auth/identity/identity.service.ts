@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
-import type { registerSchema, passwordLoginSchema, phoneLoginSchema, googleSchema } from "../auth.schema";
+import type {
+  registerSchema,
+  passwordLoginSchema,
+  phoneLoginSchema,
+  googleSchema,
+} from "../auth.schema";
 import type { AuthRepository } from "../auth.repository";
 import type { SessionService } from "../sessions/session.service";
 import type { EphemeralAuth } from "../redis/ephemeral-auth";
@@ -13,27 +18,61 @@ import { AppError } from "../../../shared/errors/app-error";
 
 export class IdentityService {
   private readonly dummyHash = hashPassword(randomUUID());
-  /** Receives provider boundaries and persistent services explicitly. */
-  constructor(private readonly repository: AuthRepository, private readonly sessions: SessionService, private readonly ephemeral: EphemeralAuth, private readonly google: GoogleVerifier, private readonly passwords: PasswordScreen) {}
-  /** Screens/hashes before transaction, then creates verified phone and session as one database commit. */
+
+  /** Nhận tường minh các giao diện provider và service lưu trữ. */
+  constructor(
+    private readonly repository: AuthRepository,
+    private readonly sessions: SessionService,
+    private readonly ephemeral: EphemeralAuth,
+    private readonly google: GoogleVerifier,
+    private readonly passwords: PasswordScreen,
+  ) {}
+
+  /** Kiểm tra/băm trước transaction, rồi tạo điện thoại đã xác minh và phiên trong một commit database. */
   async register(input: z.infer<typeof registerSchema>) {
     await this.passwords.check(input.password);
-    const passwordHash = await hashPassword(input.password); const userId = randomUUID();
+    const passwordHash = await hashPassword(input.password);
+    const userId = randomUUID();
     return this.repository.transaction(async (tx) => {
       await this.repository.lock(tx, userId, input.email ? [`email:${input.email}`] : []);
       const province = await this.repository.province(input.provinceCode, tx);
       if (!province) throw new AppError(400, "INVALID_PROVINCE", "Choose an active province.");
-      await this.ephemeral.consumeOtp(otpBinding("REGISTER_PHONE", input.phone), input.challengeId, input.code);
+      await this.ephemeral.consumeOtp(
+        otpBinding("REGISTER_PHONE", input.phone),
+        input.challengeId,
+        input.code,
+      );
       const owner = input.email ? await this.repository.contact(input.email, tx) : null;
-      const user = await this.repository.createUser({ id: userId, username: input.username, passwordHash, displayName: input.username, phone: input.phone, phoneVerifiedAt: new Date(), provinceId: province.id, email: owner ? null : input.email }, tx);
+      const user = await this.repository.createUser(
+        {
+          id: userId,
+          username: input.username,
+          passwordHash,
+          displayName: input.username,
+          phone: input.phone,
+          phoneVerifiedAt: new Date(),
+          provinceId: province.id,
+          email: owner ? null : input.email,
+        },
+        tx,
+      );
       return this.sessions.create(user, tx);
     });
   }
-  /** Uses a dummy Argon2 verification for unknown usernames and serializes session issuance with revocation. */
+
+  /** Dùng xác minh Argon2 giả cho username không tồn tại và tuần tự hóa cấp phiên với thu hồi. */
   async passwordLogin(input: z.infer<typeof passwordLoginSchema>) {
-    await this.ephemeral.limit(`password:${input.username}`, this.ephemeral.limits.password.maximum, this.ephemeral.limits.password.seconds);
+    await this.ephemeral.limit(
+      `password:${input.username}`,
+      this.ephemeral.limits.password.maximum,
+      this.ephemeral.limits.password.seconds,
+    );
     const candidate = await this.repository.user({ username: input.username });
-    if (!await verifyPassword(candidate?.passwordHash ?? await this.dummyHash, input.password) || !candidate?.passwordHash) throw unauthorized();
+    if (
+      !(await verifyPassword(candidate?.passwordHash ?? (await this.dummyHash), input.password)) ||
+      !candidate?.passwordHash
+    )
+      throw unauthorized();
     return this.repository.transaction(async (tx) => {
       await this.repository.lock(tx, candidate.id);
       const current = await this.repository.user({ id: candidate.id }, tx);
@@ -41,7 +80,8 @@ export class IdentityService {
       return this.sessions.create(current, tx);
     });
   }
-  /** Consumes a code for its original account only while the verified phone ownership remains locked. */
+
+  /** Chỉ tiêu thụ mã cho tài khoản gốc trong khi vẫn khóa quyền sở hữu điện thoại đã xác minh. */
   async phoneLogin(input: z.infer<typeof phoneLoginSchema>) {
     const candidate = await this.repository.contact(input.phone);
     if (!candidate) throw unauthorized();
@@ -49,25 +89,41 @@ export class IdentityService {
       await this.repository.lock(tx, candidate.id);
       const current = await this.repository.contact(input.phone, tx);
       if (!current || current.id !== candidate.id) throw unauthorized();
-      await this.ephemeral.consumeOtp(otpBinding("LOGIN_PHONE", input.phone, { userId: current.id }), input.challengeId, input.code);
+      await this.ephemeral.consumeOtp(
+        otpBinding("LOGIN_PHONE", input.phone, { userId: current.id }),
+        input.challengeId,
+        input.code,
+      );
       return this.sessions.create(current, tx);
     });
   }
-  /** Issues an unpredictable one-use nonce; a supplied session binds login/link re-auth separately. */
+
+  /** Cấp nonce khó đoán dùng một lần; phiên được truyền gắn riêng việc xác thực lại khi đăng nhập/liên kết. */
   async challenge(principal?: Principal) {
-    const challengeId = await this.ephemeral.issueProof(`google:${principal?.sessionId ?? "anonymous"}`);
+    const challengeId = await this.ephemeral.issueProof(
+      `google:${principal?.sessionId ?? "anonymous"}`,
+    );
     return { challengeId, nonce: challengeId, expiresIn: 300 };
   }
-  /** Verifies the nonce before provider assertions, preventing replay across login and linked sessions. */
+
+  /** Kiểm tra nonce trước assertion của provider, ngăn phát lại giữa đăng nhập và phiên đã liên kết. */
   async verifyGoogle(input: z.infer<typeof googleSchema>, principal?: Principal) {
-    await this.ephemeral.consumeProof(input.challengeId, `google:${principal?.sessionId ?? "anonymous"}`);
+    await this.ephemeral.consumeProof(
+      input.challengeId,
+      `google:${principal?.sessionId ?? "anonymous"}`,
+    );
     return this.google.verify(input.credential, input.challengeId);
   }
-  /** Creates a Google User with a generated unique username, but never merges by matching email. */
+
+  /** Tạo User Google với username duy nhất được sinh tự động, không hợp nhất theo email trùng. */
   async googleLogin(input: z.infer<typeof googleSchema>) {
-    const identity = await this.verifyGoogle(input); const userId = randomUUID();
+    const identity = await this.verifyGoogle(input);
+    const userId = randomUUID();
     return this.repository.transaction(async (tx) => {
-      await lockResources(tx, [`google:${identity.subject}`, ...(identity.email ? [`email:${identity.email}`] : [])]);
+      await lockResources(tx, [
+        `google:${identity.subject}`,
+        ...(identity.email ? [`email:${identity.email}`] : []),
+      ]);
       const linked = await this.repository.google(identity.subject, tx);
       if (linked) {
         await this.repository.lock(tx, linked.userId);
@@ -76,16 +132,34 @@ export class IdentityService {
         return this.sessions.create(user, tx);
       }
       const emailOwner = identity.email ? await this.repository.contact(identity.email, tx) : null;
-      if (identity.verified && emailOwner) throw conflict("Sign in to the existing account and explicitly link Google after re-authentication.");
-      if (identity.verified && identity.email) await this.repository.lockContact(tx, userId, identity.email);
-      const user = await this.repository.createUser({ id: userId, username: `g_${randomUUID().replaceAll("-", "").slice(0, 24)}`, displayName: [...(identity.name || "Người dùng Google")].slice(0, 60).join(""), email: emailOwner ? null : identity.email, emailVerifiedAt: identity.verified && identity.email ? new Date() : null }, tx);
-      if (identity.verified && identity.email) await this.repository.verifiedContact(user.id, identity.email, tx);
+      if (identity.verified && emailOwner)
+        throw conflict(
+          "Sign in to the existing account and explicitly link Google after re-authentication.",
+        );
+      if (identity.verified && identity.email)
+        await this.repository.lockContact(tx, userId, identity.email);
+      const user = await this.repository.createUser(
+        {
+          id: userId,
+          username: `g_${randomUUID().replaceAll("-", "").slice(0, 24)}`,
+          displayName: [...(identity.name || "Người dùng Google")].slice(0, 60).join(""),
+          email: emailOwner ? null : identity.email,
+          emailVerifiedAt: identity.verified && identity.email ? new Date() : null,
+        },
+        tx,
+      );
+      if (identity.verified && identity.email)
+        await this.repository.verifiedContact(user.id, identity.email, tx);
       await this.repository.linkGoogle(user.id, identity.subject, tx);
       return this.sessions.create(user, tx);
     });
   }
-  /** Links only the authenticated User after one-use action proof; another subject owner cannot be overwritten. */
-  async link(principal: Principal, input: z.infer<typeof googleSchema> & { reauthProof: string }): Promise<void> {
+
+  /** Chỉ liên kết User đã xác thực sau proof thao tác dùng một lần; không ghi đè chủ subject khác. */
+  async link(
+    principal: Principal,
+    input: z.infer<typeof googleSchema> & { reauthProof: string },
+  ): Promise<void> {
     await this.consumeReauth(principal, "LINK_GOOGLE", input.reauthProof);
     const identity = await this.verifyGoogle(input, principal);
     await this.repository.transaction(async (tx) => {
@@ -93,12 +167,24 @@ export class IdentityService {
       await this.sessions.requireCurrent(principal, tx);
       const owner = await this.repository.google(identity.subject, tx);
       const existing = await this.repository.googleForUser(principal.userId, tx);
-      if ((owner && owner.userId !== principal.userId) || (existing && existing.googleSubject !== identity.subject)) throw conflict("This Google identity cannot be linked.");
+      if (
+        (owner && owner.userId !== principal.userId) ||
+        (existing && existing.googleSubject !== identity.subject)
+      )
+        throw conflict("This Google identity cannot be linked.");
       if (!owner) await this.repository.linkGoogle(principal.userId, identity.subject, tx);
     });
   }
-  /** Public Auth boundary used by User account mutations for exact action/session authorization. */
-  async consumeReauth(principal: Principal, operation: SensitiveOperation, proof: string): Promise<void> {
-    await this.ephemeral.consumeProof(proof, this.ephemeral.reauthBinding(principal.sessionId, operation));
+
+  /** Giao diện Auth công khai cho thay đổi tài khoản User, xác thực đúng thao tác/phiên. */
+  async consumeReauth(
+    principal: Principal,
+    operation: SensitiveOperation,
+    proof: string,
+  ): Promise<void> {
+    await this.ephemeral.consumeProof(
+      proof,
+      this.ephemeral.reauthBinding(principal.sessionId, operation),
+    );
   }
 }

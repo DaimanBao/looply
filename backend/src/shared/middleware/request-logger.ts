@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import type { Logger } from "pino";
 import pinoHttp from "pino-http";
 
-/** Logs only request metadata, omitting URL/query/body/headers and arbitrary error details. */
+/** Chỉ log metadata yêu cầu, bỏ URL/query/body/header và chi tiết lỗi tùy ý. */
 export function createRequestLogger(logger: Logger) {
   return pinoHttp<Request, Response>({
     logger,

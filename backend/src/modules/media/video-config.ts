@@ -11,6 +11,8 @@ const schema = z.object({
   MEDIA_UPLOAD_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600000).default(120000),
   MEDIA_UPLOAD_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(2),
 });
-/** Reads bounded video settings without requiring a machine-specific executable path. */
-export function videoConfig(environment: NodeJS.ProcessEnv = process.env) { return schema.parse(environment); }
+/** Đọc cấu hình video có giới hạn mà không yêu cầu đường dẫn thực thi riêng theo máy. */
+export function videoConfig(environment: NodeJS.ProcessEnv = process.env) {
+  return schema.parse(environment);
+}
 export const maxVideoBytes = 100 * 1024 * 1024;

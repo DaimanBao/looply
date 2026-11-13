@@ -14,14 +14,16 @@ export class App {
   readonly session = inject(SessionService);
   private readonly router = inject(Router);
   readonly logoutState = new ActionState();
-  /** Leaves private screens when revocation or an expired cookie removes client authority. */
+
+  /** Rời màn hình riêng khi thu hồi hoặc cookie hết hạn làm mất quyền phía client. */
   constructor() {
     effect(() => {
       if (!this.session.authenticated() && this.router.url.startsWith('/account'))
         void this.router.navigateByUrl('/auth/login');
     });
   }
-  /** Keeps revocation failures visible so logout can be retried safely. */
+
+  /** Giữ lỗi thu hồi hiển thị để có thể thử lại đăng xuất an toàn. */
   async logout(): Promise<void> {
     await this.logoutState.run(async () => {
       await firstValueFrom(this.session.logout());

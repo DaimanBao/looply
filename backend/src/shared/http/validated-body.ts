@@ -1,7 +1,7 @@
 import type { Response } from "express";
 import { z } from "zod";
 
-/** Narrows Core's unknown validated input to a controller DTO without unsafe TypeScript assertions. */
+/** Thu hẹp đầu vào unknown đã kiểm tra của Core sang DTO controller mà không ép kiểu TypeScript thiếu an toàn. */
 export function body<T>(response: Response, schema: z.ZodType<T>): T {
   return z.object({ body: schema }).parse(response.locals.validated).body;
 }

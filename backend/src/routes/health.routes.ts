@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getHealth } from "./health.controller";
 
-/** Wires the health endpoint to its imported handler. */
+/** Nối endpoint health với handler được import. */
 export function createHealthRouter(): Router {
   const router = Router();
   router.get("/health", getHealth);

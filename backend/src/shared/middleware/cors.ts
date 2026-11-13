@@ -2,7 +2,7 @@ import cors from "cors";
 import type { HttpConfig } from "../../config/environment";
 import { AppError } from "../errors/app-error";
 
-/** Allows exact configured browser origins while permitting same-origin/non-browser requests. */
+/** Cho phép chính xác origin trình duyệt đã cấu hình cùng yêu cầu cùng origin/không từ trình duyệt. */
 export function createCors(config: HttpConfig) {
   return cors({
     origin: (origin, callback) => {

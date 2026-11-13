@@ -1,0 +1,43 @@
+<p><a routerLink="/account">← Tài khoản</a></p>
+<section class="card form-card">
+  <h1>Thông tin liên hệ</h1>
+  <p class="muted">Chỉ thay thế sau khi xác thực lại và xác minh mã gửi đến thông tin mới.</p>
+  <div class="tabs">
+    <button type="button" [attr.aria-pressed]="kind() === 'email'" (click)="choose('email')">
+      Email</button
+    ><button type="button" [attr.aria-pressed]="kind() === 'phone'" (click)="choose('phone')">
+      Số điện thoại
+    </button>
+  </div>
+  @if (store.profile(); as profile) {
+    <p>
+      Hiện tại:
+      {{
+        kind() === 'email'
+          ? profile.email || 'Chưa thêm email'
+          : profile.phone || 'Chưa thêm số điện thoại'
+      }}
+    </p>
+    <form (submit)="$event.preventDefault(); submit()">
+      <label
+        >{{ kind() === 'email' ? 'Email mới / email cần xác minh' : 'Số điện thoại mới'
+        }}<input
+          [type]="kind() === 'email' ? 'email' : 'tel'"
+          [formControl]="destination"
+          (input)="proof.set(null)"
+          maxlength="254"
+      /></label>
+      <app-otp-input
+        [purpose]="kind() === 'email' ? 'VERIFY_EMAIL' : 'CHANGE_PHONE'"
+        [destination]="destination.valid ? destination.value : ''"
+        (proof)="proof.set($event)"
+      />
+      <app-reauth-input
+        [operation]="operation()"
+        [phone]="profile.phoneVerifiedAt ? profile.phone || '' : ''"
+      />
+      <button class="primary" [disabled]="state.busy()">Xác minh & lưu</button>
+    </form>
+  }
+  <app-feedback [state]="state" />
+</section>

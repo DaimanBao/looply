@@ -12,6 +12,7 @@ Giúp AI Agent tìm đúng tài liệu, hiểu yêu cầu và cập nhật đún
 | Tổng quan, mục tiêu, phạm vi Đồ án 1 | `docs/PROJECT_OVERVIEW.md` |
 | Quy ước tổ chức và cập nhật tài liệu | `docs/DOCUMENTATION_GUIDE.md` |
 | Công nghệ và phiên bản đã chốt | `docs/TECH_STACK.md` |
+| Formatting và ngôn ngữ comment | `docs/standards/CODE_FORMATTING.md` |
 | Quy trình phát triển tổng thể | `docs/workflows/DEVELOPMENT_WORKFLOW.md` |
 | Yêu cầu chức năng và quy tắc nghiệp vụ | `docs/requirements/FUNCTIONAL_REQUIREMENTS.md` và `docs/requirements/modules/` |
 | Thiết kế dữ liệu, mô hình quan hệ và ràng buộc | `docs/database/` |
