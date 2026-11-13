@@ -24,7 +24,7 @@
 | API contract / tài liệu | OpenAPI 3.1, `@scalar/express-api-reference` |
 | Object storage client | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` |
 | Background jobs | PostgreSQL outbox + Node.js worker |
-| OTP / re-authentication tạm thời | Redis đã được duyệt cho triển khai tương lai; chưa cài client, cấu hình dịch vụ hoặc thay bảng OTP hiện có |
+| OTP / re-authentication tạm thời | Redis 7.4, client `redis` 6.3.1; atomic Lua, không persistence OTP ở PostgreSQL |
 | Tests | Vitest, `@vitest/coverage-v8`, Supertest |
 | Development / code quality | `tsx`, ESLint, `typescript-eslint`, Prettier |
 
@@ -53,6 +53,8 @@
 
 - Phạm vi chỉ **Đồ án 1**: Auth, User, Listing, Media, Chat, Transaction Proposal, Notification, Reminder; không triển khai Admin Java/Spring Boot của Đồ án 2.
 - Không tự thêm/thay thế framework, thư viện lớn, nhà cung cấp dịch vụ hoặc nâng major version khi chưa được duyệt.
-- Không dùng NgRx, RabbitMQ hay microservices nếu chưa có yêu cầu mới. Redis chỉ được duyệt cho OTP, re-authentication và giới hạn tần suất dùng chung; việc tích hợp thuộc nhiệm vụ sau.
+- Không dùng NgRx, RabbitMQ hay microservices nếu chưa có yêu cầu mới. Redis chỉ dùng cho OTP, re-authentication, nonce và giới hạn tần suất dùng chung của Auth.
 - Giữ REST API contract đồng bộ giữa Backend/Frontend; kiểm tra build, test và tích hợp thực tế, không coi việc cài dependency là hoàn thành chức năng.
 - Quy tắc nghiệp vụ xem trong `requirements/`; cấu trúc code xem trong `structures/`; quy trình xem trong `workflows/DEVELOPMENT_WORKFLOW.md`.
+
+Các dependency bổ sung được duyệt cho Auth/User được khóa chính xác: `argon2` 0.45.2, `jose` 6.2.17, `google-auth-library` 11.3.4, `redis` 6.3.1, `sharp` 0.35.5 và `@aws-sdk/client-s3` 3.1167.0. Giữ nguyên phiên bản dependency cũ, đặc biệt Prisma 7.10.1. HTTP gateway là adapter cấu hình riêng cho SMS/email; storage local chỉ development/test, production dùng S3-compatible cấu hình thực tế. Không thêm dependency/hệ thống backup.

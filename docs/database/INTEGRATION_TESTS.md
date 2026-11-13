@@ -1,5 +1,45 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Review Auth + User trước PR — 13/11/2026
+
+Nhánh `feat/auth-user-implementation` được tạo từ `develop` tại `48d5e2f`; đối chiếu trạng thái và SHA-256 xác nhận giữ nguyên đủ 99 file trước khi sửa. Review đối chiếu Auth/User requirements, OpenAPI, database, module boundaries, providers, session/OTP/concurrency, xóa tài khoản và giới hạn backup. Không chạy migration, seed hoặc thao tác ghi trên development/production trong đợt review này.
+
+| Mức độ | Phát hiện có bằng chứng | Xử lý và kiểm chứng |
+| --- | --- | --- |
+| Cao | OTP LOGIN_PHONE/RESET_PASSWORD chỉ gắn destination. Sau khi verified contact chuyển sang User khác trong TTL, mã cũ đăng nhập/reset được tài khoản mới. Hai test hồi quy tái hiện HTTP 200/204 thay vì 401. | Gắn User ID lúc cấp mã, kiểm tra lại ownership và tiêu thụ OTP dưới khóa User trong transaction. Hai ca nay 401; happy paths vẫn đạt. Không thay public request/schema database. |
+| Vừa | Runtime dependency cycle `auth.schema -> user/index -> UserService -> auth/index -> auth.schema`. | Auth dùng public entry username độc lập; không di chuyển logic hoặc thêm layer. Typecheck, build và startup thật đạt. |
+| Vừa | OpenAPI thiếu các lỗi avatar/HTTP parser và một số giới hạn input/điều kiện re-auth so với runtime. | Đồng bộ error responses/default, giới hạn credential/contact/Province/password verification và mô tả các phương thức re-auth. Không thay đổi chính sách mật khẩu mới. |
+| Thấp | Assertion tìm chuỗi OTP trong toàn bộ JSON có xác suất va chạm với chữ số trong digest; thiếu test JWT claims và re-auth phone/Google. | Assert đúng HMAC và không có field code plaintext; bổ sung JWT expired/nbf/audience/algorithm và phone/linked Google/subject mismatch. |
+
+Kết quả cuối: **84/84 unit (12 file), 23/23 Core API (1 file), 405/405 PostgreSQL/Redis integration (23 file)**. Sau lần sửa assertion cuối chỉ ảnh hưởng test, chạy lại **12/12 Auth security integration** và typecheck source/tests đạt. Source/test typecheck, Prisma validate/generate 7.10.1, build, HTTP smoke từ `dist` (health 200, private profile 401, Province 200, Redis DB 15, shutdown) và `git diff --check` đều PASS. Lần chạy integration đầu tiên bị chặn do Docker Desktop chưa chạy; đã khởi động Docker local, tái hiện lỗi thực tế rồi sửa và chạy lại thành công.
+
+Kiểm tra phạm vi: vẫn 99 file; không thay schema/migration lịch sử, không nâng phiên bản dependency cũ, không thêm dependency ngoài sáu thư viện đã duyệt, không sửa Angular. Test xác minh `looply_test` trước ghi, chỉ cleanup UUID/namespace fixture; hậu kiểm không còn User/Province/Outbox fixture. Không phát hiện vấn đề mức cao còn tồn tại trong phạm vi review. Provider thật và backup/restore infrastructure vẫn chưa nghiệm thu như giới hạn bên dưới; kết quả local không thay thế CI của PR.
+
+## Triển khai Auth + User — 13/11/2026
+
+Backend Auth/User đã triển khai và kiểm chứng local; contract đầy đủ tại [OpenAPI](../api/openapi.json). Các phần dưới lưu bằng chứng lịch sử Database Preparation/Core, không thay thế kết quả mới nhất tại đây.
+
+| Kiểm tra đã thực sự chạy trên bản cuối | Kết quả |
+| --- | --- |
+| `npm test` | **83/83 PASS**, 12 file. |
+| `npm run test:api` | **23/23 PASS**, 1 file Core HTTP regression. |
+| `npm run test:integration` với PostgreSQL `looply_test` và Redis DB 15 | **402/402 PASS**, 23 file; gồm 374 regression sẵn có và 28 Auth/User/Province mới. |
+| Auth security API/Redis | **10 PASS**: signup, refresh đồng thời, session revoke, Origin, pending restrictions, contact validation, OTP TTL/hash/limit/reuse/resend/brute force, proof binding/expiry và Redis outage. |
+| Account management API/PostgreSQL | **13 PASS**: contact verification/crossed claims, password/reset, Google signup/link, username race, profile privacy, Follow/Block, pagination/session ownership, avatar decode/cleanup. |
+| Account deletion API/worker | **4 PASS**: grace/cancel, lease fencing, storage failure/retry, cleanup replay sau dữ liệu khôi phục, giữ Chat/tệp/người gửi lịch sử và identifier reuse. |
+| Province safe seed | **1 PASS**: 34 mã duy nhất, upsert lặp giữ nguyên UUID, rollback test. |
+| `npm run typecheck`, `npm exec -- tsc --project tests/tsconfig.json` | PASS, gồm source, tests và seed. |
+| Prisma validate/generate | PASS, Prisma Client **7.10.1**, không thay schema/migrations. |
+| `npm run build` | PASS. |
+| HTTP runtime từ `dist` | PASS: xác minh `looply_test`, Redis DB 15, startup, health 200, private profile 401, Province 200, graceful shutdown. |
+| An toàn dữ liệu và diff cuối | PASS: `looply_test` không còn User/Province/Outbox fixture hoặc schema tạm; `looply_dev` có bốn migration và 34 Province. `git diff --check` đạt; schema/migrations không đổi; mọi dependency cũ giữ nguyên version lockfile. |
+
+Auth/User integration tests dùng PostgreSQL và Redis thật, ID/namespace riêng, ghi qua pool thực và chỉ cleanup dữ liệu fixture. Helper xác minh tên database trên connection trước ghi; Redis yêu cầu DB khác 0 và đối chiếu `CLIENT INFO`, không FLUSHDB. Các test schema cũ tiếp tục transaction rollback. Google/SMS/email/password-screen/object storage được fake ở ranh giới ngoài hệ thống; unit test riêng kiểm tra Argon2id, JOSE JWT, chữ ký RSA qua Google SDK, HIBP prefix/padding/fail-closed, HTTP gateway và filesystem private storage. Ảnh avatar dùng Sharp thật.
+
+Trong triển khai này, `0004_auth_user_preparation` có sẵn đã được áp dụng lên **`looply_dev` theo quyền đã duyệt** sau preflight xác minh tên database, lịch sử/checksum ba migration trước và dữ liệu tương thích. Seed an toàn tạo catalog 34 Province bằng upsert; không reset/xóa dữ liệu development. Không thêm migration, không sửa lịch sử, không kết nối production. Các dependencies cũ giữ nguyên phiên bản lockfile; chỉ thêm sáu thư viện đã được cho phép.
+
+Giới hạn: chưa kiểm thử live Google client của dự án, SMS/email gateway và S3/R2 thật; cần cấu hình và nghiệm thu trước production. Worker có thể chạy lại an toàn nhưng nguồn đối soát xóa độc lập với backup, mã hóa/retention tự động 30 ngày và quy trình restore vận hành **chưa có hạ tầng**; tài liệu chính sách không được tính là chức năng đã triển khai. Angular và đầy đủ Chat/Listing/Notification nằm ngoài nhiệm vụ; đã cung cấp public visibility/interaction/history projection để các module đó tích hợp. CI được cập nhật Redis nhưng chưa có run cho thay đổi chưa commit/push. Repository không có lint script riêng; không báo cáo lint PASS. Cảnh báo Vitest/CommonJS hiện tại không làm test thất bại.
+
 ## Chuẩn bị Auth + User — 13/11/2026
 
 Đã áp dụng riêng `0004_auth_user_preparation` trên **`looply_test`**, sau khi xác minh URL, `current_database()`, ba migration trước đó và dữ liệu tương thích. Không kết nối Production, không áp dụng migration lên Development, không reset/seed hoặc chỉnh sửa dữ liệu User hiện có. Ba file migration cũ giữ nguyên; checksum test khớp nội dung sau xét LF/CRLF.

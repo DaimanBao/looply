@@ -6,7 +6,7 @@ import { createServerRuntime } from "./server-runtime";
 const servers: Server[] = [];
 
 /** Builds a runtime with a fake database and real local HTTP sockets on an ephemeral port. */
-function runtimeFixture(options: { server?: Server; port?: number; shutdownTimeoutMs?: number } = {}) {
+function runtimeFixture(options: { server?: Server; port?: number; shutdownTimeoutMs?: number; services?: { start(): Promise<void>; stop(): Promise<void> } } = {}) {
   const server = options.server ?? createServer();
   servers.push(server);
   const database = {
@@ -16,6 +16,7 @@ function runtimeFixture(options: { server?: Server; port?: number; shutdownTimeo
   const runtime = createServerRuntime({
     server, database, logger: createLogger("silent"),
     config: { host: "127.0.0.1", port: options.port ?? 0, shutdownTimeoutMs: options.shutdownTimeoutMs ?? 1000 },
+    services: options.services,
   });
   return { server, database, runtime };
 }
@@ -29,6 +30,19 @@ afterEach(async () => {
 });
 
 describe("Server/database lifecycle", () => {
+  it("connects auxiliary resources before listening and stops them before disconnecting the database", async () => {
+    const services = { start: vi.fn<() => Promise<void>>().mockResolvedValue(undefined), stop: vi.fn<() => Promise<void>>().mockResolvedValue(undefined) };
+    const { runtime, database } = runtimeFixture({ services });
+    services.stop.mockImplementation(async () => { expect(database.$disconnect).not.toHaveBeenCalled(); });
+    await runtime.start(); expect(services.start).toHaveBeenCalledOnce(); await runtime.stop();
+    expect(services.stop).toHaveBeenCalledOnce(); expect(database.$disconnect).toHaveBeenCalledOnce();
+  });
+  it("refuses traffic and cleans up when an auxiliary security dependency cannot start", async () => {
+    const services = { start: vi.fn<() => Promise<void>>().mockRejectedValue(new Error("Unavailable fixture Redis")), stop: vi.fn<() => Promise<void>>().mockResolvedValue(undefined) };
+    const { runtime, server, database } = runtimeFixture({ services });
+    await expect(runtime.start()).rejects.toThrow("Unavailable fixture Redis"); expect(server.listening).toBe(false);
+    expect(services.stop).toHaveBeenCalledOnce(); expect(database.$disconnect).toHaveBeenCalledOnce();
+  });
   // HTTP must remain closed until database initialization resolves.
   it("connects before listening and disconnects once after stopping", async () => {
     const { server, database, runtime } = runtimeFixture();

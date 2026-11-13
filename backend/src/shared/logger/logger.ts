@@ -14,6 +14,8 @@ export function createLogger(level: AppConfig["logLevel"], destination?: Destina
         "*.password", "*.passwordHash", "*.otp", "*.token", "*.accessToken", "*.refreshToken", "*.refreshTokenHash",
         "*.codeHash", "*.secret", "*.apiKey", "*.authorization", "*.cookie", "*.databaseUrl", "*.connectionString",
         "headers.authorization", "headers.cookie", "req.headers.authorization", "req.headers.cookie",
+        "AUTH_JWT_SECRET", "AUTH_OTP_PEPPER", "REDIS_URL", "TEST_REDIS_URL", "SMS_PROVIDER_KEY", "EMAIL_PROVIDER_KEY", "S3_SECRET_ACCESS_KEY", "S3_ACCESS_KEY_ID",
+        "*.AUTH_JWT_SECRET", "*.AUTH_OTP_PEPPER", "*.REDIS_URL", "*.TEST_REDIS_URL", "*.SMS_PROVIDER_KEY", "*.EMAIL_PROVIDER_KEY", "*.S3_SECRET_ACCESS_KEY", "*.S3_ACCESS_KEY_ID",
         "req.body", "req.query", 'res.headers["set-cookie"]',
       ], remove: true,
     },

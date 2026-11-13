@@ -15,18 +15,18 @@
 
 | Nhóm | Tổng số | Đã xác nhận hoàn thành |
 |---|---:|---:|
-| AUTH | 11 | 0 |
-| USER | 14 | 0 |
+| AUTH | 16 | 0 |
+| USER | 17 | 0 |
 | LISTING | 19 | 0 |
 | MEDIA | 10 | 0 |
 | CHAT | 17 | 0 |
 | NOTIFICATION | 10 | 0 |
 | REMINDER | 7 | 0 |
-| **Tổng** | **88** | **0** |
+| **Tổng** | **96** | **0** |
 
 > Cập nhật cột tổng quan đồng thời với các ô checklist bên dưới; không tự đánh dấu hoàn thành khi chưa có bằng chứng.
 
-## AUTH — 11 chức năng
+## AUTH — 16 chức năng
 
 Chi tiết: [`AUTH_REQUIREMENTS.md`](modules/AUTH_REQUIREMENTS.md)
 
@@ -43,9 +43,14 @@ Chi tiết: [`AUTH_REQUIREMENTS.md`](modules/AUTH_REQUIREMENTS.md)
 | [ ] | `AUTH-009` | Xác minh đổi số điện thoại |
 | [ ] | `AUTH-010` | Xác minh thêm/đổi email |
 | [ ] | `AUTH-011` | Xác thực request |
+| [ ] | `AUTH-012` | Đổi mật khẩu |
+| [ ] | `AUTH-013` | Khôi phục mật khẩu |
+| [ ] | `AUTH-014` | Liên kết Google |
+| [ ] | `AUTH-015` | Xác thực lại thao tác nhạy cảm |
+| [ ] | `AUTH-016` | Quản lý phiên đăng nhập |
 
 
-## USER — 14 chức năng
+## USER — 17 chức năng
 
 Chi tiết: [`USER_REQUIREMENTS.md`](modules/USER_REQUIREMENTS.md)
 
@@ -65,6 +70,9 @@ Chi tiết: [`USER_REQUIREMENTS.md`](modules/USER_REQUIREMENTS.md)
 | [ ] | `USER-012` | Danh sách đã chặn |
 | [ ] | `USER-013` | Thêm/thay đổi email |
 | [ ] | `USER-014` | Thay đổi số điện thoại |
+| [ ] | `USER-015` | Đổi username |
+| [ ] | `USER-016` | Vòng đời xóa tài khoản |
+| [ ] | `USER-017` | Danh mục tỉnh/thành phố |
 
 
 ## LISTING — 19 chức năng
@@ -176,3 +184,9 @@ Chi tiết: [`REMINDER_REQUIREMENTS.md`](modules/REMINDER_REQUIREMENTS.md)
 - **Listing** có 3 trạng thái `ACTIVE`, `HIDDEN`, `DELETED`.
 - **Reminder** chỉ nhắc phone/email đã xác minh và tỉnh/thành phố; không nhắc avatar theo tài liệu module hiện hành.
 - Tài liệu này theo dõi **chức năng nghiệp vụ**, không thay thế checklist hạ tầng, API, CI hoặc kiểm thử tổng thể.
+
+## Trạng thái Backend Auth + User
+
+Ngày 13/11/2026: Backend đã triển khai API Auth/User, OTP Redis, phiên PostgreSQL, avatar, Follow/Block và worker xóa tài khoản theo contract tại [OpenAPI](../api/openapi.json). Bằng chứng kiểm thử và giới hạn vận hành nằm tại [INTEGRATION_TESTS.md](../database/INTEGRATION_TESTS.md).
+
+Checklist phía trên theo dõi chức năng toàn sản phẩm; chưa đánh dấu hoàn thành Angular hoặc tích hợp dịch vụ production. Backend được kiểm chứng riêng bằng PostgreSQL/Redis thật, crypto/ảnh thật và fake tại ranh giới provider. SMS/email thật, Google client của dự án, S3 thật và quy trình backup/restore vận hành chưa được nghiệm thu.

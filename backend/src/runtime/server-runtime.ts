@@ -9,6 +9,7 @@ type RuntimeDependencies = {
   database: DatabaseLifecycle;
   logger: Logger;
   config: Pick<AppConfig, "host" | "port" | "shutdownTimeoutMs">;
+  services?: { start(): Promise<void>; stop(): Promise<void> };
 };
 
 /** Waits for HTTP binding and removes its temporary error handler after success or failure. */
@@ -40,7 +41,7 @@ function closeHttp(server: Server): Promise<void> {
 }
 
 /** Owns HTTP/database lifecycle with idempotent cleanup and one total shutdown deadline. */
-export function createServerRuntime({ server, database, logger, config }: RuntimeDependencies): ServerRuntime {
+export function createServerRuntime({ server, database, logger, config, services }: RuntimeDependencies): ServerRuntime {
   let startup: Promise<void> | undefined;
   let shutdown: Promise<void> | undefined;
   let disconnect: Promise<void> | undefined;
@@ -48,7 +49,7 @@ export function createServerRuntime({ server, database, logger, config }: Runtim
 
   /** Ensures startup failure and signal shutdown cannot disconnect the pool twice. */
   function disconnectOnce(): Promise<void> {
-    disconnect ??= database.$disconnect();
+    disconnect ??= (async () => { try { await services?.stop(); } finally { await database.$disconnect(); } })();
     return disconnect;
   }
 
@@ -56,6 +57,7 @@ export function createServerRuntime({ server, database, logger, config }: Runtim
   async function startResources(): Promise<void> {
     try {
       await database.$connect();
+      await services?.start();
       if (stopping) return;
       await listen(server, config);
       logger.info({ port: config.port }, "Backend started");
