@@ -7,8 +7,8 @@ Module Media quản lý ảnh và video gắn với Listing: tải lên, xem tr�
 
 | Mã | Chức năng | Yêu cầu |
 |---|---|---|
-| MEDIA-001 | Tải ảnh lên | Chọn và tải trực tiếp 1–5 ảnh/Listing; tối đa 10 MB/ảnh; JPG/JPEG, PNG, WebP. |
-| MEDIA-002 | Tải video lên | Video tùy chọn, tối đa 1 video/Listing; MP4 hoặc WebM; tối đa 100 MB và 3 phút. |
+| MEDIA-001 | Tải ảnh lên | Chọn và tải trực tiếp 1–5 ảnh/Listing; tối đa 10 MiB/ảnh; JPG/JPEG, PNG, WebP. |
+| MEDIA-002 | Tải video lên | Video tùy chọn, tối đa 1 video/Listing; MP4 hoặc WebM; tối đa 100 MiB và 180 giây. |
 | MEDIA-003 | Xóa Media | Chủ Listing được xóa ảnh/video; khi lưu Listing vẫn phải còn ít nhất 1 ảnh; dọn dẹp tệp không còn sử dụng phù hợp. |
 | MEDIA-004 | Thay thế Media | Cho phép thay ảnh/video; kiểm tra tệp mới; chỉ bỏ Media cũ sau khi thay thế thành công. |
 | MEDIA-005 | Xem trước Media | Preview trước khi lưu; có thể bỏ, thay thế, sắp xếp và chọn ảnh đại diện; hủy chỉnh sửa không ảnh hưởng dữ liệu đã lưu. |
@@ -20,8 +20,8 @@ Module Media quản lý ảnh và video gắn với Listing: tải lên, xem tr�
 
 ## 3. Quy tắc chung
 
-- **Ảnh:** Bắt buộc ít nhất 1 và tối đa 5 ảnh hợp lệ trên mỗi Listing; mỗi ảnh tối đa 10 MB. Hỗ trợ JPG/JPEG, PNG, WebP; chưa hỗ trợ GIF và HEIC/HEIF trực tiếp.
-- **Video:** Không bắt buộc; tối đa 1 video, 100 MB và 3 phút; hỗ trợ MP4, WebM.
+- **Ảnh:** Bắt buộc ít nhất 1 và tối đa 5 ảnh hợp lệ trên mỗi Listing; mỗi ảnh tối đa 10 MiB (10.485.760 bytes). Hỗ trợ JPG/JPEG, PNG, WebP; chưa hỗ trợ GIF và HEIC/HEIF trực tiếp.
+- **Video:** Không bắt buộc; tối đa 1 video, 100 MiB (104.857.600 bytes) và 180 giây; hỗ trợ MP4, WebM. 1 MiB = 1.048.576 bytes; giới hạn tính trên bytes file đầu vào, không tin client khai báo duration/MIME/size.
 - **Tối ưu:** Tự động tối ưu/nén ảnh, tạo thumbnail phục vụ Feed; giữ đúng tỷ lệ, không làm méo. Video hợp lệ không bắt buộc chuyển mã; không tự động phát khi cuộn Feed.
 - **Tính toàn vẹn:** Không tạo/lưu Listing mới khi chưa có ảnh tải lên hợp lệ. Khi chỉnh sửa, không được lưu trạng thái không còn ảnh nào. Không xóa Media cũ trước khi thay thế thành công.
 - **Kiểm tra:** Backend phải kiểm tra độc lập với Frontend và từ chối tệp không hợp lệ; thông báo nguyên nhân để người dùng sửa hoặc thử lại.
@@ -43,7 +43,16 @@ Module Media quản lý ảnh và video gắn với Listing: tải lên, xem tr�
 - Khi Listing đã có Conversation, thao tác chỉnh sửa Media tuân theo cảnh báo, xác nhận và thông báo của Module Listing.
 - Conversation cũ có thể hiển thị thông tin Media tóm tắt của Listing; quy tắc card thuộc Module Chat.
 
-## 6. Ngoài phạm vi Đồ án 1
+## 6. Lifecycle đã duyệt, thiết kế chưa triển khai
+
+- Upload tạm chuyển TEMP → ATTACHED hoặc DELETING. LISTING DELETING có thể chưa có Listing; ATTACHED luôn phải có Listing hợp lệ và đúng uploader/owner. Không attach trái chủ hoặc attach lại DELETING.
+- Hủy editor không thay đổi media đã lưu. Membership/thứ tự/cover/video được lưu nguyên tử cùng Listing; cover độc lập thứ tự và fallback ảnh đầu còn lại khi xóa cover.
+- Chỉ xóa file sau commit; kiểm tra attachment/reference mới nhất dưới khóa chung với attach, cleanup có retry/idempotency và orphan recovery. Database rollback không rollback file system.
+- Ảnh snapshot Chat có object/lifecycle độc lập; quyền đọc qua Conversation, retention và placeholder theo [Chat](CHAT_REQUIREMENTS.md#6-snapshot-lịch-sử-và-retention-ảnh--đã-phê-duyệt). Không xóa file còn tham chiếu lịch sử hợp lệ.
+
+Transaction/lock/rollback/race/tests của từng luồng thuộc [thiết kế Listing/Media](../../api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle). Video inspector là đề xuất cần duyệt dependency trước cài đặt; chưa xác nhận hỗ trợ video đã chạy.
+
+## 7. Ngoài phạm vi Đồ án 1
 
 Không triển khai hệ thống quản lý tệp độc lập, GIF/HEIC trực tiếp, tự phát video trên Feed hoặc pipeline chuyển mã video phức tạp. Chi tiết lưu trữ và thư viện xử lý tuân theo `../../TECH_STACK.md`; không tự bổ sung nhà cung cấp mới.
 

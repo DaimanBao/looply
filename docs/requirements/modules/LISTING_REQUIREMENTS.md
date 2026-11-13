@@ -29,9 +29,10 @@
 ## 2. Dữ liệu và quy tắc tạo bài
 
 - **Bắt buộc:** tiêu đề, mô tả, loại giao dịch, địa điểm, **1–5 ảnh**. Video tùy chọn, tối đa **1**; giới hạn dung lượng/thời lượng và quy trình tải thuộc Media.
+- Tiêu đề 10–150 và mô tả 20–5000 Unicode code point sau bỏ khoảng trắng ASCII hai đầu, giữ giới hạn database hiện có; không đếm bằng JavaScript `.length`.
 - **SALE:** giá niêm yết bằng VNĐ, **> 0**.
 - **RENT:** giá niêm yết bằng VNĐ, **> 0**, kèm đơn vị **ngày hoặc tháng**.
-- **EXCHANGE:** không bắt buộc giá tiền, không có thỏa thuận giá bằng tiền; mô tả điều kiện trao đổi trong nội dung bài.
+- **EXCHANGE:** không có giá tiền hoặc đơn vị thuê, không có thỏa thuận giá bằng tiền; mô tả điều kiện trao đổi trong nội dung bài.
 - Địa điểm bắt buộc, được gợi ý từ hồ sơ nhưng có thể thay đổi và lưu độc lập. Số điện thoại liên hệ được gợi ý từ hồ sơ, cho phép chỉnh sửa độc lập.
 - Thông tin ngày tạo (`createdAt`) và ngày cập nhật (`updatedAt`) được phân biệt; chỉnh sửa không thay đổi ngày tạo.
 
@@ -91,7 +92,16 @@
 - **Feed toàn quốc:** bài ACTIVE trên toàn quốc, có ngẫu nhiên, không trùng trong một lượt cuộn. Đồ án 1 chưa ưu tiên người theo dõi trong thuật toán Feed.
 - **Infinite Scroll:** khoảng 12 bài/lượt; tránh trùng khi phân trang; đặt lại từ đầu khi đổi tab/từ khóa/lọc/sắp xếp; hiển thị trạng thái tải, lỗi và hết dữ liệu.
 
-## 7. Quyền truy cập và giới hạn phạm vi
+## 7. Quyết định bổ sung đã duyệt — chưa triển khai
+
+- Follow mới chỉ khi Listing ACTIVE và hai User đủ quyền tương tác, không Block hai chiều; cấm tự Follow và quan hệ trùng. HIDDEN giữ Follow nhưng không hiện trong danh sách thường, ACTIVE lại thì hiện lại; DELETED không cho Follow mới. Chủ quan hệ vẫn được Unfollow khi bài không còn công khai. Không thông báo follower.
+- Price filter/sort bắt buộc chọn duy nhất SALE hoặc RENT; RENT bắt buộc DAY hoặc MONTH. Không trộn giá bán/thuê, thuê ngày/tháng hoặc đưa EXCHANGE vào sort giá. API từ chối tổ hợp không hợp lệ; UI không cung cấp tổ hợp gây hiểu nhầm.
+- Feed toàn quốc dùng thứ tự ngẫu nhiên xác định theo seed trong lượt cuộn, cursor gắn query/filter/sort/seed; không random riêng mỗi trang hoặc lưu snapshot toàn bộ feed. Client loại trùng và bỏ response cũ. Không cam kết snapshot bất biến khi dữ liệu thay đổi giữa các trang.
+- Card Chat giữ snapshot cả văn bản và ảnh độc lập Listing hiện tại, theo [Chat requirements](CHAT_REQUIREMENTS.md#6-snapshot-lịch-sử-và-retention-ảnh--đã-phê-duyệt).
+
+Thuật toán chuẩn hóa, thứ tự khóa, cursor và kế hoạch kiểm thử thuộc [thiết kế kỹ thuật](../../api/LISTING_MEDIA_DESIGN.md); schema HTTP thuộc [OpenAPI](../../api/openapi.json). Đây là thiết kế, không đánh dấu chức năng đã triển khai.
+
+## 8. Quyền truy cập và giới hạn phạm vi
 
 - **Khách:** được xem danh sách/chi tiết bài công khai, tìm kiếm, lọc và sắp xếp.
 - **Người đăng nhập:** được tạo bài, theo dõi, liên hệ và tạo yêu cầu giao dịch hợp lệ; không tự giao dịch với bài của mình.

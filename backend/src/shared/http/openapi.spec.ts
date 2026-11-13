@@ -29,6 +29,20 @@ describe("OpenAPI and runtime route contract", () => {
     }
     expect(new Set(ids).size).toBe(ids.length);
   });
+  it("explicitly classifies every operation and labels planned operations as unavailable", () => {
+    const paths = z.record(z.string(), z.record(z.string(), z.unknown())).parse(document.paths);
+    for (const methods of Object.values(paths)) {
+      for (const operation of Object.values(methods)) {
+        const classified = z.object({
+          "x-implementation-status": z.enum(["implemented", "planned"]),
+          summary: z.string(),
+        }).parse(operation);
+        if (classified["x-implementation-status"] === "planned") {
+          expect(classified.summary).toMatch(/^\[PLANNED\]/);
+        }
+      }
+    }
+  });
   it("documents exactly the registered Core/Auth/User routes, including avatar and deletion", () => {
     const files = ["routes/health.routes.ts", "modules/auth/auth.routes.ts", "modules/user/user.routes.ts", "modules/user/avatar.routes.ts", "modules/user/deletion/deletion.routes.ts"];
     const actual: string[] = [];
@@ -37,7 +51,14 @@ describe("OpenAPI and runtime route contract", () => {
       for (const match of text.matchAll(/router\.(get|post|put|patch|delete)\("([^"]+)"/g)) actual.push(`${match[1]} /api${match[2].replace(/:([A-Za-z][A-Za-z0-9]*)/g, "{$1}")}`);
     }
     const specified: string[] = [];
-    for (const [path, methods] of Object.entries(z.record(z.string(), z.record(z.string(), z.unknown())).parse(document.paths))) for (const method of Object.keys(methods)) specified.push(`${method} ${path}`);
+    for (const [path, methods] of Object.entries(z.record(z.string(), z.record(z.string(), z.unknown())).parse(document.paths))) {
+      for (const [method, operation] of Object.entries(methods)) {
+        const classified = z.object({ "x-implementation-status": z.enum(["implemented", "planned"]) }).parse(operation);
+        const route = `${method} ${path}`;
+        if (classified["x-implementation-status"] === "implemented") specified.push(route);
+        else expect(actual, `Registered route must be classified implemented: ${route}`).not.toContain(route);
+      }
+    }
     expect(actual.sort()).toEqual(specified.sort());
   });
 });
