@@ -118,6 +118,13 @@ Các quy ước này không yêu cầu refactor hàng loạt Auth/User hiện t�
 - `models/`: DTO và ràng buộc query/filter; `state/`: pagination store cấp page, hủy request/reset/deduplicate/retry. Catalog Province dùng User public API.
 - Guest dùng `/` và `/listings/:listingId`; không có mutation/Follow/upload UI trong Phase 5A. Hành vi, kiểm thử và giới hạn tại [Frontend README](../../frontend/README.md#listing-public-discovery--phase-5a).
 
+## Listing management và media — Phase 5B
+
+- `listing/pages/`: My Listings, editor tạo/sửa với HTML/SCSS riêng; các route yêu cầu tài khoản ACTIVE. `guards/` giữ guard rời editor có bản nháp hoặc đang commit.
+- `listing/state/listing-editor.ts` phối hợp quyền sở hữu, form, version, xác nhận và mutation; `models/listing-form.ts` giữ client validation; `data-access/` giữ HTTP mutation, runtime decoder và lỗi công khai.
+- `media/state/media-draft.ts` sở hữu preview Blob URL, upload/retry/cancel TEMP và manifest bản nháp. Listing dùng qua `media/public-api.ts`; Media không phụ thuộc nội bộ Listing. Byte đã gắn tiếp tục qua component delivery của Listing hiện có.
+- Membership/order/cover/video gửi cùng mutation Listing; hủy editor không xóa media ATTACHED. Kiểm chứng/giới hạn thuộc [Frontend README](../../frontend/README.md#listing-management-và-media--phase-5b).
+
 ## Quy tắc
 - **Page** điều phối hiển thị; **component** tập trung UI; **data-access** gọi API; **state** quản lý trạng thái; không nhúng gọi HTTP và nghiệp vụ phức tạp trực tiếp trong template/component.
 - Dùng Angular Signals cho trạng thái UI phù hợp, RxJS cho luồng bất đồng bộ; không tạo nhiều nguồn sự thật cho cùng một session/dữ liệu.

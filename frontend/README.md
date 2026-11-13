@@ -68,6 +68,33 @@ Harness tái sử dụng Backend fixture với PostgreSQL `looply_test` đã có
 
 Đã kiểm chứng local: guest search/suggestions tiếng Việt, 12→14 bài bằng cuộn/cursor không trùng, chọn Province, RENT DAY controls, detail/gallery, MP4 playback, HIDDEN/DELETED bị từ chối, responsive desktop/mobile. E2E chưa chạy CI; chưa nghiệm thu WebM, Safari/Firefox hoặc video dung lượng lớn. Final Review thực hiện riêng; Phase 5A không có Listing mutations/upload/Follow UI, Chat, Admin hoặc Payment.
 
+## Listing management và media — Phase 5B
+
+- `/account/listings`: bài ACTIVE/HIDDEN của chính người dùng, filter trạng thái, cursor 12 bài/lượt, loading/empty/error/retry và loại trùng. Header có liên kết quản lý khi tài khoản ACTIVE.
+- `/listings/new`, `/listings/:listingId/edit`: tạo/sửa SALE, RENT (DAY/MONTH), EXCHANGE; gợi ý địa điểm/số điện thoại từ hồ sơ nhưng cho sửa độc lập và thông báo số sẽ được công khai. Validation text theo Unicode code point/btrim ASCII; giá chuỗi nguyên dương tối đa 15 chữ số, không mất chính xác.
+- Editor kiểm tra chủ bằng `/users/me` và detail; Backend vẫn quyết định quyền. Mọi sửa/trạng thái/xóa dùng `expectedVersion`. Xác nhận sửa bài có Conversation, khóa loại giao dịch, mở lại HIDDEN đã có ACCEPTED trước khi sửa và xác nhận xóa mềm. Không tự retry mutation khi timeout/mất kết nối hoặc không rõ kết quả; yêu cầu kiểm tra danh sách/tải lại để tránh tạo trùng.
+- Upload byte thô qua Auth interceptor: 1–5 ảnh JPEG/PNG/WebP tối đa 10 MiB/ảnh, tối đa 1 MP4/WebM 100 MiB/180 giây. Preview dùng Blob URL cục bộ, sơ kiểm MIME/size/duration khi browser đọc metadata; server kiểm tra nội dung thật. Trạng thái từng tệp cho biết đang tải/xử lý, sẵn sàng hoặc lỗi; retry tường minh, hủy upload khi bỏ tệp. Không hiển thị phần trăm byte vì transport hiện tại không cung cấp tiến độ upload.
+- Đổi thứ tự ảnh, chọn cover độc lập và bỏ/thay ảnh/video trong bản nháp. Chỉ gửi manifest có đủ media sẵn sàng/còn hạn trong một mutation Listing; lưu thất bại/hủy không ảnh hưởng media cũ. Thay tệp tại giới hạn số lượng bằng cách bỏ tệp cũ khỏi bản nháp rồi chọn tệp mới; tệp cũ vẫn ATTACHED tới khi lưu thành công.
+- Rời editor xác nhận bỏ thay đổi; không rời khi commit đang chạy. Cleanup best effort hủy TEMP biết ID, thu hồi URL/subscription. Nếu upload bị ngắt trước nhận ID hoặc mất phiên, server TTL/orphan cleanup chịu trách nhiệm dọn; không tự nhận đã hủy vật lý thành công. Media ATTACHED tiếp tục dùng delivery có xác thực hiện có.
+
+Kiểm chứng local 13/11/2026: targeted form/HTTP decoder/editor/media/page tests; kiểm tra Angular template/source/test types và production build. Chrome + API/PostgreSQL `looply_test`/Redis test/local object store thật đã kiểm tra đăng nhập → upload ảnh/video → tạo bài → sửa → ẩn/hiện → xóa mềm, kèm responsive 1440/390 px. Auth provider fixture vẫn fake tại ranh giới OTP/email; không thay thế nghiệm thu production. Không chạy full suite local; full frontend và backend checks theo CI trên commit PR.
+
+Chạy test tập trung từ `frontend/`:
+
+```powershell
+npm test -- --watch=false --include="src/app/features/listing/models/listing-form.spec.ts" --include="src/app/features/listing/state/listing-editor.spec.ts" --include="src/app/features/listing/data-access/listing-management.api.spec.ts" --include="src/app/features/listing/pages/editor.page.spec.ts" --include="src/app/features/listing/pages/my-listings.page.spec.ts" --include="src/app/features/media/**/*.spec.ts"
+```
+
+Harness dùng lại setup/cleanup an toàn của discovery, chỉ chạy một luồng quản lý khi có flag từ root:
+
+```powershell
+node --env-file=.video-tools/video.env --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listing.cjs --management
+```
+
+`video.env` phải trỏ đúng executable đã provision trong workspace hiện tại; có thể override `MEDIA_FFPROBE_PATH`/`MEDIA_FFMPEG_PATH` trong process nếu workspace đã chuyển vị trí. Report/screenshot trong `frontend/tmp/listing-e2e/management-*` (Git ignore); harness dọn đúng graph/namespace fixture, không migrate/reset hoặc ghi development. E2E này chưa đưa vào CI.
+
+Giới hạn: chưa nghiệm thu Safari/Firefox, WebM trong browser hoặc tệp 100 MiB; delivery video vẫn tải Blob đầy đủ như Phase 5A. Chưa có consumer thông báo participant ở Backend; UI chỉ xác nhận theo contract, không tuyên bố đã gửi thông báo. Không thêm Listing Follow, Chat, Notification hoặc Admin. Checklist chức năng tổng chưa được đánh dấu hoàn tất chỉ từ phạm vi Phase 5B.
+
 ## Session và bảo mật
 
 - Access Token chỉ trong RAM. Refresh HttpOnly Cookie do Backend quản lý: `SameSite=Strict; Path=/api/auth`, dùng `withCredentials` khi cần trao đổi cookie. Không đọc cookie bằng JS, không localStorage/sessionStorage token.

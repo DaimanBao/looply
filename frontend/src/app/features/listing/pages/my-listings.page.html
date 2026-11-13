@@ -1,0 +1,67 @@
+<div class="heading">
+  <div>
+    <span class="eyebrow">KHÔNG GIAN CỦA BẠN</span>
+    <h1>Bài đăng của tôi</h1>
+  </div>
+  <a routerLink="/listings/new" class="button primary">Tạo bài đăng</a>
+</div>
+@if (saved) {
+  <p class="notice" role="status">Đã hoàn tất thao tác với bài đăng.</p>
+}
+<nav aria-label="Lọc trạng thái">
+  <button class="secondary" (click)="status.set('')" [attr.aria-pressed]="status() === ''">
+    Tất cả</button
+  ><button
+    class="secondary"
+    (click)="status.set('ACTIVE')"
+    [attr.aria-pressed]="status() === 'ACTIVE'"
+  >
+    Đang hiển thị</button
+  ><button
+    class="secondary"
+    (click)="status.set('HIDDEN')"
+    [attr.aria-pressed]="status() === 'HIDDEN'"
+  >
+    Đã ẩn
+  </button>
+</nav>
+@if (error()) {
+  <p role="alert">{{ error() }}</p>
+  <button class="secondary" (click)="retry()" [disabled]="loading()">Thử lại</button>
+}
+<div class="listing-grid">
+  @for (listing of rows(); track listing.id) {
+    <article>
+      <app-listing-media
+        [listingId]="listing.id"
+        [asset]="listing.cover"
+        [thumbnail]="true"
+        [alt]="listing.title"
+      />
+      <div class="content">
+        <p>
+          {{ listing.status === 'ACTIVE' ? 'Đang hiển thị' : 'Đã ẩn' }} ·
+          {{ listing.province.name }}
+        </p>
+        <h2>
+          <a [routerLink]="['/listings', listing.id, 'edit']">{{ listing.title }}</a>
+        </h2>
+        <app-listing-price [listing]="listing" /><a
+          class="button secondary"
+          [routerLink]="['/listings', listing.id, 'edit']"
+          >Quản lý bài đăng</a
+        ><a [routerLink]="['/listings', listing.id]">Xem bài</a>
+      </div>
+    </article>
+  } @empty {
+    @if (!loading() && !error()) {
+      <p>Bạn chưa có bài đăng ở trạng thái này.</p>
+    }
+  }
+</div>
+@if (loading()) {
+  <p role="status">Đang tải bài đăng…</p>
+}
+@if (cursor() && !error()) {
+  <button class="secondary" (click)="load()" [disabled]="loading()">Tải thêm</button>
+}

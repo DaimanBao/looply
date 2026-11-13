@@ -27,7 +27,9 @@ export class ListingApi {
     let params = new HttpParams();
     for (const [key, value] of Object.entries(query)) params = params.set(key, value);
     if (after) params = params.set('after', after);
-    return this.http.get<unknown>(`${this.base}/listings`, { params }).pipe(map(decodeListingPage));
+    return this.http
+      .get<unknown>(`${this.base}/listings`, { params })
+      .pipe(map((value) => decodeListingPage(value)));
   }
 
   /** Để Backend chuẩn hóa dấu tiếng Việt và lọc quyền hiển thị. */

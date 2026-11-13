@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { activeGuard, publicGuard, sessionGuard } from './core/auth/auth.guards';
+import { listingEditorGuard } from './features/listing/guards/listing-editor.guard';
 export const routes: Routes = [
   {
     path: '',
@@ -7,6 +8,24 @@ export const routes: Routes = [
     canActivate: [publicGuard],
     loadComponent: () =>
       import('./features/listing/pages/discovery.page').then((m) => m.DiscoveryPage),
+  },
+  {
+    path: 'listings/new',
+    canActivate: [activeGuard],
+    canDeactivate: [listingEditorGuard],
+    loadComponent: () => import('./features/listing/pages/editor.page').then((m) => m.EditorPage),
+  },
+  {
+    path: 'listings/:listingId/edit',
+    canActivate: [activeGuard],
+    canDeactivate: [listingEditorGuard],
+    loadComponent: () => import('./features/listing/pages/editor.page').then((m) => m.EditorPage),
+  },
+  {
+    path: 'account/listings',
+    canActivate: [activeGuard],
+    loadComponent: () =>
+      import('./features/listing/pages/my-listings.page').then((m) => m.MyListingsPage),
   },
   {
     path: 'listings/:listingId',

@@ -1,0 +1,35 @@
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+[aria-pressed='true'] {
+  border-color: var(--green);
+  background: var(--surface);
+}
+.listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  gap: 24px;
+}
+article {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  min-width: 0;
+}
+.content {
+  padding: 18px;
+  overflow-wrap: anywhere;
+}
+.content > a {
+  margin: 10px 10px 0 0;
+}
