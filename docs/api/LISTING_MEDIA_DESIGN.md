@@ -1,6 +1,6 @@
 # Thiết kế Listing và Media
 
-> Trạng thái: đã triển khai nền tảng Media/database phase 1 và Listing Backend CRUD/ảnh phase 2 (mục 9–10). Discovery/Follow, video và Chat chưa triển khai. Nghiệp vụ thuộc [Listing](../requirements/modules/LISTING_REQUIREMENTS.md), [Media](../requirements/modules/MEDIA_REQUIREMENTS.md), [User](../requirements/modules/USER_REQUIREMENTS.md). Hợp đồng HTTP thuộc [OpenAPI](openapi.json); snapshot Chat thuộc [thiết kế database](../database/CHAT_SNAPSHOT_DESIGN.md).
+> Trạng thái: đã triển khai Media/database phase 1, Listing Backend CRUD/ảnh phase 2 và Search/Feed/Follow phase 3 (mục 9–11). Video, Angular Listing và Chat chưa triển khai. Nghiệp vụ thuộc [Listing](../requirements/modules/LISTING_REQUIREMENTS.md), [Media](../requirements/modules/MEDIA_REQUIREMENTS.md), [User](../requirements/modules/USER_REQUIREMENTS.md). Hợp đồng HTTP thuộc [OpenAPI](openapi.json); snapshot Chat thuộc [thiết kế database](../database/CHAT_SNAPSHOT_DESIGN.md).
 
 ## 1. Ranh giới và thay đổi dự kiến
 
@@ -141,7 +141,7 @@ Bằng chứng kiểm thử và giới hạn ở [INTEGRATION_TESTS](../database
 
 ## 10. Listing Backend CRUD — Phase 2
 
-Đã mount chín operation CRUD/detail/My Listings/visibility/delete và upload/cancel/delivery ảnh theo OpenAPI; các operation này là implemented. Không thêm schema/migration/dependency hoặc sửa Frontend. Discovery, public User Listings, Follow, Chat/Notification và video vẫn ngoài phạm vi.
+Đã mount chín operation CRUD/detail/My Listings/visibility/delete và upload/cancel/delivery ảnh theo OpenAPI; các operation này là implemented. Không thêm schema/migration/dependency hoặc sửa Frontend. Discovery/public User Listings/Follow nằm ở phase 3 (mục 11); Chat/Notification và video chưa triển khai.
 
 - Listing sở hữu validation Unicode/Decimal/final terms, owner/visibility, expectedVersion, terminal state và cursor My Listings. Media sở hữu image processing, readiness, final membership/order/cover, detach và private delivery. Composition root ghép public Auth/User/Media boundaries; route chỉ nối middleware/controller.
 - Mutation khóa User trước Listing rồi union Media sorted, recheck session/account/owner/version/Conversation dưới khóa. Create và attach atomic; edit chuyển ảnh bỏ sang DELETING, clear cover/link/position và queue cùng transaction. Không có physical delete trong transaction hoặc trước commit. Soft delete giữ attachment và lịch sử, thu hồi quyền qua Listing predicate.
@@ -150,3 +150,13 @@ Bằng chứng kiểm thử và giới hạn ở [INTEGRATION_TESTS](../database
 - Upload thật mới chỉ hỗ trợ ảnh. Video upload/delivery và attach TEMP VIDEO trả 503 MEDIA_VIDEO_UNAVAILABLE; chỉ giữ/bỏ metadata VIDEO ATTACHED hợp lệ có sẵn. Không coi fixture metadata là nghiệm thu video inspector/playback/Range. Thông số ảnh và cách gọi API thuộc [Backend README](../../backend/README.md#listing-crud-và-ảnh--phase-2).
 
 Bằng chứng thực tế và rà soát cuối tại [INTEGRATION_TESTS](../database/INTEGRATION_TESTS.md#listing-backend-crud--phase-2--13112026).
+
+## 11. Listing Search, Feed và Follow — Phase 3
+
+Đã mount sáu operation discovery/suggestions/public User Listings/Follow/Unfollow/Followed Listings theo contract hiện hành, không thêm schema/index/migration/dependency. Thuật toán và ngữ nghĩa mục 4–5 giữ nguyên.
+
+- Discovery tách schema/validation, controller, service, repository và cursor. Chuẩn hóa dùng cùng `normalizeListingTitle` với CRUD; SQL bind tất cả giá trị và escape wildcard theo nghĩa literal. PostgreSQL lọc và keyset trước `LIMIT limit+1`; chỉ hydrate tối đa 49 Listing, không tải bảng vào application memory. Public User Listings có scope riêng theo target.
+- National sinh seed 128 bit, rank `md5(seed || ':' || lower(id)) COLLATE "C"`; mỗi trang áp lại filters và visibility. `asOf` giữ mốc postedWithin và loại bài mới hơn trang đầu. Cursor unsigned chỉ là boundary, không phải quyền truy cập hoặc snapshot; hash gắn effective query/viewer/scope/limit. Khi dữ liệu đổi có thể thiếu/lặp, client vẫn cần dedup/reset theo mục 4.
+- Public User gate cung cấp cả predicate Prisma và SQL qua public module interface. Query chọn ID rồi hydrate có áp lại ACTIVE/deletedAt/owner/Block để không đưa candidate vừa mất quyền vào DTO. Đây là READ COMMITTED theo request; không có snapshot xuyên HTTP hoặc bảo đảm tuyến tính hóa mọi thay đổi sau thời điểm đọc.
+- Follow khóa toàn bộ User pair sorted trước Listing; đọc lại phiên, owner, trạng thái và Block trước upsert unique. Unfollow chỉ khóa viewer rồi Listing và xóa quan hệ chính viewer, kể cả Listing/owner không còn công khai. Không sửa Listing version hoặc phát Notification/outbox. Account deletion tiếp tục dọn `ListingFollow` theo lifecycle có sẵn.
+- Feed nearby nhận provinceCode tường minh cho cả Guest/User; không tự dùng hồ sơ hoặc GPS. Kiểm thử PostgreSQL và query plan được ghi tại [INTEGRATION_TESTS](../database/INTEGRATION_TESTS.md). Angular infinite scroll/debounce và video/Chat vẫn chưa triển khai.

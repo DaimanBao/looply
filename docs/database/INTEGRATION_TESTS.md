@@ -1,5 +1,29 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Listing Search, Feed và Follow — Phase 3 — 13/11/2026
+
+Nền bắt đầu từ `develop` sau PR #20 đã merge (`352b1cf`), working tree sạch; nhánh `feat/listing-search-feed-follow`. Đã xác minh actual database `looply_test`, PostgreSQL 17.11 tại localhost:5435. Redis test riêng `/1` tại localhost:6380; fixture xác minh database trước ghi, cleanup chỉ graph UUID/namespace của mình. Không ghi/migrate/reset development/production, không thay schema/index/dependency hoặc Frontend.
+
+`listing-discovery.test.ts` có **30 HTTP/PostgreSQL tests**: normalization tiếng Việt/NFD/đ/Đ/case, title-only và giữ title gốc; LIKE wildcard/backslash/SQL injection literal; compact suggestions ≤8; phối hợp type/Province/postedWithin/rental unit và Decimal 15 chữ số; bốn deterministic sort với equal-key tie-break; postedWithin/asOf giữ nguyên và bỏ bài tạo sau trang đầu; national seed/rank đúng PostgreSQL và không lặp/bỏ sót trên dữ liệu tĩnh; cursor sai query/viewer/scope; Guest chọn Province tường minh; public User Listings; HIDDEN/DELETED/owner lifecycle/Block hai chiều; candidate mất visibility trước hydrate.
+
+Follow kiểm chứng duplicate/concurrent PUT, self/auth/account/Block, không sửa Listing version/outbox/Notification, chỉ xóa relation của viewer, hidden giữ quan hệ và xuất hiện lại sau reopen, unfollow invisible/deleted/missing, followed keyset. Các race follow với hide/delete/Block/pending chạy trên PostgreSQL thật. Ba test barrier giữ advisory User→Listing locks, đợi request qua middleware đến lock acquisition rồi mới commit revoke/hide/pending: request đọc lại state, trả 401/404 và không ghi Follow. Không dùng sleep để giả lập concurrency.
+
+Unit schema/cursor thêm **22 tests**; HTTP response đối chiếu component schema OpenAPI; exact registered-route test bao gồm discovery router. Full regression gồm CRUD/Media readiness/atomic rollback, private image delivery (kể cả JPEG metadata/video coexistence), Auth/User/Avatar/account cleanup và constraints.
+
+| Kiểm chứng thực sự đã chạy tại backend | Kết quả |
+| --- | --- |
+| `npm test` | **129/129 PASS**, 20 file. |
+| `npm run test:integration -- --reporter=verbose --disableConsoleIntercept` | **479/479 PASS**, 28 file; gồm 30 test Phase 3. |
+| `npm run test:api` | **23/23 PASS**; Listing HTTP/contract nằm trong PostgreSQL suite. |
+| `npm run typecheck`, `npm exec -- tsc --project tests/tsconfig.json`, `npm run build` | PASS. |
+| Prisma validate + migrate status với child process DATABASE_URL trỏ test đã xác minh | PASS; 5 migrations up to date, không deploy migration. |
+
+Sau chỉnh controller để thu hẹp DTO từ `res.locals.validated`, đã chạy lại targeted PostgreSQL Phase 3 **30/30**, unit/contract Listing **32/32**, source/test typecheck và build: PASS. Không chạy lại full suite không cần thiết; CI kiểm tra toàn bộ commit bàn giao.
+
+Đã đo câu SQL production bằng `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` trên 2.000 Listing test riêng: search literal chọn một hàng, khoảng 0,72 ms với `listings_status_createdAt_id_idx`; nearby trả 13 candidates khoảng 4,22 ms, dùng `listings_status_provinceId_createdAt_id_idx`; national RANDOM trả 13 khoảng 7,58 ms với top-N heapsort. Đây là phép đo local nhỏ, không phải benchmark production. Random vẫn tính rank/sort tập lọc ở PostgreSQL; không xử lý toàn bảng trong application memory, không thêm index dự phòng.
+
+Rà soát thay đổi: parameter binding, strict DTO/query/cursor, latest visibility khi hydrate, phiên dưới lock, thứ tự User→Listing, unique relation, no-store và không xuất private storage key. Không phát hiện blocker đã biết trong phạm vi này. Dữ liệu biến động không có snapshot xuyên requests; client phải dedup/reset cursor. Chưa kiểm thử browser Angular Listing, live S3 hoặc video/Chat/Notification. CI được theo dõi trên commit PR và báo link bàn giao; không coi local PASS là CI PASS.
+
 ## Final review PR #20 — 13/11/2026
 
 Review diff so với develop, contract/DTO, visibility/lifecycle, lock ordering, atomic manifest/rollback, cleanup/reference guards và regression Auth/User/Avatar. Không đổi schema/migration, dependencies, Frontend hoặc nghiệp vụ đã duyệt.

@@ -2039,9 +2039,9 @@
     "/api/listings": {
       "get": {
         "operationId": "discoverListings",
-        "summary": "[PLANNED] Discover visible Listings",
-        "description": "Planned design; not implemented. Optional auth; invalid token 401. Only ACTIVE listings of ACTIVE owners, excluding Block both directions. All query combinations checked; invalid price/unit/feed/cursor returns 400 VALIDATION_ERROR with query field details. Seeded national keyset, no immutable snapshot promise. No version precondition for read.",
-        "x-implementation-status": "planned",
+        "summary": "Discover visible Listings",
+        "description": "Optional auth; invalid token 401. Only ACTIVE listings of ACTIVE owners, excluding Block both directions. All query combinations checked; invalid price/unit/feed/cursor returns 400 VALIDATION_ERROR with query field details. Seeded national keyset, no immutable snapshot promise. No version precondition for read.",
+        "x-implementation-status": "implemented",
         "tags": [
           "Listing"
         ],
@@ -2180,7 +2180,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful planned response.",
+            "description": "Successful response.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -2358,9 +2358,9 @@
     "/api/listings/suggestions": {
       "get": {
         "operationId": "suggestListings",
-        "summary": "[PLANNED] Suggest up to eight Listing titles",
-        "description": "Planned design; not implemented. Optional auth and same public visibility. Empty normalized q returns data []; fewer than five results allowed. NEWEST/id descending, debounce 300ms in client. No pagination/version precondition.",
-        "x-implementation-status": "planned",
+        "summary": "Suggest up to eight Listing titles",
+        "description": "Optional auth and same public visibility. Empty normalized q returns data []; fewer than five results allowed. NEWEST/id descending, debounce 300ms in client. No pagination/version precondition.",
+        "x-implementation-status": "implemented",
         "tags": [
           "Listing"
         ],
@@ -2385,7 +2385,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful planned response.",
+            "description": "Successful response.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -2862,9 +2862,9 @@
     "/api/users/{userId}/listings": {
       "get": {
         "operationId": "listUserListings",
-        "summary": "[PLANNED] List public Listings by User",
-        "description": "Planned design; not implemented. Optional auth, invalid token 401. User profile/state/Block visibility required or 404. Only public ACTIVE Listing even when viewer owns target; use /users/me/listings for hidden. Listing createdAt DESC,id DESC keyset; no version precondition.",
-        "x-implementation-status": "planned",
+        "summary": "List public Listings by User",
+        "description": "Optional auth, invalid token 401. User profile/state/Block visibility required or 404. Only public ACTIVE Listing even when viewer owns target; use /users/me/listings for hidden. Listing createdAt DESC,id DESC keyset; no version precondition.",
+        "x-implementation-status": "implemented",
         "tags": [
           "Listing"
         ],
@@ -2909,7 +2909,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful planned response.",
+            "description": "Successful response.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -2959,9 +2959,9 @@
     "/api/users/me/followed-listings": {
       "get": {
         "operationId": "listFollowedListings",
-        "summary": "[PLANNED] List visible followed Listings",
-        "description": "Planned design; not implemented. ACTIVE session. Follow relation belongs to viewer; only public ACTIVE Listing/ACTIVE owner and no Block. HIDDEN kept but excluded, returns after reopen. Listing createdAt DESC,id DESC keyset bound to viewer and scope; no version precondition.",
-        "x-implementation-status": "planned",
+        "summary": "List visible followed Listings",
+        "description": "ACTIVE session. Follow relation belongs to viewer; only public ACTIVE Listing/ACTIVE owner and no Block. HIDDEN kept but excluded, returns after reopen. Listing createdAt DESC,id DESC keyset bound to viewer and scope; no version precondition.",
+        "x-implementation-status": "implemented",
         "tags": [
           "Listing"
         ],
@@ -2995,7 +2995,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful planned response.",
+            "description": "Successful response.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -3045,9 +3045,9 @@
     "/api/listings/{listingId}/follow": {
       "put": {
         "operationId": "followListing",
-        "summary": "[PLANNED] Follow eligible Listing idempotently",
-        "description": "Planned design; not implemented. ACTIVE viewer and owner, visible ACTIVE Listing, no Block; self returns 403, invisible 404. Unique relation, duplicate eligible PUT 204. Serializes User pair then Listing; no Listing version precondition or increment; no Notification.",
-        "x-implementation-status": "planned",
+        "summary": "Follow eligible Listing idempotently",
+        "description": "ACTIVE viewer and owner, visible ACTIVE Listing, no Block; self returns 403, invisible 404. Unique relation, duplicate eligible PUT 204. Serializes User pair then Listing; no Listing version precondition or increment; no Notification.",
+        "x-implementation-status": "implemented",
         "tags": [
           "Listing"
         ],
@@ -3105,9 +3105,9 @@
       },
       "delete": {
         "operationId": "unfollowListing",
-        "summary": "[PLANNED] Remove own follow even if Listing is invisible",
-        "description": "Planned design; not implemented. ACTIVE session; remove only viewer relation, no public visibility/owner lifecycle gate. Valid UUID always 204 including absent relation/Listing; do not disclose existence. No Listing version precondition or increment. Block/hidden/deleted do not prevent removing own relation.",
-        "x-implementation-status": "planned",
+        "summary": "Remove own follow even if Listing is invisible",
+        "description": "ACTIVE session; remove only viewer relation, no public visibility/owner lifecycle gate. Valid UUID always 204 including absent relation/Listing; do not disclose existence. No Listing version precondition or increment. Block/hidden/deleted do not prevent removing own relation.",
+        "x-implementation-status": "implemented",
         "tags": [
           "Listing"
         ],

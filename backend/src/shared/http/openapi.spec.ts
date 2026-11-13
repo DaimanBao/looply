@@ -81,7 +81,7 @@ describe("OpenAPI and runtime route contract", () => {
     }
   });
   it("documents exactly the registered Core/Auth/User routes, including avatar and deletion", () => {
-    const files = ["routes/health.routes.ts", "modules/auth/auth.routes.ts", "modules/user/user.routes.ts", "modules/user/avatar.routes.ts", "modules/user/deletion/deletion.routes.ts", "modules/listing/listing.routes.ts", "modules/media/listing-upload.routes.ts"];
+    const files = ["routes/health.routes.ts", "modules/auth/auth.routes.ts", "modules/user/user.routes.ts", "modules/user/avatar.routes.ts", "modules/user/deletion/deletion.routes.ts", "modules/listing/listing.routes.ts", "modules/listing/listing-discovery.routes.ts", "modules/media/listing-upload.routes.ts"];
     const actual: string[] = [];
     for (const file of files) {
       const text = readFileSync(resolve(root, "backend/src", file), "utf8");
