@@ -15,7 +15,8 @@ import type {
 export class AuthApi {
   private readonly http = inject(HttpClient);
   private readonly base = `${inject(API_BASE)}/auth`;
-  /** Public credential exchanges deliberately omit any previous bearer identity. */
+
+  /** Trao đổi credential công khai chủ động bỏ danh tính bearer trước đó. */
   login(username: string, password: string): Promise<unknown> {
     return firstValueFrom(
       this.http.post<unknown>(
@@ -25,7 +26,8 @@ export class AuthApi {
       ),
     );
   }
-  /** Submits the delivered one-use challenge to the real phone login endpoint. */
+
+  /** Gửi challenge đã chuyển dùng một lần đến endpoint đăng nhập điện thoại thật. */
   phoneLogin(phone: string, proof: OtpProof): Promise<unknown> {
     return firstValueFrom(
       this.http.post<unknown>(
@@ -35,7 +37,8 @@ export class AuthApi {
       ),
     );
   }
-  /** Sends verified registration data and lets the server establish the cookie. */
+
+  /** Gửi dữ liệu đăng ký đã xác minh và để server thiết lập cookie. */
   register(input: Registration): Promise<unknown> {
     return firstValueFrom(
       this.http.post<unknown>(
@@ -45,7 +48,8 @@ export class AuthApi {
       ),
     );
   }
-  /** Protected OTP purposes retain the current bearer; codes never appear in this response. */
+
+  /** Mục đích OTP được bảo vệ giữ bearer hiện tại; mã không xuất hiện trong response. */
   requestOtp(purpose: OtpPurpose, destination: string): Promise<OtpAccepted> {
     const protectedPurpose = ['CHANGE_PHONE', 'VERIFY_EMAIL', 'REAUTH_PHONE'].includes(purpose);
     return firstValueFrom(
@@ -56,7 +60,8 @@ export class AuthApi {
       ),
     );
   }
-  /** Resets a verified contact's credentials; all server sessions are revoked. */
+
+  /** Đặt lại credential của liên hệ đã xác minh; mọi phiên server bị thu hồi. */
   reset(destination: string, password: string, proof: OtpProof): Promise<void> {
     return firstValueFrom(
       this.http.post<void>(
@@ -66,7 +71,8 @@ export class AuthApi {
       ),
     );
   }
-  /** Obtains an operation/session-specific proof using exactly one real method. */
+
+  /** Lấy proof riêng cho thao tác/phiên bằng đúng một phương thức thật. */
   reauthenticate(
     operation: SensitiveOperation,
     method: { password: string } | OtpProof,
@@ -78,7 +84,8 @@ export class AuthApi {
       }),
     );
   }
-  /** Keeps the cookie on anonymous session-issuing calls without exposing it to JavaScript. */
+
+  /** Giữ cookie trong lời gọi cấp phiên ẩn danh mà không để JavaScript đọc được. */
   private publicOptions() {
     return { context: new HttpContext().set(ANONYMOUS, true), withCredentials: true };
   }

@@ -12,7 +12,11 @@ import { authInterceptor } from '../../../core/auth/auth.interceptor';
 describe('Public listing routes', () => {
   beforeEach(() =>
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()],
+      providers: [
+        provideRouter(routes),
+        provideHttpClient(withInterceptors([authInterceptor])),
+        provideHttpClientTesting(),
+      ],
     }),
   );
   it('keeps loaded detail and its gallery while the same session rotates its token', async () => {
@@ -24,11 +28,15 @@ describe('Public listing routes', () => {
     await harness.navigateByUrl(`/listings/${listing.id}`, DetailPage);
     http.expectOne(`/api/listings/${listing.id}`).flush(listing);
     await harness.fixture.whenStable();
-    http.expectOne(`${listing.cover.deliveryPath}?variant=detail`).flush(new Blob(['image'], { type: 'image/webp' }));
+    http
+      .expectOne(`${listing.cover.deliveryPath}?variant=detail`)
+      .flush(new Blob(['image'], { type: 'image/webp' }));
     await harness.fixture.whenStable();
     const image = harness.routeNativeElement?.querySelector('img');
     session.refresh().subscribe();
-    http.expectOne('/api/auth/refresh').flush({ accessToken: 'after-rotation', expiresIn: 900, status: 'ACTIVE' });
+    http
+      .expectOne('/api/auth/refresh')
+      .flush({ accessToken: 'after-rotation', expiresIn: 900, status: 'ACTIVE' });
     await harness.fixture.whenStable();
     http.expectNone(`/api/listings/${listing.id}`);
     http.expectNone(`${listing.cover.deliveryPath}?variant=detail`);

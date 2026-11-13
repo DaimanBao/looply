@@ -4,18 +4,14 @@ export interface InspectorConfig {
   key: string;
 }
 
-/** Explicit opt-in only; attempted enablement outside development fails before startup. */
+/** Chỉ bật khi chủ động cấu hình; bật ngoài development sẽ bị từ chối trước khi khởi động. */
 export function inspectorConfig(
   environment: string,
   input: NodeJS.ProcessEnv,
 ): InspectorConfig | undefined {
   const enabled = input.DEV_OTP_INSPECTOR_ENABLED;
   if (enabled === undefined || enabled === "false") return undefined;
-  if (
-    environment !== "development" ||
-    input.NODE_ENV === "production" ||
-    enabled !== "true"
-  )
+  if (environment !== "development" || input.NODE_ENV === "production" || enabled !== "true")
     throw new Error("OTP inspector is development-only");
   const key = input.DEV_OTP_INSPECTOR_KEY || "";
   const port = Number(input.DEV_OTP_INSPECTOR_PORT || "3101");

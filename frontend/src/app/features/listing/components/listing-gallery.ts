@@ -6,18 +6,7 @@ import { ListingMedia } from './listing-media';
   selector: 'app-listing-gallery',
   imports: [ListingMedia],
   templateUrl: './listing-gallery.html',
-  styles: `
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 14px 0 24px;
-    }
-    [aria-pressed='true'] {
-      background: var(--green);
-      color: white;
-    }
-  `,
+  styleUrl: './listing-gallery.scss',
 })
 export class ListingGallery {
   readonly listing = input.required<ListingDetail>();

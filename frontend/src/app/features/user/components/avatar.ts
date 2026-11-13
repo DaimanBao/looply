@@ -4,20 +4,15 @@ import { UserApi } from '../data-access/user.api';
 
 @Component({
   selector: 'app-avatar',
-  template: `@if (image()) {
-      <img class="avatar" [src]="image()" [alt]="'Ảnh đại diện của ' + profile().displayName" />
-    } @else {
-      <span class="avatar avatar-placeholder" aria-hidden="true">{{
-        profile().displayName.slice(0, 1).toUpperCase()
-      }}</span>
-    }`,
+  templateUrl: './avatar.html',
 })
 export class Avatar implements OnDestroy {
   private readonly api = inject(UserApi);
   readonly profile = input.required<PublicProfile>();
   readonly image = signal('');
   private revision = 0;
-  /** Loads protected image bytes and discards late responses after navigation or profile changes. */
+
+  /** Nạp byte ảnh được bảo vệ, bỏ response đến muộn sau điều hướng hoặc đổi hồ sơ. */
   constructor() {
     effect(() => {
       const profile = this.profile();
@@ -34,12 +29,14 @@ export class Avatar implements OnDestroy {
           });
     });
   }
-  /** Releases browser-owned bytes as soon as they are no longer displayed. */
+
+  /** Giải phóng byte do trình duyệt quản lý ngay khi không còn hiển thị. */
   private release(): void {
     if (this.image()) URL.revokeObjectURL(this.image());
     this.image.set('');
   }
-  /** Invalidates pending requests and releases the current object URL. */
+
+  /** Vô hiệu hóa yêu cầu đang chờ và giải phóng object URL hiện tại. */
   ngOnDestroy(): void {
     this.revision++;
     this.release();

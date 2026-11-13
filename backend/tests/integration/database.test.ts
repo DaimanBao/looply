@@ -12,9 +12,7 @@ if (!testUrl) {
 const parsedUrl = new URL(testUrl);
 
 if (parsedUrl.pathname !== "/looply_test") {
-  throw new Error(
-    "Integration tests must use the looply_test database",
-  );
+  throw new Error("Integration tests must use the looply_test database");
 }
 
 const adapter = new PrismaPg({

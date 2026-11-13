@@ -23,7 +23,7 @@ describe('Infinite scroll lifecycle', () => {
     const observe = vi.fn();
     const disconnect = vi.fn();
     class Observer {
-      /** Adapts the browser callback into a deterministic visible sentinel for this test. */
+      /** Chuyển callback trình duyệt thành sentinel hiển thị xác định cho test này. */
       constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
         intersect = (visible) => callback([{ isIntersecting: visible }]);
       }

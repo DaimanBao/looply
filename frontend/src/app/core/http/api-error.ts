@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
-/** Gives useful Vietnamese feedback without echoing provider internals or sensitive request values. */
+/** Phản hồi tiếng Việt hữu ích mà không phản chiếu nội bộ provider hoặc giá trị yêu cầu nhạy cảm. */
 export function apiError(error: unknown): string {
   if (!(error instanceof HttpErrorResponse))
     return 'Không thể hoàn tất thao tác. Vui lòng thử lại.';

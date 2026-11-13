@@ -6,7 +6,13 @@ import { createLogger } from "./shared/logger/logger";
 describe("GET /api/health", () => {
   it("should return HTTP 200 and healthy service status", async () => {
     const app = createApp({
-      config: { corsOrigins: [], corsCredentials: false, jsonBodyLimitBytes: 1024, rateLimitWindowMs: 60000, rateLimitMax: 100 },
+      config: {
+        corsOrigins: [],
+        corsCredentials: false,
+        jsonBodyLimitBytes: 1024,
+        rateLimitWindowMs: 60000,
+        rateLimitMax: 100,
+      },
       logger: createLogger("silent"),
     });
     const response = await request(app).get("/api/health");

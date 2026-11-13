@@ -7,40 +7,7 @@ import { OtpInput } from './otp-input';
 @Component({
   selector: 'app-reauth-input',
   imports: [ReactiveFormsModule, OtpInput],
-  template: `
-    <fieldset>
-      <legend>Xác thực lại để bảo vệ tài khoản</legend>
-      <div class="tabs">
-        <button
-          type="button"
-          [attr.aria-pressed]="method() === 'password'"
-          (click)="method.set('password')"
-        >
-          Mật khẩu hiện tại
-        </button>
-        @if (phone()) {
-          <button
-            type="button"
-            [attr.aria-pressed]="method() === 'phone'"
-            (click)="method.set('phone')"
-          >
-            OTP số đã xác minh
-          </button>
-        }
-      </div>
-      @if (method() === 'password') {
-        <label
-          >Mật khẩu hiện tại<input
-            type="password"
-            autocomplete="current-password"
-            [formControl]="password"
-            maxlength="512"
-        /></label>
-      } @else {
-        <app-otp-input purpose="REAUTH_PHONE" [destination]="phone()" (proof)="proof.set($event)" />
-      }
-    </fieldset>
-  `,
+  templateUrl: './reauth-input.html',
 })
 export class ReauthInput {
   private readonly api = inject(AuthApi);
@@ -49,7 +16,8 @@ export class ReauthInput {
   readonly method = signal<'password' | 'phone'>('password');
   readonly proof = signal<OtpProof | null>(null);
   readonly password = new FormControl('', { nonNullable: true });
-  /** Acquires a fresh proof at submission time; no reusable proof is persisted in the UI. */
+
+  /** Lấy proof mới lúc gửi; không lưu proof tái sử dụng trong UI. */
   async authorize(): Promise<string> {
     const proof = this.proof();
     const method = this.method() === 'password' ? { password: this.password.value } : proof;

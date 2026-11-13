@@ -4,19 +4,27 @@ import type { AvatarService } from "../avatar.service";
 import { principal } from "../../auth";
 import { AppError } from "../../../shared/errors/app-error";
 
-/** Handles binary HTTP transport while validation, ownership and attachment stay in Media/User services. */
+/** Xử lý HTTP nhị phân; validation, sở hữu và đính kèm nằm trong service Media/User. */
 export function createAvatarController(avatars: AvatarService) {
-  /** Passes actual binary bytes to the validated avatar pipeline. */
+  /** Chuyển byte nhị phân thực vào pipeline avatar có kiểm tra. */
   const upload: RequestHandler = async (request, response) => {
-    if (!Buffer.isBuffer(request.body)) throw new AppError(400, "INVALID_AVATAR", "Send image bytes.");
+    if (!Buffer.isBuffer(request.body))
+      throw new AppError(400, "INVALID_AVATAR", "Send image bytes.");
     response.json(await avatars.upload(principal(response), request.body));
   };
-  /** Detaches the current avatar before background cleanup. */
-  const remove: RequestHandler = async (_request, response) => { await avatars.remove(principal(response)); response.sendStatus(204); };
-  /** Serves only authorized avatar bytes without a storage URL. */
+  /** Tách avatar hiện tại trước cleanup nền. */
+  const remove: RequestHandler = async (_request, response) => {
+    await avatars.remove(principal(response));
+    response.sendStatus(204);
+  };
+  /** Chỉ phục vụ byte avatar có phân quyền, không cung cấp URL storage. */
   const get: RequestHandler = async (request, response) => {
-    const avatar = await avatars.get(userIdSchema.parse(request.params).userId, response.locals.principal);
-    response.setHeader("Cache-Control", "private, no-store"); response.type(avatar.mimeType).send(avatar.bytes);
+    const avatar = await avatars.get(
+      userIdSchema.parse(request.params).userId,
+      response.locals.principal,
+    );
+    response.setHeader("Cache-Control", "private, no-store");
+    response.type(avatar.mimeType).send(avatar.bytes);
   };
   return { upload, remove, get };
 }

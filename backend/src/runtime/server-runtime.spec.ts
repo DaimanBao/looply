@@ -5,8 +5,15 @@ import { createServerRuntime } from "./server-runtime";
 
 const servers: Server[] = [];
 
-/** Builds a runtime with a fake database and real local HTTP sockets on an ephemeral port. */
-function runtimeFixture(options: { server?: Server; port?: number; shutdownTimeoutMs?: number; services?: { start(): Promise<void>; stop(): Promise<void> } } = {}) {
+/** Tạo runtime dùng database giả và HTTP socket local thật trên cổng tạm. */
+function runtimeFixture(
+  options: {
+    server?: Server;
+    port?: number;
+    shutdownTimeoutMs?: number;
+    services?: { start(): Promise<void>; stop(): Promise<void> };
+  } = {},
+) {
   const server = options.server ?? createServer();
   servers.push(server);
   const database = {
@@ -14,36 +21,58 @@ function runtimeFixture(options: { server?: Server; port?: number; shutdownTimeo
     $disconnect: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
   };
   const runtime = createServerRuntime({
-    server, database, logger: createLogger("silent"),
-    config: { host: "127.0.0.1", port: options.port ?? 0, shutdownTimeoutMs: options.shutdownTimeoutMs ?? 1000 },
+    server,
+    database,
+    logger: createLogger("silent"),
+    config: {
+      host: "127.0.0.1",
+      port: options.port ?? 0,
+      shutdownTimeoutMs: options.shutdownTimeoutMs ?? 1000,
+    },
     services: options.services,
   });
   return { server, database, runtime };
 }
 
-/** Closes only sockets allocated by these tests, including deliberate startup-failure fixtures. */
+/** Chỉ đóng socket do các test này cấp phát, kể cả fixture cố ý lỗi khởi động. */
 afterEach(async () => {
   for (const server of servers.splice(0)) {
     server.closeAllConnections();
-    if (server.listening) await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    if (server.listening)
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
   }
 });
 
 describe("Server/database lifecycle", () => {
   it("connects auxiliary resources before listening and stops them before disconnecting the database", async () => {
-    const services = { start: vi.fn<() => Promise<void>>().mockResolvedValue(undefined), stop: vi.fn<() => Promise<void>>().mockResolvedValue(undefined) };
+    const services = {
+      start: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      stop: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    };
     const { runtime, database } = runtimeFixture({ services });
-    services.stop.mockImplementation(async () => { expect(database.$disconnect).not.toHaveBeenCalled(); });
-    await runtime.start(); expect(services.start).toHaveBeenCalledOnce(); await runtime.stop();
-    expect(services.stop).toHaveBeenCalledOnce(); expect(database.$disconnect).toHaveBeenCalledOnce();
+    services.stop.mockImplementation(async () => {
+      expect(database.$disconnect).not.toHaveBeenCalled();
+    });
+    await runtime.start();
+    expect(services.start).toHaveBeenCalledOnce();
+    await runtime.stop();
+    expect(services.stop).toHaveBeenCalledOnce();
+    expect(database.$disconnect).toHaveBeenCalledOnce();
   });
   it("refuses traffic and cleans up when an auxiliary security dependency cannot start", async () => {
-    const services = { start: vi.fn<() => Promise<void>>().mockRejectedValue(new Error("Unavailable fixture Redis")), stop: vi.fn<() => Promise<void>>().mockResolvedValue(undefined) };
+    const services = {
+      start: vi.fn<() => Promise<void>>().mockRejectedValue(new Error("Unavailable fixture Redis")),
+      stop: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    };
     const { runtime, server, database } = runtimeFixture({ services });
-    await expect(runtime.start()).rejects.toThrow("Unavailable fixture Redis"); expect(server.listening).toBe(false);
-    expect(services.stop).toHaveBeenCalledOnce(); expect(database.$disconnect).toHaveBeenCalledOnce();
+    await expect(runtime.start()).rejects.toThrow("Unavailable fixture Redis");
+    expect(server.listening).toBe(false);
+    expect(services.stop).toHaveBeenCalledOnce();
+    expect(database.$disconnect).toHaveBeenCalledOnce();
   });
-  // HTTP must remain closed until database initialization resolves.
+  // HTTP phải đóng đến khi khởi tạo database hoàn tất.
   it("connects before listening and disconnects once after stopping", async () => {
     const { server, database, runtime } = runtimeFixture();
     expect(server.listening).toBe(false);
@@ -60,7 +89,7 @@ describe("Server/database lifecycle", () => {
     await expect(runtime.start()).rejects.toThrow("stopping");
   });
 
-  // A failed connection must not open the HTTP port or leave database cleanup to process exit.
+  // Kết nối lỗi không được mở cổng HTTP hoặc để cleanup database chờ tiến trình thoát.
   it("cleans up a failed database startup", async () => {
     const { server, database, runtime } = runtimeFixture();
     database.$connect.mockRejectedValue(new Error("fixture-connect-failed"));
@@ -69,7 +98,7 @@ describe("Server/database lifecycle", () => {
     expect(database.$disconnect).toHaveBeenCalledTimes(1);
   });
 
-  // A real EADDRINUSE socket failure occurs after connection and must still disconnect the pool.
+  // Lỗi socket EADDRINUSE thực xảy ra sau kết nối vẫn phải ngắt pool.
   it("cleans up when the HTTP port is unavailable", async () => {
     const occupied = createServer();
     servers.push(occupied);
@@ -81,11 +110,18 @@ describe("Server/database lifecycle", () => {
     expect(database.$disconnect).toHaveBeenCalledTimes(1);
   });
 
-  // SIGTERM during connect must not accept traffic after the shutdown request.
+  // SIGTERM trong lúc kết nối không được nhận lưu lượng sau yêu cầu shutdown.
   it("supports shutdown while a connection attempt is pending", async () => {
     const { server, database, runtime } = runtimeFixture();
-    let finishConnect: () => void = () => { throw new Error("Connection resolver missing"); };
-    database.$connect.mockImplementation(() => new Promise<void>((resolve) => { finishConnect = resolve; }));
+    let finishConnect: () => void = () => {
+      throw new Error("Connection resolver missing");
+    };
+    database.$connect.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishConnect = resolve;
+        }),
+    );
     const starting = runtime.start();
     const stopping = runtime.stop();
     finishConnect();
@@ -95,7 +131,7 @@ describe("Server/database lifecycle", () => {
     expect(database.$disconnect).toHaveBeenCalledTimes(1);
   });
 
-  // The deadline bounds database cleanup too, not just HTTP keep-alive sockets.
+  // Deadline giới hạn cả cleanup database, không chỉ socket HTTP keep-alive.
   it("rejects a hung disconnect within the configured shutdown deadline", async () => {
     const { server, database, runtime } = runtimeFixture({ shutdownTimeoutMs: 10 });
     const forceClose = vi.spyOn(server, "closeAllConnections");
@@ -105,13 +141,21 @@ describe("Server/database lifecycle", () => {
     expect(database.$disconnect).toHaveBeenCalledTimes(1);
   });
 
-  // In-flight HTTP work is drained before the database becomes unavailable.
+  // Chờ công việc HTTP đang chạy hoàn tất trước khi database ngừng sẵn sàng.
   it("finishes active requests before disconnecting", async () => {
-    let requestStarted: () => void = () => { throw new Error("Request resolver missing"); };
-    const started = new Promise<void>((resolve) => { requestStarted = resolve; });
-    let finishResponse: () => void = () => { throw new Error("Response missing"); };
+    let requestStarted: () => void = () => {
+      throw new Error("Request resolver missing");
+    };
+    const started = new Promise<void>((resolve) => {
+      requestStarted = resolve;
+    });
+    let finishResponse: () => void = () => {
+      throw new Error("Response missing");
+    };
     const server = createServer((_request, response) => {
-      finishResponse = () => { response.end("complete"); };
+      finishResponse = () => {
+        response.end("complete");
+      };
       requestStarted();
     });
     const { database, runtime } = runtimeFixture({ server });

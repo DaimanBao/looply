@@ -12,51 +12,7 @@ import { ProfileStore } from '../state/profile.store';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink, OtpInput, ReauthInput, Feedback],
-  template: `
-    <p><a routerLink="/account">← Tài khoản</a></p>
-    <section class="card form-card">
-      <h1>Thông tin liên hệ</h1>
-      <p class="muted">Chỉ thay thế sau khi xác thực lại và xác minh mã gửi đến thông tin mới.</p>
-      <div class="tabs">
-        <button type="button" [attr.aria-pressed]="kind() === 'email'" (click)="choose('email')">
-          Email</button
-        ><button type="button" [attr.aria-pressed]="kind() === 'phone'" (click)="choose('phone')">
-          Số điện thoại
-        </button>
-      </div>
-      @if (store.profile(); as profile) {
-        <p>
-          Hiện tại:
-          {{
-            kind() === 'email'
-              ? profile.email || 'Chưa thêm email'
-              : profile.phone || 'Chưa thêm số điện thoại'
-          }}
-        </p>
-        <form (submit)="$event.preventDefault(); submit()">
-          <label
-            >{{ kind() === 'email' ? 'Email mới / email cần xác minh' : 'Số điện thoại mới'
-            }}<input
-              [type]="kind() === 'email' ? 'email' : 'tel'"
-              [formControl]="destination"
-              (input)="proof.set(null)"
-              maxlength="254"
-          /></label>
-          <app-otp-input
-            [purpose]="kind() === 'email' ? 'VERIFY_EMAIL' : 'CHANGE_PHONE'"
-            [destination]="destination.valid ? destination.value : ''"
-            (proof)="proof.set($event)"
-          />
-          <app-reauth-input
-            [operation]="operation()"
-            [phone]="profile.phoneVerifiedAt ? profile.phone || '' : ''"
-          />
-          <button class="primary" [disabled]="state.busy()">Xác minh & lưu</button>
-        </form>
-      }
-      <app-feedback [state]="state" />
-    </section>
-  `,
+  templateUrl: './contacts.page.html',
 })
 export class ContactsPage implements OnInit {
   private readonly api = inject(UserApi);
@@ -72,14 +28,16 @@ export class ContactsPage implements OnInit {
     nonNullable: true,
     validators: [Validators.required, Validators.email, Validators.maxLength(254)],
   });
-  /** Reloads owner contact verification metadata. */
+
+  /** Nạp lại metadata xác minh liên hệ của chủ sở hữu. */
   ngOnInit(): void {
     this.store.profile.set(null);
     void this.state.run(async () => {
       await this.store.load();
     });
   }
-  /** Resets destination-bound proof when switching contact types. */
+
+  /** Đặt lại proof gắn đích khi chuyển loại liên hệ. */
   choose(kind: 'email' | 'phone'): void {
     if (this.state.busy()) return;
     this.kind.set(kind);
@@ -92,7 +50,8 @@ export class ContactsPage implements OnInit {
     ]);
     this.destination.updateValueAndValidity();
   }
-  /** Acquires a one-use operation proof immediately before committing the new verified contact. */
+
+  /** Lấy proof thao tác dùng một lần ngay trước khi commit liên hệ mới đã xác minh. */
   async submit(): Promise<void> {
     const proof = this.proof();
     const reauth = this.reauth();

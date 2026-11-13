@@ -1,0 +1,32 @@
+<fieldset>
+  <legend>Xác thực lại để bảo vệ tài khoản</legend>
+  <div class="tabs">
+    <button
+      type="button"
+      [attr.aria-pressed]="method() === 'password'"
+      (click)="method.set('password')"
+    >
+      Mật khẩu hiện tại
+    </button>
+    @if (phone()) {
+      <button
+        type="button"
+        [attr.aria-pressed]="method() === 'phone'"
+        (click)="method.set('phone')"
+      >
+        OTP số đã xác minh
+      </button>
+    }
+  </div>
+  @if (method() === 'password') {
+    <label
+      >Mật khẩu hiện tại<input
+        type="password"
+        autocomplete="current-password"
+        [formControl]="password"
+        maxlength="512"
+    /></label>
+  } @else {
+    <app-otp-input purpose="REAUTH_PHONE" [destination]="phone()" (proof)="proof.set($event)" />
+  }
+</fieldset>

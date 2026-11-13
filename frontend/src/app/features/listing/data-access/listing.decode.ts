@@ -9,46 +9,46 @@ import type {
   ListingSuggestion,
 } from '../models/listing.models';
 
-/** Rejects malformed responses without exposing their contents to the UI. */
+/** Từ chối response sai định dạng mà không tiết lộ nội dung vào UI. */
 function invalid(): never {
   throw new Error('Phản hồi bài đăng không hợp lệ.');
 }
-/** Reads a required string at an untrusted JSON boundary. */
+/** Đọc chuỗi bắt buộc tại ranh giới JSON không tin cậy. */
 function text(value: unknown): string {
   return typeof value === 'string' ? value : invalid();
 }
-/** Reads a contract nullable string without silently coercing missing values. */
+/** Đọc chuỗi nullable theo contract, không âm thầm ép giá trị thiếu. */
 function nullableText(value: unknown): string | null {
   return value === null ? null : text(value);
 }
-/** Reads a boolean without truthiness coercion. */
+/** Đọc boolean mà không ép theo truthiness. */
 function bool(value: unknown): boolean {
   return typeof value === 'boolean' ? value : invalid();
 }
-/** Accepts bounded integer metadata only. */
+/** Chỉ chấp nhận metadata số nguyên có giới hạn. */
 function integer(value: unknown, min: number, max = 2147483647): number {
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
     ? value
     : invalid();
 }
-/** Limits identifiers to resource UUIDs before constructing delivery URLs. */
+/** Giới hạn định danh là UUID tài nguyên trước khi tạo URL phân phối. */
 function uuid(value: unknown): string {
   const id = text(value);
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
     ? id
     : invalid();
 }
-/** Validates dates before a template pipe receives them. */
+/** Kiểm tra ngày trước khi pipe template nhận dữ liệu. */
 function date(value: unknown): string {
   const result = text(value);
   return Number.isFinite(Date.parse(result)) ? result : invalid();
 }
-/** Reads the server-owned Province projection. */
+/** Đọc projection Province do server quản lý. */
 function province(value: unknown): Province {
   const row = record(value);
   return { code: text(row['code']), name: text(row['name']) };
 }
-/** Keeps only public owner fields; extra private response keys never reach the view model. */
+/** Chỉ giữ trường chủ sở hữu công khai; khóa response riêng thừa không vào view model. */
 function owner(value: unknown): PublicProfile {
   const row = record(value);
   return {
@@ -62,7 +62,7 @@ function owner(value: unknown): PublicProfile {
     following: integer(row['following'], 0),
   };
 }
-/** Validates discriminated media and ensures its delivery path belongs to this exact Listing. */
+/** Kiểm tra media phân biệt theo loại và bảo đảm đường dẫn phân phối thuộc đúng Listing này. */
 function media(value: unknown, listingId: string): ListingMedia {
   const row = record(value);
   const id = uuid(row['id']);
@@ -105,7 +105,7 @@ function media(value: unknown, listingId: string): ListingMedia {
   }
   return invalid();
 }
-/** Decodes the common projection and enforces SALE/RENT/EXCHANGE monetary invariants. */
+/** Giải mã projection chung và thực thi bất biến tiền tệ SALE/RENT/EXCHANGE. */
 function item(value: unknown): ListingItem {
   const row = record(value);
   const id = uuid(row['id']);
@@ -137,7 +137,7 @@ function item(value: unknown): ListingItem {
     updatedAt: date(row['updatedAt']),
   };
 }
-/** Accepts only public ACTIVE rows and an opaque bounded continuation cursor. */
+/** Chỉ nhận hàng ACTIVE công khai và cursor tiếp theo opaque có giới hạn. */
 export function decodeListingPage(value: unknown): ListingPage {
   const row = record(value);
   if (!Array.isArray(row['data']) || row['data'].length > 48) invalid();
@@ -147,7 +147,7 @@ export function decodeListingPage(value: unknown): ListingPage {
   if (nextCursor !== null && !/^[A-Za-z0-9_-]{1,2048}$/.test(nextCursor)) invalid();
   return { data, pagination: { nextCursor } };
 }
-/** Validates the detail's complete media manifest while retaining server access decisions. */
+/** Kiểm tra manifest media chi tiết đầy đủ, giữ quyết định truy cập của server. */
 export function decodeListingDetail(value: unknown): ListingDetail {
   const row = record(value);
   const listing = item(row);
@@ -176,7 +176,7 @@ export function decodeListingDetail(value: unknown): ListingDetail {
     hasAcceptedProposal: bool(row['hasAcceptedProposal']),
   };
 }
-/** Reads only the server's title suggestions without implementing local matching. */
+/** Chỉ đọc gợi ý tiêu đề từ server, không triển khai tìm khớp local. */
 export function decodeSuggestions(value: unknown): ListingSuggestion[] {
   const rows = record(value)['data'];
   if (!Array.isArray(rows) || rows.length > 8) invalid();

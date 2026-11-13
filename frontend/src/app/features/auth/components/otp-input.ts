@@ -9,30 +9,7 @@ import { otpValidator } from '../../../shared/validation/account.validators';
 @Component({
   selector: 'app-otp-input',
   imports: [ReactiveFormsModule, Feedback],
-  template: `
-    <div class="otp-panel">
-      <button
-        type="button"
-        class="secondary"
-        (click)="request()"
-        [disabled]="state.busy() || remaining() > 0 || !destination()"
-      >
-        {{ remaining() > 0 ? 'Gửi lại sau ' + remaining() + ' giây' : 'Gửi mã xác minh' }}
-      </button>
-      <app-feedback [state]="state" />
-      @if (challenge()) {
-        <label
-          >Mã xác minh (6 số)<input
-            [formControl]="code"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            maxlength="6"
-            (input)="publish()"
-        /></label>
-        <small>Mã có hiệu lực 5 phút. Nhập mã được gửi đến {{ destination() }}.</small>
-      }
-    </div>
-  `,
+  templateUrl: './otp-input.html',
 })
 export class OtpInput implements OnDestroy {
   private readonly api = inject(AuthApi);
@@ -48,7 +25,8 @@ export class OtpInput implements OnDestroy {
   });
   private timer?: ReturnType<typeof setInterval>;
   private requestedDestination = '';
-  /** Requests real metadata; destination changes invalidate the emitted proof. */
+
+  /** Yêu cầu metadata thật; đổi đích sẽ vô hiệu hóa proof đã phát. */
   async request(): Promise<void> {
     this.proof.emit(null);
     await this.state.run(async () => {
@@ -66,7 +44,8 @@ export class OtpInput implements OnDestroy {
       }, 1000);
     }, 'Nếu thông tin đủ điều kiện, mã xác minh đã được gửi.');
   }
-  /** Emits a complete proof only for the contact that received this challenge. */
+
+  /** Chỉ phát proof đầy đủ cho liên hệ đã nhận challenge này. */
   publish(): void {
     this.proof.emit(
       this.code.valid && this.requestedDestination === this.destination()
@@ -74,7 +53,8 @@ export class OtpInput implements OnDestroy {
         : null,
     );
   }
-  /** Stops the cooldown ticker when leaving the form. */
+
+  /** Dừng bộ đếm thời gian chờ khi rời form. */
   ngOnDestroy(): void {
     clearInterval(this.timer);
   }

@@ -21,11 +21,7 @@ describe("Development OTP inspector", () => {
   it("refuses the CLI in production before making a network request", () => {
     const child = spawnSync(
       process.execPath,
-      [
-        resolve(__dirname, "../../scripts/inspect-otp.cjs"),
-        randomUUID(),
-        "+84901234567",
-      ],
+      [resolve(__dirname, "../../scripts/inspect-otp.cjs"), randomUUID(), "+84901234567"],
       {
         env: {
           ...process.env,
@@ -64,9 +60,7 @@ describe("Development OTP inspector", () => {
   });
   it("requires a separate strong key and explicit development opt-in", () => {
     expect(inspectorConfig("development", {})).toBeUndefined();
-    expect(() =>
-      inspectorConfig("development", { DEV_OTP_INSPECTOR_ENABLED: "true" }),
-    ).toThrow();
+    expect(() => inspectorConfig("development", { DEV_OTP_INSPECTOR_ENABLED: "true" })).toThrow();
     expect(() =>
       inspectorConfig("development", {
         DEV_OTP_INSPECTOR_ENABLED: "true",
@@ -124,12 +118,9 @@ describe("Development OTP inspector", () => {
         },
       },
     );
-    await new Promise<void>((resolve) =>
-      server?.listen(0, "127.0.0.1", resolve),
-    );
+    await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
     const address = server.address();
-    if (!address || typeof address === "string")
-      throw new Error("Missing inspector port");
+    if (!address || typeof address === "string") throw new Error("Missing inspector port");
     const url = `http://127.0.0.1:${address.port}/inspect`;
     const body = JSON.stringify({ challengeId, destination });
     const headers = {
@@ -169,8 +160,6 @@ describe("Development OTP inspector", () => {
       ).status,
     ).toBe(404);
     live = false;
-    expect((await fetch(url, { method: "POST", body, headers })).status).toBe(
-      404,
-    );
+    expect((await fetch(url, { method: "POST", body, headers })).status).toBe(404);
   });
 });

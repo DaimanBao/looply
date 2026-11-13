@@ -36,26 +36,112 @@ import { ListingFollowService } from "./modules/listing/listing-follow.service";
 import { createListingDiscoveryController } from "./modules/listing/listing-discovery.controller";
 import { createListingDiscoveryRouter } from "./modules/listing/listing-discovery.routes";
 
-/** Composes private local development storage or the configured S3-compatible production adapter. */
+/** Lắp ghép storage local riêng cho development hoặc adapter S3-compatible đã cấu hình cho production. */
 export function createStorage(config: AuthConfig): ObjectStore {
   if (config.MEDIA_PROVIDER === "local") return new LocalObjectStore(config.MEDIA_LOCAL_DIRECTORY);
-  if (!config.S3_ENDPOINT || !config.S3_BUCKET || !config.S3_ACCESS_KEY_ID || !config.S3_SECRET_ACCESS_KEY) throw new Error("Missing S3 configuration");
-  return new S3ObjectStore(new S3Client({ endpoint: config.S3_ENDPOINT, region: config.S3_REGION, credentials: { accessKeyId: config.S3_ACCESS_KEY_ID, secretAccessKey: config.S3_SECRET_ACCESS_KEY }, maxAttempts: 2, requestHandler: { connectionTimeout: 5000, requestTimeout: 10000 } }), config.S3_BUCKET);
+  if (
+    !config.S3_ENDPOINT ||
+    !config.S3_BUCKET ||
+    !config.S3_ACCESS_KEY_ID ||
+    !config.S3_SECRET_ACCESS_KEY
+  )
+    throw new Error("Missing S3 configuration");
+  return new S3ObjectStore(
+    new S3Client({
+      endpoint: config.S3_ENDPOINT,
+      region: config.S3_REGION,
+      credentials: {
+        accessKeyId: config.S3_ACCESS_KEY_ID,
+        secretAccessKey: config.S3_SECRET_ACCESS_KEY,
+      },
+      maxAttempts: 2,
+      requestHandler: { connectionTimeout: 5000, requestTimeout: 10000 },
+    }),
+    config.S3_BUCKET,
+  );
 }
-/** Keeps cross-module dependency wiring at the composition root, outside domain services. */
-export function createFeatures(db: PrismaClient, config: AuthConfig, providers?: AuthProviders, storage: ObjectStore = createStorage(config), namespace?: string) {
+/** Giữ việc nối phụ thuộc liên module tại composition root, ngoài domain service. */
+export function createFeatures(
+  db: PrismaClient,
+  config: AuthConfig,
+  providers?: AuthProviders,
+  storage: ObjectStore = createStorage(config),
+  namespace?: string,
+) {
   const auth = createAuthModule(db, config, providers, undefined, namespace);
-  const repository = new UserRepository(db); const users = new UserService(repository, auth.sessions);
-  const avatars = new AvatarService(users, repository, new AvatarMediaService(new MediaRepository(db), storage), auth.sessions);
-  const deletionRepository = new DeletionRepository(db); const deletion = new DeletionService(deletionRepository, auth.sessions, auth.identity);
+  const repository = new UserRepository(db);
+  const users = new UserService(repository, auth.sessions);
+  const avatars = new AvatarService(
+    users,
+    repository,
+    new AvatarMediaService(new MediaRepository(db), storage),
+    auth.sessions,
+  );
+  const deletionRepository = new DeletionRepository(db);
+  const deletion = new DeletionService(deletionRepository, auth.sessions, auth.identity);
   const mediaCleanupRepository = new MediaCleanupRepository(db);
   const listingMediaRepository = new ListingMediaRepository(db);
   const listingMedia = new ListingMediaService(listingMediaRepository, storage);
-  const listingUploads = new ListingUploadService(listingMedia, listingMediaRepository, auth.sessions);
+  const listingUploads = new ListingUploadService(
+    listingMedia,
+    listingMediaRepository,
+    auth.sessions,
+  );
   const listingRepository = new ListingRepository(db);
-  const listings = new ListingService(listingRepository, auth.sessions, new ListingManifestService(listingMediaRepository, listingMedia, storage));
-  const discovery = new ListingDiscoveryService(listingRepository, new ListingDiscoveryRepository(), auth.sessions);
-  const listingFollows = new ListingFollowService(listingRepository, new ListingFollowRepository(), auth.sessions);
-  const cleanup = new AccountCleanup(deletionRepository, new CleanupRepository(db), new MediaCleanupService(mediaCleanupRepository, storage, new MediaOrphanRecovery(mediaCleanupRepository, storage)), auth.credentials, auth.sessions);
-  return { ...auth, users, avatars, deletion, cleanup, storage, listings, listingUploads, discovery, listingFollows, routers: [...auth.routers, createUserRouter(createUserController(users, auth.credentials), auth.sessions), createAvatarRouter(createAvatarController(avatars), auth.sessions), createDeletionRouter(createDeletionController(deletion, config.environment === "production"), auth.sessions), createListingRouter(createListingController(listings), auth.sessions, createListingDiscoveryRouter(createListingDiscoveryController(discovery, listingFollows), auth.sessions)), createListingUploadRouter(createListingUploadController(listingUploads), auth.sessions)] };
+  const listings = new ListingService(
+    listingRepository,
+    auth.sessions,
+    new ListingManifestService(listingMediaRepository, listingMedia, storage),
+  );
+  const discovery = new ListingDiscoveryService(
+    listingRepository,
+    new ListingDiscoveryRepository(),
+    auth.sessions,
+  );
+  const listingFollows = new ListingFollowService(
+    listingRepository,
+    new ListingFollowRepository(),
+    auth.sessions,
+  );
+  const cleanup = new AccountCleanup(
+    deletionRepository,
+    new CleanupRepository(db),
+    new MediaCleanupService(
+      mediaCleanupRepository,
+      storage,
+      new MediaOrphanRecovery(mediaCleanupRepository, storage),
+    ),
+    auth.credentials,
+    auth.sessions,
+  );
+  return {
+    ...auth,
+    users,
+    avatars,
+    deletion,
+    cleanup,
+    storage,
+    listings,
+    listingUploads,
+    discovery,
+    listingFollows,
+    routers: [
+      ...auth.routers,
+      createUserRouter(createUserController(users, auth.credentials), auth.sessions),
+      createAvatarRouter(createAvatarController(avatars), auth.sessions),
+      createDeletionRouter(
+        createDeletionController(deletion, config.environment === "production"),
+        auth.sessions,
+      ),
+      createListingRouter(
+        createListingController(listings),
+        auth.sessions,
+        createListingDiscoveryRouter(
+          createListingDiscoveryController(discovery, listingFollows),
+          auth.sessions,
+        ),
+      ),
+      createListingUploadRouter(createListingUploadController(listingUploads), auth.sessions),
+    ],
+  };
 }

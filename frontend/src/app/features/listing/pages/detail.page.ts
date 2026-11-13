@@ -20,7 +20,7 @@ export class DetailPage {
   private readonly session = inject(SessionService);
   private readonly params = toSignal(inject(ActivatedRoute).paramMap);
   private readonly revision = signal(0);
-  // Token changes invalidate identity-sensitive content; normal rotations preserve the identity number.
+  // Đổi token vô hiệu hóa nội dung nhạy cảm theo danh tính; luân chuyển thường giữ số danh tính.
   private readonly identity = computed(() => {
     this.session.token();
     return this.session.identityVersion();
@@ -31,7 +31,7 @@ export class DetailPage {
   readonly unavailable = signal(false);
   readonly typeLabels = { SALE: 'Bán', RENT: 'Cho thuê', EXCHANGE: 'Trao đổi' };
 
-  /** Cancels old route/identity reads and removes previously authorized detail before fetching again. */
+  /** Hủy đọc route/danh tính cũ và xóa chi tiết từng được cấp quyền trước khi lấy lại. */
   constructor() {
     effect((onCleanup) => {
       const id = this.params()?.get('listingId');
@@ -44,26 +44,29 @@ export class DetailPage {
         this.loading.set(true);
       });
       if (!id) return;
-      // Interceptors read the rotating token during subscription, not during Observable creation.
-      const request = untracked(() => this.api.detail(id).subscribe({
-        next: (listing) => {
-          if (identity !== this.session.identityVersion()) return;
-          this.listing.set(listing);
-          this.loading.set(false);
-        },
-        error: (error: unknown) => {
-          if (identity !== this.session.identityVersion()) return;
-          this.unavailable.set(
-            error instanceof HttpErrorResponse && [403, 404].includes(error.status),
-          );
-          this.error.set(apiError(error));
-          this.loading.set(false);
-        },
-      }));
+      // Interceptor đọc token đang luân chuyển khi subscribe, không phải khi tạo Observable.
+      const request = untracked(() =>
+        this.api.detail(id).subscribe({
+          next: (listing) => {
+            if (identity !== this.session.identityVersion()) return;
+            this.listing.set(listing);
+            this.loading.set(false);
+          },
+          error: (error: unknown) => {
+            if (identity !== this.session.identityVersion()) return;
+            this.unavailable.set(
+              error instanceof HttpErrorResponse && [403, 404].includes(error.status),
+            );
+            this.error.set(apiError(error));
+            this.loading.set(false);
+          },
+        }),
+      );
       onCleanup(() => request.unsubscribe());
     });
   }
-  /** Retries transient detail failures without changing the route. */
+
+  /** Thử lại lỗi chi tiết tạm thời mà không đổi route. */
   retry(): void {
     this.revision.update((revision) => revision + 1);
   }

@@ -15,12 +15,9 @@ type ListingInput = {
   deletedAt?: Date | null;
 };
 
-/** Creates listing dependencies in a verified rollback-only transaction. */
+/** Tạo phụ thuộc listing trong transaction đã xác minh chỉ rollback. */
 async function withListingTransaction(
-  run: (
-    client: Client,
-    createListing: (input?: ListingInput) => Promise<void>,
-  ) => Promise<void>,
+  run: (client: Client, createListing: (input?: ListingInput) => Promise<void>) => Promise<void>,
 ): Promise<void> {
   await withTestTransaction(async (client) => {
     const provinceId = randomUUID();
@@ -40,10 +37,8 @@ async function withListingTransaction(
       [ownerId, `test_${suffix}`, "Test Owner"],
     );
 
-    /** Inserts one listing with the values for the current constraint case. */
-    const createListing = async (
-      input: ListingInput = {},
-    ): Promise<void> => {
+    /** Thêm một listing với giá trị của trường hợp constraint hiện tại. */
+    const createListing = async (input: ListingInput = {}): Promise<void> => {
       const {
         type = "SALE",
         status = "ACTIVE",

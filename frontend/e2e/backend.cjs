@@ -1,4 +1,4 @@
-// Integration harness only: the normal backend entry point keeps its environment/database rules.
+// Chỉ là harness tích hợp: entrypoint backend thông thường giữ quy tắc môi trường/database.
 const { Client } = require('../../backend/node_modules/pg');
 const { createBackend } = require('../../backend/src/bootstrap.ts');
 const { loadConfig } = require('../../backend/src/config/environment.ts');
@@ -13,7 +13,7 @@ const {
   inspectorConfig,
 } = require('../../backend/src/development/otp-inspector.ts');
 
-/** Runs real backend adapters on a verified test database, with the opt-in tool in a development process. */
+/** Chạy adapter backend thật trên database test đã xác minh, với công cụ bật tường minh trong tiến trình development. */
 async function main() {
   if (process.env.NODE_ENV !== 'development') throw new Error('Development harness only');
   const databaseUrl = getTestDatabaseUrl();
@@ -26,7 +26,7 @@ async function main() {
   }
   const config = loadConfig({ ...process.env, NODE_ENV: 'test', TEST_DATABASE_URL: databaseUrl });
   const backend = createBackend(config, loadAuthConfig(process.env, 'test'));
-  // Only official reference data on looply_test; no migrations, reset or development writes.
+  // Chỉ dữ liệu tham chiếu chính thức trên looply_test; không migration, reset hoặc ghi development.
   await backend.database.$transaction((tx) => seedProvinceCatalog(tx));
   const inspector = inspectorConfig('development', process.env);
   if (!inspector) throw new Error('Explicit inspector opt-in required');
@@ -37,7 +37,7 @@ async function main() {
     pepper: process.env.AUTH_OTP_PEPPER,
   });
   let stopping = false;
-  /** Stops only listeners and resources owned by this isolated harness. */
+  /** Chỉ dừng listener và tài nguyên thuộc harness cô lập này. */
   async function stop() {
     if (stopping) return;
     stopping = true;

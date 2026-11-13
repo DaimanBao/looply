@@ -10,26 +10,7 @@ import { Feedback } from '../../../shared/ui/feedback';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink, Feedback, DatePipe],
-  template: `
-    <p><a routerLink="/account">← Tài khoản</a></p>
-    <section class="card form-card">
-      <h1>Đổi tên đăng nhập</h1>
-      <p class="muted">Sau mỗi lần đổi thành công, bạn cần chờ đủ 30 ngày để đổi tiếp.</p>
-      @if (nextChange(); as date) {
-        <p class="notice">
-          Lần đổi tiếp theo từ {{ date | date: 'dd/MM/yyyy HH:mm' }}. Máy chủ sẽ kiểm tra thời hạn
-          chính xác.
-        </p>
-      }
-      <form (submit)="$event.preventDefault(); submit()">
-        <label>Tên đăng nhập mới<input [formControl]="username" autocomplete="username" /></label
-        ><small>3–30 chữ cái, chữ số hoặc dấu gạch dưới.</small
-        ><app-feedback [state]="state" /><button class="primary" [disabled]="state.busy()">
-          Lưu tên đăng nhập
-        </button>
-      </form>
-    </section>
-  `,
+  templateUrl: './username.page.html',
 })
 export class UsernamePage implements OnInit {
   private readonly api = inject(UserApi);
@@ -43,13 +24,15 @@ export class UsernamePage implements OnInit {
     const changed = this.store.profile()?.usernameChangedAt;
     return changed ? new Date(Date.parse(changed) + 30 * 86400000) : null;
   });
-  /** Shows the authoritative last-change timestamp. */
+
+  /** Hiển thị timestamp lần đổi cuối có thẩm quyền. */
   ngOnInit(): void {
     void this.state.run(async () => {
       this.username.setValue((await this.store.load()).username);
     });
   }
-  /** Uses the server cooldown rather than trusting the browser clock. */
+
+  /** Dùng thời gian chờ server thay vì tin đồng hồ trình duyệt. */
   async submit(): Promise<void> {
     if (this.username.invalid) {
       this.username.markAsTouched();

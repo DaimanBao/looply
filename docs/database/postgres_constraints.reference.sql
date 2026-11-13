@@ -1,6 +1,6 @@
--- Looply DA1: REVIEWED-SCHEMA COMPANION, NOT AUTO-EXECUTED.
--- Apply ONLY after Prisma has created matching tables and columns in a reviewed migration.
--- This script is NOT a full migration and must NOT be executed against the current DB as-is.
+-- Looply DA1: TÀI LIỆU ĐI KÈM SCHEMA ĐÃ REVIEW, KHÔNG TỰ ĐỘNG THỰC THI.
+-- CHỈ áp dụng sau khi Prisma tạo đúng bảng và cột trong migration đã review.
+-- Script KHÔNG phải migration đầy đủ và KHÔNG được chạy nguyên trạng trên DB hiện tại.
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
@@ -8,8 +8,8 @@ ALTER TABLE "users" ADD CONSTRAINT ck_user_username
   CHECK (username ~ '^[a-z0-9_]{3,30}$');
 ALTER TABLE "users" ADD CONSTRAINT ck_user_verified_email
   CHECK ("emailVerifiedAt" IS NULL OR email IS NOT NULL);
--- Normalized verified-email index, lifecycle columns/check and display name:
--- see authoritative migration 0004_auth_user_preparation; do not duplicate its DDL here.
+-- Index email đã xác minh được chuẩn hóa, các cột/CHECK vòng đời và tên hiển thị:
+-- xem migration chính thức 0004_auth_user_preparation; không sao chép DDL tại đây.
 ALTER TABLE "users" ADD CONSTRAINT ck_user_verified_phone
   CHECK ((phone IS NULL AND "phoneVerifiedAt" IS NULL) OR (phone IS NOT NULL AND "phoneVerifiedAt" IS NOT NULL));
 ALTER TABLE "auth_sessions" ADD CONSTRAINT ck_session_version CHECK ("tokenVersion" >= 1);
@@ -45,7 +45,7 @@ CREATE UNIQUE INDEX uq_listing_cover ON "media_assets" ("listingId")
   WHERE "isCover" = true AND "deletedAt" IS NULL;
 CREATE UNIQUE INDEX uq_listing_video ON "media_assets" ("listingId")
   WHERE type = 'VIDEO' AND "deletedAt" IS NULL;
--- Media size and MIME validation MUST also inspect file contents in backend.
+-- Validation kích thước và MIME media BẮT BUỘC kiểm tra cả nội dung file tại backend.
 
 ALTER TABLE "conversations" ADD CONSTRAINT ck_conversation_shape CHECK (
   (type = 'LISTING' AND "listingId" IS NOT NULL AND "contactUserId" IS NOT NULL AND "directUserLowId" IS NULL AND "directUserHighId" IS NULL AND "initiatorId" = "contactUserId") OR

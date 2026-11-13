@@ -7,7 +7,7 @@ import { DiscoveryPage } from './discovery.page';
 import { listingFixture } from '../testing/listing.fixture';
 
 describe('Discovery interactions', () => {
-  /** Creates the page against cancellable HttpClient requests and the real Province catalog interface. */
+  /** Tạo trang với yêu cầu HttpClient có thể hủy và giao diện danh mục Province thật. */
   async function setup() {
     TestBed.configureTestingModule({
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],

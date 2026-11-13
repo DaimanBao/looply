@@ -1,10 +1,7 @@
-// Separate local CLI: never imported by the application or frontend bundle.
-/** Reads one live fake delivery through the authenticated development-only listener. */
+// CLI local riêng: không được import bởi ứng dụng hoặc bundle frontend.
+/** Đọc một bản gửi giả còn hiệu lực qua listener có xác thực chỉ dành development. */
 async function main() {
-  if (
-    process.env.NODE_ENV !== "development" ||
-    process.env.DEV_OTP_INSPECTOR_ENABLED !== "true"
-  )
+  if (process.env.NODE_ENV !== "development" || process.env.DEV_OTP_INSPECTOR_ENABLED !== "true")
     throw new Error("Development inspector must be explicitly enabled");
   const key = process.env.DEV_OTP_INSPECTOR_KEY;
   const [challengeId, destination] = process.argv.slice(2);

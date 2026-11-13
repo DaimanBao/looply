@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { Client } from "pg";
 
-/** Rejects non-test URLs without including credentials in errors. */
+/** Từ chối URL ngoài test, không đưa credential vào lỗi. */
 export function getTestDatabaseUrl(): string {
   const value = process.env.TEST_DATABASE_URL;
   if (!value) throw new Error("TEST_DATABASE_URL is required");
@@ -11,17 +11,17 @@ export function getTestDatabaseUrl(): string {
   } catch {
     throw new Error("TEST_DATABASE_URL must be a PostgreSQL URL");
   }
-  if (!['postgres:', 'postgresql:'].includes(url.protocol) || url.pathname !== "/looply_test") {
+  if (!["postgres:", "postgresql:"].includes(url.protocol) || url.pathname !== "/looply_test") {
     throw new Error("Integration tests must use looply_test");
   }
-  // Connection options must not override the database selected by the URL.
+  // Tùy chọn kết nối không được ghi đè database đã chọn bằng URL.
   if (url.searchParams.has("dbname") || url.searchParams.has("database")) {
     throw new Error("Database overrides are forbidden in TEST_DATABASE_URL");
   }
   return value;
 }
 
-/** Verifies the actual server database on the same connection before any writes. */
+/** Xác minh database thực trên cùng kết nối trước mọi ghi. */
 export async function verifyTestDatabase(client: Client): Promise<void> {
   const result = await client.query<{ database_name: string }>(
     "SELECT current_database() AS database_name",
@@ -31,9 +31,12 @@ export async function verifyTestDatabase(client: Client): Promise<void> {
   }
 }
 
-/** Runs one isolated test and rolls back even when a constraint aborts the transaction. */
+/** Chạy một test cô lập và rollback kể cả khi constraint làm transaction bị hủy. */
 export async function withTestTransaction(run: (client: Client) => Promise<void>): Promise<void> {
-  const client = new Client({ connectionString: getTestDatabaseUrl(), connectionTimeoutMillis: 5000 });
+  const client = new Client({
+    connectionString: getTestDatabaseUrl(),
+    connectionTimeoutMillis: 5000,
+  });
   await client.connect();
   try {
     await verifyTestDatabase(client);

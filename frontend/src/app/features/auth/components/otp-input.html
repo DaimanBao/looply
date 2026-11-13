@@ -1,0 +1,22 @@
+<div class="otp-panel">
+  <button
+    type="button"
+    class="secondary"
+    (click)="request()"
+    [disabled]="state.busy() || remaining() > 0 || !destination()"
+  >
+    {{ remaining() > 0 ? 'Gửi lại sau ' + remaining() + ' giây' : 'Gửi mã xác minh' }}
+  </button>
+  <app-feedback [state]="state" />
+  @if (challenge()) {
+    <label
+      >Mã xác minh (6 số)<input
+        [formControl]="code"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="6"
+        (input)="publish()"
+    /></label>
+    <small>Mã có hiệu lực 5 phút. Nhập mã được gửi đến {{ destination() }}.</small>
+  }
+</div>

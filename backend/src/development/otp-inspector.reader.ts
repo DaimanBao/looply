@@ -23,7 +23,7 @@ export interface InspectorDependencies {
   namespace?: string;
 }
 
-/** Reads a live challenge without changing TTL/attempts, then matches its exact in-memory delivery. */
+/** Đọc challenge còn hiệu lực mà không đổi TTL/số lần thử, rồi đối chiếu chính xác bản gửi trong bộ nhớ. */
 export async function inspectOtp(
   input: { challengeId: string; destination: string },
   dependencies: InspectorDependencies,
@@ -33,20 +33,16 @@ export async function inspectOtp(
     [`${dependencies.namespace ?? "looply:auth:"}otp:${input.challengeId}`],
     [],
   );
-  const stored =
-    typeof raw === "string" ? storedSchema.parse(JSON.parse(raw)) : undefined;
+  const stored = typeof raw === "string" ? storedSchema.parse(JSON.parse(raw)) : undefined;
   if (!stored) return undefined;
-  const binding = z
-    .object({ destination: z.string() })
-    .parse(JSON.parse(stored.binding));
-  const code = (
-    input.destination.includes("@") ? dependencies.email : dependencies.sms
-  ).lastCode(input.destination);
+  const binding = z.object({ destination: z.string() }).parse(JSON.parse(stored.binding));
+  const code = (input.destination.includes("@") ? dependencies.email : dependencies.sms).lastCode(
+    input.destination,
+  );
   if (
     binding.destination !== input.destination ||
     !code ||
-    otpDigest(dependencies.pepper, stored.binding + input.challengeId, code) !==
-      stored.hash
+    otpDigest(dependencies.pepper, stored.binding + input.challengeId, code) !== stored.hash
   )
     return undefined;
   return code;

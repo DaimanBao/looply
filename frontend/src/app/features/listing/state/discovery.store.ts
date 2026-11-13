@@ -18,12 +18,12 @@ export class DiscoveryStore {
   readonly error = signal('');
   readonly finished = signal(false);
 
-  /** Cancels the request when its page-scoped store is destroyed. */
+  /** Hủy yêu cầu khi store theo phạm vi trang bị hủy. */
   constructor() {
     inject(DestroyRef).onDestroy(() => this.cancel());
   }
 
-  /** Clears query-bound state immediately, including while a changed search is debouncing. */
+  /** Xóa trạng thái gắn query ngay, kể cả khi tìm kiếm đã đổi đang debounce. */
   reset(query: DiscoveryQuery | null): void {
     this.cancel();
     this.query = query;
@@ -34,7 +34,8 @@ export class DiscoveryStore {
     this.finished.set(false);
     if (query) this.loadMore();
   }
-  /** Fetches one page at a time, retaining the continuation after failures for explicit retry. */
+
+  /** Lấy từng trang một, giữ thông tin phân trang sau lỗi để thử lại tường minh. */
   loadMore(): void {
     if (!this.query || this.loading() || this.finished()) return;
     this.loading.set(true);
@@ -64,7 +65,8 @@ export class DiscoveryStore {
         },
       });
   }
-  /** Invalidates callbacks as well as unsubscribing from cancellable HTTP observables. */
+
+  /** Vô hiệu hóa callback và hủy đăng ký HTTP observable có thể hủy. */
   private cancel(): void {
     this.revision++;
     this.request?.unsubscribe();

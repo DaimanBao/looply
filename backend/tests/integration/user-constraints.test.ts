@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { withTestTransaction as withRollback } from "../helpers/test-database";
 
-/** Creates a distinct identity for each rollback-isolated user case. */
+/** Tạo danh tính riêng cho từng trường hợp user cô lập bằng rollback. */
 function testUser(username: string) {
   return {
     id: randomUUID(),

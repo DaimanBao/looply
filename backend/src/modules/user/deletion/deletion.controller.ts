@@ -5,11 +5,18 @@ import { body } from "../../../shared/http/validated-body";
 import { reauthProofSchema } from "../../auth";
 import { clearRefresh } from "../../auth";
 
-/** Exposes explicit deletion/cancellation operations without embedding lifecycle logic in HTTP handlers. */
+/** Cung cấp thao tác xóa/hủy tường minh mà không nhúng logic vòng đời trong HTTP handler. */
 export function createDeletionController(deletion: DeletionService, secure: boolean) {
-  /** Schedules deletion and removes the browser refresh cookie. */
-  const request: RequestHandler = async (_request, response) => { await deletion.request(principal(response), body(response, reauthProofSchema).reauthProof); clearRefresh(response, secure); response.status(202).end(); };
-  /** Cancels deletion only through an explicit authenticated request. */
-  const cancel: RequestHandler = async (_request, response) => { await deletion.cancel(principal(response)); response.sendStatus(204); };
+  /** Lập lịch xóa và gỡ refresh cookie trình duyệt. */
+  const request: RequestHandler = async (_request, response) => {
+    await deletion.request(principal(response), body(response, reauthProofSchema).reauthProof);
+    clearRefresh(response, secure);
+    response.status(202).end();
+  };
+  /** Chỉ hủy xóa qua yêu cầu tường minh đã xác thực. */
+  const cancel: RequestHandler = async (_request, response) => {
+    await deletion.cancel(principal(response));
+    response.sendStatus(204);
+  };
   return { request, cancel };
 }

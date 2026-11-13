@@ -12,32 +12,48 @@ export const fixtureRequestSchema = z.object({
 });
 type FixtureInput = z.infer<typeof fixtureRequestSchema>;
 
-/** Returns only the parsed DTO so tests can verify validation transforms reach controllers. */
-export const echoValidated: RequestHandler<ParamsDictionary, unknown, unknown, Query, { validated: FixtureInput }> = (_request, response) => {
+/** Chỉ trả DTO đã parse để test xác nhận biến đổi validation đến được controller. */
+export const echoValidated: RequestHandler<
+  ParamsDictionary,
+  unknown,
+  unknown,
+  Query,
+  { validated: FixtureInput }
+> = (_request, response) => {
   response.json(response.locals.validated);
 };
 
-/** Simulates an internal exception without implementing a business endpoint. */
-export const failInternally: RequestHandler = () => { throw new Error(privateFailureText); };
+/** Mô phỏng exception nội bộ mà không triển khai endpoint nghiệp vụ. */
+export const failInternally: RequestHandler = () => {
+  throw new Error(privateFailureText);
+};
 
-/** Exercises Express 5's automatic forwarding of rejected async handlers. */
+/** Kiểm tra Express 5 tự chuyển tiếp handler bất đồng bộ bị reject. */
 export const failAsynchronously: RequestHandler = async () => {
   await Promise.resolve();
   throw new Error(privateFailureText);
 };
 
-/** Simulates an authentication failure contract; performs no authentication. */
-export const failUnauthenticated: RequestHandler = () => { throw new AppError(401, "UNAUTHENTICATED", "Authentication is required."); };
-
-/** Simulates an authorization failure contract; performs no permission lookup. */
-export const failForbidden: RequestHandler = () => { throw new AppError(403, "FORBIDDEN", "The operation is forbidden."); };
-
-/** Exercises actual Prisma error classification without connecting to any database. */
-export const failPrisma: RequestHandler = () => {
-  throw new Prisma.PrismaClientKnownRequestError(privateFailureText, { code: "P2002", clientVersion: "7.10.1", meta: { target: "private_column" } });
+/** Mô phỏng contract lỗi xác thực; không thực hiện xác thực. */
+export const failUnauthenticated: RequestHandler = () => {
+  throw new AppError(401, "UNAUTHENTICATED", "Authentication is required.");
 };
 
-/** Exercises cleanup when a streaming response has already sent headers. */
+/** Mô phỏng contract lỗi phân quyền; không tra quyền. */
+export const failForbidden: RequestHandler = () => {
+  throw new AppError(403, "FORBIDDEN", "The operation is forbidden.");
+};
+
+/** Kiểm tra phân loại lỗi Prisma thật mà không kết nối database. */
+export const failPrisma: RequestHandler = () => {
+  throw new Prisma.PrismaClientKnownRequestError(privateFailureText, {
+    code: "P2002",
+    clientVersion: "7.10.1",
+    meta: { target: "private_column" },
+  });
+};
+
+/** Kiểm tra cleanup khi response streaming đã gửi header. */
 export const failAfterHeaders: RequestHandler = (_request, response, next) => {
   response.write("partial");
   next(new Error(privateFailureText));

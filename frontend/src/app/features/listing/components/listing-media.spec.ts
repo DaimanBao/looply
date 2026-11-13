@@ -12,7 +12,10 @@ import { ListingMedia } from './listing-media';
 describe('Listing gallery and native media', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(withInterceptors([authInterceptor])),
+        provideHttpClientTesting(),
+      ],
     });
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-listing');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
@@ -23,8 +26,13 @@ describe('Listing gallery and native media', () => {
     session.accept({ accessToken: 'before-rotation', expiresIn: 900, status: 'ACTIVE' });
     const listing = listingFixture();
     const video: ListingVideo = {
-      id: '00000000-0000-4000-8000-000000000020', type: 'VIDEO', mimeType: 'video/mp4',
-      sizeBytes: '1000', durationSeconds: 1, position: null, isCover: false,
+      id: '00000000-0000-4000-8000-000000000020',
+      type: 'VIDEO',
+      mimeType: 'video/mp4',
+      sizeBytes: '1000',
+      durationSeconds: 1,
+      position: null,
+      isCover: false,
       deliveryPath: `/api/listings/${listing.id}/media/00000000-0000-4000-8000-000000000020`,
     };
     const fixture = TestBed.createComponent(ListingMedia);
@@ -39,7 +47,9 @@ describe('Listing gallery and native media', () => {
     const element: HTMLElement = fixture.nativeElement;
     const player = element.querySelector('video');
     session.refresh().subscribe();
-    http.expectOne('/api/auth/refresh').flush({ accessToken: 'after-rotation', expiresIn: 900, status: 'ACTIVE' });
+    http
+      .expectOne('/api/auth/refresh')
+      .flush({ accessToken: 'after-rotation', expiresIn: 900, status: 'ACTIVE' });
     await fixture.whenStable();
     http.expectNone(`${video.deliveryPath}?variant=original`);
     expect(element.querySelector('video')).toBe(player);

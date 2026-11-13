@@ -15,10 +15,10 @@ coverage/
 
 .DS_Store
 
-# Prisma generated client
+# Prisma client ???c sinh t? ??ng
 /backend/src/generated/prisma/
 
-# Prisma-generated AI Agent Skills
+# AI Agent Skills ???c Prisma sinh t? ??ng
 /backend/.agents/skills/
 /backend/.claude/skills/
 /backend/.windsurf/skills/

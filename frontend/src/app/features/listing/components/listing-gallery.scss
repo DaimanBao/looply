@@ -1,0 +1,10 @@
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 24px;
+}
+[aria-pressed='true'] {
+  background: var(--green);
+  color: white;
+}

@@ -32,6 +32,7 @@ Tài liệu này áp dụng cho toàn bộ repository Looply. `AGENTS.md` quy đ
 ### 2.1. Rõ ràng, đơn giản và an toàn kiểu dữ liệu
 
 - **BẮT BUỘC** viết code dễ đọc, nhất quán, đặt tên có ý nghĩa; ưu tiên dễ hiểu hơn kỹ thuật cầu kỳ hoặc số dòng ngắn nhất.
+- **BẮT BUỘC** tuân thủ [Code Formatting](docs/standards/CODE_FORMATTING.md): trình bày nhất quán, không nén nhiều statement/method trên một dòng; comment do dự án sở hữu và comment mới viết bằng tiếng Việt, giữ nguyên identifiers và directives của công cụ.
 - **KHÔNG ĐƯỢC** hardcode secrets, URL theo môi trường, cấu hình hoặc giá trị nghiệp vụ có thể thay đổi. Hằng số cố định mang ý nghĩa ổn định vẫn được phép.
 - **BẮT BUỘC** có comment hữu ích cho **mọi hàm**: hàm đơn giản mô tả ngắn mục đích; hàm phức tạp giải thích luồng không hiển nhiên, quy tắc nghiệp vụ và quan hệ với helper quan trọng. Không viết comment lặp lại hiển nhiên những gì code đã thể hiện.
 - **BẮT BUỘC** giữ mỗi hàm tập trung vào một trách nhiệm; tách thành các helper có tên rõ ràng khi có nhiều nhiệm vụ khác nhau. Không tạo wrapper một dòng vô nghĩa.
@@ -72,6 +73,8 @@ Tài liệu này áp dụng cho toàn bộ repository Looply. `AGENTS.md` quy đ
 ## 4. Nghĩa vụ trong quy trình làm việc của Agent
 
 Tuân thủ [Lean Development Workflow](docs/workflows/DEVELOPMENT_WORKFLOW.md); chỉ đọc hướng dẫn chi tiết cần dùng. Có thể gộp phân tích và thiết kế khi yêu cầu rõ; không cần kế hoạch dài hoặc báo cáo riêng từng bước. Tìm kiếm có mục tiêu, không đọc toàn repository hoặc đọc lại nội dung chưa thay đổi. Tối thiểu, với mỗi nhiệm vụ được cho phép:
+
+Luồng mặc định: **Implement → Targeted Tests → Final Self-Review → Fix → PR/CI**. Agent tự thực hiện Final Self-Review trong cùng nhiệm vụ, không chờ prompt thứ hai; kiểm tra tương xứng rủi ro và chỉ thực hiện Git theo quyền đã được cấp.
 
 1. **Phân tích — BẮT BUỘC:** Đọc yêu cầu, code, test, contract và quy ước liên quan; không đoán nội dung file chưa xem.
 2. **Đánh giá tác động — BẮT BUỘC:** Xác định module, nơi sử dụng, schema, test và rủi ro bị ảnh hưởng trước khi sửa.

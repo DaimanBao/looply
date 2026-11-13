@@ -10,28 +10,7 @@ import { ProfileStore } from '../state/profile.store';
 
 @Component({
   imports: [ReactiveFormsModule, RouterLink, ReauthInput, Feedback],
-  template: `
-    <p><a routerLink="/account">← Tài khoản</a></p>
-    <section class="card form-card">
-      <h1>Đổi mật khẩu</h1>
-      <p class="muted">Đổi thành công sẽ thu hồi các phiên khác. Phiên hiện tại được giữ lại.</p>
-      @if (store.profile(); as profile) {
-        <form (submit)="$event.preventDefault(); submit()">
-          <label
-            >Mật khẩu mới<input
-              type="password"
-              [formControl]="password"
-              autocomplete="new-password" /></label
-          ><small>8–128 ký tự Unicode. Mật khẩu phổ biến hoặc đã bị lộ sẽ bị từ chối.</small
-          ><app-reauth-input
-            operation="CHANGE_PASSWORD"
-            [phone]="profile.phoneVerifiedAt ? profile.phone || '' : ''"
-          /><button class="primary" [disabled]="state.busy()">Đổi mật khẩu</button>
-        </form>
-      }
-      <app-feedback [state]="state" />
-    </section>
-  `,
+  templateUrl: './password.page.html',
 })
 export class PasswordPage implements OnInit {
   private readonly api = inject(UserApi);
@@ -42,14 +21,16 @@ export class PasswordPage implements OnInit {
     nonNullable: true,
     validators: [codePointLength(8, 128)],
   });
-  /** Fetches the verified phone available for optional OTP re-authentication. */
+
+  /** Lấy điện thoại đã xác minh có thể dùng để xác thực lại tùy chọn qua OTP. */
   ngOnInit(): void {
     this.store.profile.set(null);
     void this.state.run(async () => {
       await this.store.load();
     });
   }
-  /** Never stores a reusable proof or a plaintext password after a successful operation. */
+
+  /** Không lưu proof tái sử dụng hoặc mật khẩu bản rõ sau thao tác thành công. */
   async submit(): Promise<void> {
     const reauth = this.reauth();
     if (this.password.invalid || !reauth) {

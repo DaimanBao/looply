@@ -1,4 +1,4 @@
-// A shared identity key keeps resend/attempt/hour limits across replacement challenges.
+// Khóa định danh chung giữ giới hạn gửi lại/lần thử/theo giờ qua các challenge thay thế.
 export const requestOtpScript = `
 if redis.call('EXISTS', KEYS[1]..':lock') == 1 then return -1 end
 if redis.call('EXISTS', KEYS[1]..':cooldown') == 1 then return -2 end

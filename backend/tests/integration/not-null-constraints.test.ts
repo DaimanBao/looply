@@ -3,7 +3,7 @@ import { createFixtures, updateRow } from "../helpers/database-fixtures";
 import { withTestTransaction } from "../helpers/test-database";
 
 describe("Required database columns", () => {
-  // Each NOT NULL column is isolated by a savepoint so one violation cannot mask the next.
+  // Cô lập mỗi cột NOT NULL bằng savepoint để một vi phạm không che vi phạm tiếp theo.
   it("rejects NULL in every required column across all 17 models", async () => {
     await withTestTransaction(async (client) => {
       const rows = await createFixtures(client);
@@ -16,8 +16,11 @@ describe("Required database columns", () => {
       for (const [table, row] of Object.entries(rows)) {
         for (const column of columns.rows.filter((entry) => entry.table_name === table)) {
           await client.query("SAVEPOINT required_column");
-          // The identifier comes only from our fixture table list and PostgreSQL's catalog.
-          await expect(updateRow(client, table as keyof typeof rows, row.id, { [column.column_name]: null }), `${table}.${column.column_name}`).rejects.toMatchObject({ code: "23502", column: column.column_name });
+          // Định danh chỉ đến từ danh sách bảng fixture và catalog PostgreSQL của chúng ta.
+          await expect(
+            updateRow(client, table as keyof typeof rows, row.id, { [column.column_name]: null }),
+            `${table}.${column.column_name}`,
+          ).rejects.toMatchObject({ code: "23502", column: column.column_name });
           await client.query("ROLLBACK TO SAVEPOINT required_column");
           checked++;
         }

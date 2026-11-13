@@ -12,6 +12,9 @@
 - Chỉ hỏi khi có blocker hoặc quyết định cần phê duyệt; tiếp tục phần độc lập đã được cho phép trong khi chờ.
 
 ## Các bước kiểm soát chất lượng
+
+Luồng mặc định: **Implement → Targeted Tests → Final Self-Review → Fix → PR/CI**. Agent tự review diff cuối trong cùng nhiệm vụ, sửa lỗi phát hiện và chỉ kiểm chứng lại phần bị ảnh hưởng; không cần prompt review thứ hai. PR/push tuân theo quyền Git đã được cấp, không tự merge.
+
 1. [ANALYSIS](ANALYSIS.md): làm rõ yêu cầu và tiêu chí chấp nhận.
 2. [DESIGN](DESIGN.md): xác định giải pháp phù hợp yêu cầu và kiến trúc.
 3. [IMPLEMENTATION](IMPLEMENTATION.md): triển khai code và kiểm tra cơ bản.
@@ -33,6 +36,7 @@
 - Áp dụng [Risk-Based Targeted Testing](TESTING.md); không mặc định full suite local hoặc lặp kết quả PASS còn hiệu lực.
 - Chỉ cập nhật tài liệu sở hữu nội dung thực sự thay đổi theo [Documentation Guide](../DOCUMENTATION_GUIDE.md); không đồng bộ hàng loạt hoặc tạo báo cáo trung gian không cần thiết.
 - Documentation-only: kiểm tra Markdown, liên kết liên quan và `git diff --check`; không chạy unit/integration/API tests hoặc build. Nếu thay đổi contract hay nội dung thực thi trong tài liệu, bổ sung kiểm tra đặc tả/nội dung tương ứng.
+- Formatting/comment theo [Code Formatting](../standards/CODE_FORMATTING.md): review diff để bảo đảm không đổi logic; không chạy riêng test Backend. Nếu tách template/style Angular, chạy build một lần và targeted tests cho component bị ảnh hưởng, không mặc định full suite/E2E.
 
 ## Phạm vi và báo cáo
 - Tuân thủ [TECH_STACK](../TECH_STACK.md), yêu cầu chức năng và tài liệu cấu trúc tương ứng; chỉ triển khai phạm vi Đồ án 1.

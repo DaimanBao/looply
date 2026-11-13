@@ -15,7 +15,7 @@ export class InfiniteScroll {
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private observer?: IntersectionObserver;
 
-  /** Observes only enabled pages after browser rendering and disconnects on every state/lifecycle change. */
+  /** Chỉ quan sát trang được bật sau render trình duyệt và ngắt khi trạng thái/vòng đời đổi. */
   constructor() {
     afterNextRender(() => {
       if (typeof IntersectionObserver === 'undefined') return;
