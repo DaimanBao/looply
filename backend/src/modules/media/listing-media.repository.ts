@@ -4,7 +4,7 @@ import { lockResources } from "../../shared/database/locks";
 import { queueMediaCleanup } from "./media-cleanup-event";
 
 export class ListingMediaRepository {
-  /** Shares transactions with future Listing writers; never owns storage I/O. */
+  /** Shares transactions with Listing writers; never owns storage I/O. */
   constructor(private readonly db: PrismaClient) {}
   /** Commits reservations and cancellation independently of physical storage. */
   transaction<T>(run: (tx: DatabaseTransaction) => Promise<T>): Promise<T> { return this.db.$transaction(run); }
@@ -23,6 +23,12 @@ export class ListingMediaRepository {
   }
   /** Reads ownership and state again inside the mutation transaction. */
   asset(id: string, tx: DatabaseTransaction) { return tx.mediaAsset.findUnique({ where: { id } }); }
+  /** Reads all current Listing membership while its Listing lock is held. */
+  members(listingId: string, tx: DatabaseTransaction) { return tx.mediaAsset.findMany({ where: { listingId }, orderBy: { id: "asc" } }); }
+  /** Releases the partial unique cover before selecting its replacement. */
+  clearCover(listingId: string, tx: DatabaseTransaction) { return tx.mediaAsset.updateMany({ where: { listingId, isCover: true }, data: { isCover: false } }); }
+  /** Saves only the final presentation fields of an already validated attachment. */
+  presentation(id: string, position: number | null, isCover: boolean, tx: DatabaseTransaction) { return tx.mediaAsset.update({ where: { id }, data: { position, isCover } }); }
   /** Protects all currently implemented reference kinds; future snapshot writers must join this locking protocol. */
   async referenced(id: string, tx: DatabaseTransaction): Promise<boolean> {
     return !!await tx.mediaAsset.findFirst({ where: { id, OR: [{ currentAvatarOf: { isNot: null } }, { chatMessage: { isNot: null } }] }, select: { id: true } });

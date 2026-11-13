@@ -6,7 +6,7 @@ import type { ListingMediaRepository } from "./listing-media.repository";
 import { listingMediaObjectKeys } from "./media-object-keys";
 
 export class ListingMediaService {
-  /** Internal image lifecycle primitives only; no Listing CRUD or HTTP routes are mounted. */
+  /** Shares the image lifecycle between Listing management and authenticated upload workflows. */
   constructor(private readonly repository: ListingMediaRepository, private readonly storage: ObjectStore) {}
   /** Reserves an expiring image; input is trusted output of the server image processor, never client metadata. */
   async reserve(userId: string, sizeBytes: number): Promise<{ id: string; expiresAt: Date }> {
@@ -91,16 +91,18 @@ export class ListingMediaService {
   }
   /** Cancels only the authenticated uploader's TEMP asset; terminal retries do not duplicate jobs. */
   async cancel(id: string, userId: string): Promise<void> {
-    await this.repository.transaction(async (tx) => {
-      await this.repository.lockUser(userId, tx);
-      await this.repository.lockMedia([id], tx);
-      await this.requireActive(userId, tx);
-      const media = await this.repository.asset(id, tx);
-      if (!media || media.uploadedById !== userId || media.purpose !== "LISTING") throw new AppError(404, "NOT_FOUND", "Media not found.");
-      if (media.status === "DELETING" || media.deletedAt) return;
-      if (media.status === "ATTACHED" || media.listingId || await this.repository.referenced(id, tx)) throw new AppError(409, "MEDIA_ALREADY_ATTACHED", "Media is already attached.");
-      await this.repository.cancel(id, userId, tx);
-    });
+    await this.repository.transaction((tx) => this.cancelInTransaction(id, userId, tx));
+  }
+  /** Lets HTTP cancellation recheck the session in the same locked transaction as the state transition. */
+  async cancelInTransaction(id: string, userId: string, tx: DatabaseTransaction): Promise<void> {
+    await this.repository.lockUser(userId, tx);
+    await this.repository.lockMedia([id], tx);
+    await this.requireActive(userId, tx);
+    const media = await this.repository.asset(id, tx);
+    if (!media || media.uploadedById !== userId || media.purpose !== "LISTING") throw new AppError(404, "NOT_FOUND", "Media not found.");
+    if (media.status === "DELETING" || media.deletedAt) return;
+    if (media.status === "ATTACHED" || media.listingId || await this.repository.referenced(id, tx)) throw new AppError(409, "MEDIA_ALREADY_ATTACHED", "Media is already attached.");
+    await this.repository.cancel(id, userId, tx);
   }
   /** Gates all internal writes against account deletion even when no HTTP middleware is involved. */
   private async requireActive(userId: string, tx: DatabaseTransaction): Promise<void> {

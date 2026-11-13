@@ -1,6 +1,6 @@
 # Looply Backend
 
-Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar và worker dọn tài khoản/media. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Listing/Chat/Notification đầy đủ chưa nằm trong triển khai Backend này; các điểm tích hợp quyền dùng public API của User. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
+Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, upload/delivery ảnh và worker dọn tài khoản/media. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Discovery/Follow, video, Chat và Notification chưa triển khai. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
 
 ## Cấu hình và chạy
 
@@ -127,7 +127,15 @@ Worker poll 5 giây, tối đa 10 event/lượt, claim bằng SKIP LOCKED, lease
 
 Migration `0005_listing_media_preparation` cho phép LISTING DELETING không có listingId, giữ nguyên các invariant còn lại. Chỉ đã áp dụng lên `looply_test`; không tự migrate development/production. Trước áp dụng ở môi trường khác phải preflight và đánh giá table lock theo [database review](../docs/database/SCHEMA_REVIEW.md#chuẩn-bị-listingmedia).
 
-`ListingMediaService` cung cấp reserve/write/attach-batch/cancel cho caller Backend tương lai; chưa mount endpoint Listing/Media và chưa có pipeline upload Listing qua HTTP. Primitive nhận bytes đã xử lý tin cậy, không thay thế kiểm tra MIME/dung lượng file đầu vào. Quy ước transaction, readiness và trách nhiệm caller thuộc [thiết kế](../docs/api/LISTING_MEDIA_DESIGN.md#9-media--database-preparation--13112026).
+`ListingMediaService` cung cấp reserve/write/attach-batch/cancel; Phase 2 tích hợp HTTP và final manifest qua `ListingManifestService`. Primitive nhận bytes đã xử lý tin cậy, không thay thế kiểm tra MIME/dung lượng file đầu vào. Quy ước transaction, readiness và trách nhiệm caller thuộc [thiết kế](../docs/api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle).
+
+### Listing CRUD và ảnh — Phase 2
+
+Contract nguồn tại [OpenAPI](../docs/api/openapi.json): POST `/api/listings`; GET/PATCH/DELETE `/api/listings/{listingId}`; PATCH `/api/listings/{listingId}/visibility`; GET `/api/users/me/listings`; POST `/api/media/listing-uploads`; DELETE `/api/media/listing-uploads/{mediaId}`; GET `/api/listings/{listingId}/media/{mediaId}`. Search/Feed/Follow và public User Listings vẫn planned. Upload raw `application/octet-stream`; ảnh thực JPEG/PNG/WebP tối đa 10 MiB, không GIF/animation, decode tối đa 40 triệu pixel. Cấu hình `listing-image.ts` tạo WebP quality 85, detail tối đa 1600 và thumbnail 400 pixels mỗi chiều, giữ tỷ lệ, không phóng lớn, bỏ metadata. Mỗi rendition có processing timeout 15 giây. Video upload/delivery trả 503 `MEDIA_VIDEO_UNAVAILABLE`; chưa probe/transcode hoặc hỗ trợ Range video.
+
+Client upload trước, sau 201 dùng ID TEMP trong manifest, TTL 15 phút; không gửi storage key. Create và PATCH media là transaction nguyên tử. PATCH không có media giữ nguyên; có media thay toàn bộ membership/order, `videoId:null` bỏ video, cover giữ ảnh cũ nếu còn hoặc fallback ảnh đầu. Ảnh bị gỡ chuyển DELETING và queue cleanup cùng transaction; không xóa file trước commit. Video metadata ATTACHED hợp lệ có sẵn có thể giữ/bỏ, không coi fixture metadata là bằng chứng upload/playback video thật.
+
+PATCH nội dung/visibility và DELETE bắt buộc `expectedVersion`: thiếu/sai 400, stale 409 `LISTING_VERSION_CONFLICT`. Version tăng đúng một lần; visibility cùng trạng thái không tăng, reopen tăng activeCycle; DELETED terminal và retry DELETE chỉ thành công với version tombstone hiện tại. Owner/session được kiểm tra lại dưới User→Listing→Media locks; public read và ảnh áp owner ACTIVE/Block hai chiều, owner đọc HIDDEN, DELETED trả 404. Tiền giữ chuỗi Decimal, không serialize key/email/phone riêng tư. `listing.updated` chỉ lưu identifier/version vào outbox cùng content update; consumer Chat/Notification chưa có, không phát thông báo giả.
 
 Khi worker không có job đến hạn, reconciliation enqueue tối đa 20 TEMP hết hạn/DELETING chưa xóa, tránh trùng pending/failed/processing event. File chỉ bị xóa sau committed claim; sau lỗi I/O hoặc lỗi DB completion, outbox retry với key bất biến. Account preparation detach private assets trước xóa qua cùng guard. File thiếu được coi xóa thành công.
 

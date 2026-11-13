@@ -3,3 +3,4 @@ export { optimizeAvatar } from "./avatar-image";
 export type { ObjectStore } from "./object-store";
 export { AvatarMediaService } from "./avatar-media.service";
 export { ListingMediaService } from "./listing-media.service";
+export { ListingManifestService } from "./listing-manifest.service";
