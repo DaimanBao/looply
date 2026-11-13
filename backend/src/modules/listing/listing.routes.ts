@@ -6,11 +6,12 @@ import { createListingSchema, patchListingSchema, visibilitySchema, deleteListin
 import { validateListingId, validateMyListings, validateListingMedia } from "./listing.validation";
 import type { createListingController } from "./listing.controller";
 
-/** Registers only management/detail routes; discovery and Follow remain unmounted. */
-export function createListingRouter(controller: ReturnType<typeof createListingController>, sessions: SessionService): Router {
+/** Registers management/detail routes after the literal discovery routes. */
+export function createListingRouter(controller: ReturnType<typeof createListingController>, sessions: SessionService, discovery: Router): Router {
   const router = Router(); const active = authenticate(sessions); const optional = authenticate(sessions, { optional: true });
   router.use("/listings", noStore);
   router.get("/users/me/listings", noStore, active, validateMyListings, controller.mine);
+  router.use(discovery);
   router.post("/listings", active, validateBody(createListingSchema), controller.create);
   router.get("/listings/:listingId", optional, validateListingId, controller.get);
   router.patch("/listings/:listingId", active, validateListingId, validateBody(patchListingSchema), controller.update);

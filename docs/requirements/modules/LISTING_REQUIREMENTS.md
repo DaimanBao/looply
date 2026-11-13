@@ -92,14 +92,14 @@
 - **Feed toàn quốc:** bài ACTIVE trên toàn quốc, có ngẫu nhiên, không trùng trong một lượt cuộn. Đồ án 1 chưa ưu tiên người theo dõi trong thuật toán Feed.
 - **Infinite Scroll:** khoảng 12 bài/lượt; tránh trùng khi phân trang; đặt lại từ đầu khi đổi tab/từ khóa/lọc/sắp xếp; hiển thị trạng thái tải, lỗi và hết dữ liệu.
 
-## 7. Quyết định bổ sung đã duyệt — chưa triển khai
+## 7. Quyết định bổ sung đã duyệt
 
 - Follow mới chỉ khi Listing ACTIVE và hai User đủ quyền tương tác, không Block hai chiều; cấm tự Follow và quan hệ trùng. HIDDEN giữ Follow nhưng không hiện trong danh sách thường, ACTIVE lại thì hiện lại; DELETED không cho Follow mới. Chủ quan hệ vẫn được Unfollow khi bài không còn công khai. Không thông báo follower.
 - Price filter/sort bắt buộc chọn duy nhất SALE hoặc RENT; RENT bắt buộc DAY hoặc MONTH. Không trộn giá bán/thuê, thuê ngày/tháng hoặc đưa EXCHANGE vào sort giá. API từ chối tổ hợp không hợp lệ; UI không cung cấp tổ hợp gây hiểu nhầm.
 - Feed toàn quốc dùng thứ tự ngẫu nhiên xác định theo seed trong lượt cuộn, cursor gắn query/filter/sort/seed; không random riêng mỗi trang hoặc lưu snapshot toàn bộ feed. Client loại trùng và bỏ response cũ. Không cam kết snapshot bất biến khi dữ liệu thay đổi giữa các trang.
 - Card Chat giữ snapshot cả văn bản và ảnh độc lập Listing hiện tại, theo [Chat requirements](CHAT_REQUIREMENTS.md#6-snapshot-lịch-sử-và-retention-ảnh--đã-phê-duyệt).
 
-Thuật toán chuẩn hóa, thứ tự khóa, cursor và kế hoạch kiểm thử thuộc [thiết kế kỹ thuật](../../api/LISTING_MEDIA_DESIGN.md); schema HTTP thuộc [OpenAPI](../../api/openapi.json). Đây là thiết kế, không đánh dấu chức năng đã triển khai.
+Thuật toán chuẩn hóa, thứ tự khóa, cursor và trạng thái triển khai thuộc [thiết kế kỹ thuật](../../api/LISTING_MEDIA_DESIGN.md); schema HTTP thuộc [OpenAPI](../../api/openapi.json). Backend Search/Feed/Follow đã triển khai ở phase 3; Angular Listing và snapshot Chat chưa triển khai. Checklist toàn chức năng không được suy ra chỉ từ Backend.
 
 ## 8. Quyền truy cập và giới hạn phạm vi
 

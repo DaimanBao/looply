@@ -1,10 +1,15 @@
-import type { PrismaClient, Prisma } from "../../generated/prisma/client";
+import { Prisma, type PrismaClient } from "../../generated/prisma/client";
 import type { DatabaseTransaction } from "../../shared/database/prisma";
 import { lockResources } from "../../shared/database/locks";
 
 /** Builds the same bidirectional block predicate for profiles, relationship lists and feature access. */
 export function visibleUserWhere(viewerId?: string): Prisma.UserWhereInput {
   return { status: "ACTIVE", ...(viewerId ? { NOT: { OR: [{ blockingRelations: { some: { blockedId: viewerId } } }, { blockedRelations: { some: { blockerId: viewerId } } }] } } : {}) };
+}
+/** Provides the same lifecycle/Block gate to parameterized feature SQL; the caller supplies a server-owned ID expression. */
+export function visibleUserSql(userId: Prisma.Sql, viewerId?: string): Prisma.Sql {
+  return Prisma.sql`EXISTS (SELECT 1 FROM users visible_user WHERE visible_user.id = ${userId} AND visible_user.status = 'ACTIVE'
+    ${viewerId ? Prisma.sql`AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE (b."blockerId" = visible_user.id AND b."blockedId" = ${viewerId}::uuid) OR (b."blockedId" = visible_user.id AND b."blockerId" = ${viewerId}::uuid))` : Prisma.empty})`;
 }
 export class UserRepository {
   /** Shares the application Prisma pool; no module-global connection is created. */

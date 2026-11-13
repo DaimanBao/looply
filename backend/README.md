@@ -1,6 +1,6 @@
 # Looply Backend
 
-Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, upload/delivery ảnh và worker dọn tài khoản/media. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Discovery/Follow, video, Chat và Notification chưa triển khai. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
+Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, Search/Feed/Follow, upload/delivery ảnh và worker dọn tài khoản/media. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Video, Chat và Notification chưa triển khai. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
 
 ## Cấu hình và chạy
 
@@ -131,7 +131,7 @@ Migration `0005_listing_media_preparation` cho phép LISTING DELETING không có
 
 ### Listing CRUD và ảnh — Phase 2
 
-Contract nguồn tại [OpenAPI](../docs/api/openapi.json): POST `/api/listings`; GET/PATCH/DELETE `/api/listings/{listingId}`; PATCH `/api/listings/{listingId}/visibility`; GET `/api/users/me/listings`; POST `/api/media/listing-uploads`; DELETE `/api/media/listing-uploads/{mediaId}`; GET `/api/listings/{listingId}/media/{mediaId}`. Search/Feed/Follow và public User Listings vẫn planned. Upload raw `application/octet-stream`; ảnh thực JPEG/PNG/WebP tối đa 10 MiB, không GIF/animation, decode tối đa 40 triệu pixel. Cấu hình `listing-image.ts` tạo WebP quality 85, detail tối đa 1600 và thumbnail 400 pixels mỗi chiều, giữ tỷ lệ, không phóng lớn, bỏ metadata. Mỗi rendition có processing timeout 15 giây. Video upload/delivery trả 503 `MEDIA_VIDEO_UNAVAILABLE`; chưa probe/transcode hoặc hỗ trợ Range video.
+Contract nguồn tại [OpenAPI](../docs/api/openapi.json): POST `/api/listings`; GET/PATCH/DELETE `/api/listings/{listingId}`; PATCH `/api/listings/{listingId}/visibility`; GET `/api/users/me/listings`; POST `/api/media/listing-uploads`; DELETE `/api/media/listing-uploads/{mediaId}`; GET `/api/listings/{listingId}/media/{mediaId}`. Search/Feed/Follow và public User Listings được bổ sung ở phase 3 bên dưới. Upload raw `application/octet-stream`; ảnh thực JPEG/PNG/WebP tối đa 10 MiB, không GIF/animation, decode tối đa 40 triệu pixel. Cấu hình `listing-image.ts` tạo WebP quality 85, detail tối đa 1600 và thumbnail 400 pixels mỗi chiều, giữ tỷ lệ, không phóng lớn, bỏ metadata. Mỗi rendition có processing timeout 15 giây. Video upload/delivery trả 503 `MEDIA_VIDEO_UNAVAILABLE`; chưa probe/transcode hoặc hỗ trợ Range video.
 
 Client upload trước, sau 201 dùng ID TEMP trong manifest, TTL 15 phút; không gửi storage key. Create và PATCH media là transaction nguyên tử. PATCH không có media giữ nguyên; có media thay toàn bộ membership/order, `videoId:null` bỏ video, cover giữ ảnh cũ nếu còn hoặc fallback ảnh đầu. Ảnh bị gỡ chuyển DELETING và queue cleanup cùng transaction; không xóa file trước commit. Video metadata ATTACHED hợp lệ có sẵn có thể giữ/bỏ, không coi fixture metadata là bằng chứng upload/playback video thật.
 
@@ -146,6 +146,16 @@ S3 dùng conditional PUT `If-None-Match: *` để giữ key bất biến như lo
 `UserService.requireInteraction(tx, from, to)` là public gate cho Chat/Listing tương lai: caller phải xác thực phiên và giữ transaction/khóa cho đến khi ghi tương tác. Public User visibility/projection thuộc `modules/user/index.ts`; không import private repositories. Không tuyên bố Chat/Listing đầy đủ đã được tích hợp khi các module đó chưa triển khai.
 
 Backup/restore, mã hóa backup, tự dọn retention và nguồn trạng thái xóa độc lập **chưa có hạ tầng**. Chính sách 30 ngày và quy trình fail-closed thuộc [User requirements](../docs/requirements/modules/USER_REQUIREMENTS.md#backup-và-khôi-phục); outbox/receipt trong cùng database không phải nguồn độc lập với backup. Chỉ mở dịch vụ sau khi đối soát trạng thái xóa từ nguồn độc lập và chạy lại cleanup thành công. Không xây hệ thống backup mới trong nhiệm vụ này.
+
+## Listing Search, Feed và Follow — Phase 3
+
+GET `/api/listings` hỗ trợ title search, filters, sorting và feed `search|nearby|national`; GET `/api/listings/suggestions` trả tối đa 8 `{id,title}`; GET `/api/users/{userId}/listings` trả bài công khai của User. Guest được truy cập; Bearer sai trả 401. Mọi trang lọc ACTIVE/owner ACTIVE/Block hai chiều, không trả storage key hoặc private contact.
+
+GET `/api/users/me/followed-listings` và PUT/DELETE `/api/listings/{listingId}/follow` yêu cầu phiên ACTIVE. Follow mới chỉ cho bài ACTIVE của người khác, không Block; PUT hợp lệ lặp lại trả 204. HIDDEN giữ quan hệ nhưng không hiện trong list; DELETE luôn chỉ xóa quan hệ của viewer và trả 204 kể cả tài nguyên không tồn tại/không công khai. Không có Notification hoặc thay đổi version Listing.
+
+Ví dụ: `/api/listings?feed=nearby&provinceCode=79&limit=12`; `/api/listings?q=do%20dac&type=SALE&minPrice=100&sort=PRICE_ASC`; `/api/listings?feed=national`. Nearby yêu cầu Province chọn tường minh; national cấm provinceCode. Price filter/sort phải chọn SALE hoặc RENT; RENT bắt buộc DAY/MONTH. Không đổi tiền sang JS Number.
+
+Client gửi nguyên filters/sort/limit và `after=nextCursor` để tải tiếp. Mặc định 12, tối đa 48; national RANDOM giữ seed trong cursor, không nhận seed riêng. Khi đổi query/viewer/địa điểm cần reset cursor. Dữ liệu biến động không có snapshot xuyên requests; client dedup ID và bỏ response cũ. Ngữ nghĩa đầy đủ thuộc [thiết kế](../docs/api/LISTING_MEDIA_DESIGN.md#4-search-filter-feed-và-cursor), không triển khai debounce ở server.
 
 ## Kiểm chứng Auth/User local
 

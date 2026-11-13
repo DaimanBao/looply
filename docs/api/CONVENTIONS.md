@@ -2,7 +2,7 @@
 
 ## Trạng thái contract
 
-Mỗi operation trong [OpenAPI](openapi.json) bắt buộc có `x-implementation-status: implemented|planned`. Core/Auth/User và chín operation Listing CRUD/management/ảnh phase 2 là implemented; Discovery/Follow/public User Listings vẫn planned với summary bắt đầu `[PLANNED]`. Planned là hợp đồng thiết kế, chưa có route, không phải endpoint hoạt động. Khi triển khai phải đổi classification đồng thời mount route và bổ sung test. Contract regression đối chiếu chính xác toàn bộ routes đã triển khai; local refs/operationId/schema được kiểm tra cho cả hai nhóm. Không dùng planned để bỏ qua kiểm chứng route đã triển khai.
+Mỗi operation trong [OpenAPI](openapi.json) bắt buộc có `x-implementation-status: implemented|planned`. Core/Auth/User, chín operation Listing CRUD/management/ảnh phase 2 và sáu operation Discovery/Follow/public User Listings phase 3 là implemented. Planned có summary bắt đầu `[PLANNED]`, là hợp đồng thiết kế, chưa có route, không phải endpoint hoạt động. Khi triển khai phải đổi classification đồng thời mount route và bổ sung test. Contract regression đối chiếu chính xác toàn bộ routes đã triển khai; local refs/operationId/schema được kiểm tra cho cả hai nhóm. Không dùng planned để bỏ qua kiểm chứng route đã triển khai.
 
 Thiết kế lifecycle, search/cursor và các giai đoạn triển khai thuộc [LISTING_MEDIA_DESIGN.md](LISTING_MEDIA_DESIGN.md), snapshot thuộc [database design](../database/CHAT_SNAPSHOT_DESIGN.md). Không đánh dấu Listing/Chat hoàn thành.
 
