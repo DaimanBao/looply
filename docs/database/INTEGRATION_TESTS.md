@@ -1,5 +1,16 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Final review PR #21 — 13/11/2026
+
+Đã đối chiếu diff với develop, yêu cầu/contract và code Search/Suggestions/price semantics/cursor/Feed/Follow; kiểm tra query parameter binding, DTO/private fields, User lifecycle/Block và User→Listing lock ordering với account cleanup. Không thay schema/migration/dependency/Frontend hoặc nghiệp vụ đã duyệt.
+
+Hai finding **Low — đã sửa**, chỉ ảnh hưởng input không hợp lệ, không phát hiện đường vượt quyền hoặc làm sai dữ liệu:
+
+- `listing-discovery.schema.ts`: `q` và `provinceCode` nhận U+0000; PostgreSQL text parameter từ chối, API trả 500 thay vì 400. Ba regression HTTP/PostgreSQL với `%00` ở Search, Suggestions và nearby Province đều fail 500 trước sửa, đạt 400 VALIDATION_ERROR sau bổ sung validation. Error detail chỉ nêu field, không trả input hoặc thông tin database.
+- `listing-discovery-cursor.ts`: timestamp ISO năm 0000 được chấp nhận dù không bind được qua adapter PostgreSQL; `asOf` năm 0001 với postedWithin cũng có thể tạo lower bound năm 0000. Ba regression HTTP/PostgreSQL (asOf, last.createdAt và derived window) đều fail 500 trước sửa; sau kiểm tra miền timestamp và window trả 400 tại query.after. Unit bổ sung kiểm tra window cho time/price/random sort. Cursor unsigned vẫn đúng thiết kế; không biến checksum thành authorization.
+
+Kiểm chứng sau sửa: unit/contract Listing **35/35 PASS**, integration `listing-discovery.test.ts` **36/36 PASS** trên actual `looply_test`/PostgreSQL 17.11 đã xác minh và Redis test riêng `/1`; API suite **23/23 PASS**, source/test typecheck, build và diff checks PASS. Không chạy lại full suite local trong lượt review này. Full regression trước review vẫn là bằng chứng lịch sử ở mục Phase 3 dưới đây; CI được kiểm tra lại trên commit sửa và báo tại bàn giao. Không chạy migration development/production. Browser Listing E2E/live S3/video vẫn chưa kiểm chứng.
+
 ## Listing Search, Feed và Follow — Phase 3 — 13/11/2026
 
 Nền bắt đầu từ `develop` sau PR #20 đã merge (`352b1cf`), working tree sạch; nhánh `feat/listing-search-feed-follow`. Đã xác minh actual database `looply_test`, PostgreSQL 17.11 tại localhost:5435. Redis test riêng `/1` tại localhost:6380; fixture xác minh database trước ghi, cleanup chỉ graph UUID/namespace của mình. Không ghi/migrate/reset development/production, không thay schema/index/dependency hoặc Frontend.

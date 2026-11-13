@@ -48,6 +48,16 @@ function follow(id: string, token = viewer.token) { return request(fixture.app).
 function unfollow(id: string, token = viewer.token) { return request(fixture.app).delete(`/api/listings/${id}/follow`).auth(token, { type: "bearer" }); }
 
 describe("Listing discovery with real PostgreSQL", () => {
+  it.each([
+    { path: "/api/listings", query: { q: "bàn\u0000ghế" }, field: "q" },
+    { path: "/api/listings/suggestions", query: { q: "bàn\u0000ghế" }, field: "q" },
+    { path: "/api/listings", query: { feed: "nearby", provinceCode: "79\u0000" }, field: "provinceCode" },
+  ])("rejects NUL in $field at $path before PostgreSQL receives the query", async ({ path, query, field }) => {
+    const response = await get(query, undefined, path).expect(400);
+    expect(response.body.error).toMatchObject({ code: "VALIDATION_ERROR", details: [{ path: `query.${field}`, code: "custom" }] });
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(JSON.stringify(response.body)).not.toMatch(/P2010|PostgreSQL|queryRaw|bàn|ghế/);
+  });
   it("matches Vietnamese composed/decomposed text, d-stroke and case in title only, preserving original title", async () => {
     const title = `${prefix} ĐỒ ĐẠC ĐẸP`; const row = await listing({ title, searchTitle: normalizeListingTitle(title) });
     for (const q of [`${prefix} đồ đạc đẹp`, `${prefix} DO DAC DEP`, `${prefix} ĐỒ ĐẠC ĐẸP`.normalize("NFD")]) {
@@ -135,6 +145,16 @@ describe("Listing discovery with real PostgreSQL", () => {
       const response = await get(invalid).expect(400); expect(response.body.error.code).toBe("VALIDATION_ERROR");
     }
     await request(fixture.app).get("/api/listings?q=a&q=b").expect(400);
+  });
+  it.each(["asOf", "createdAt", "window"] as const)("rejects cursor %s outside PostgreSQL timestamp parameter bounds", async (field) => {
+    await listing(); await listing();
+    const query = { q: prefix, limit: 1, postedWithin: field === "window" ? "24H" : "ALL" };
+    const after = page((await get(query).expect(200)).body).pagination.nextCursor!;
+    const cursor = z.object({ asOf: z.string(), last: z.object({ id: z.uuid(), createdAt: z.string() }) }).passthrough().parse(JSON.parse(Buffer.from(after, "base64url").toString()));
+    const date = field === "window" ? "0001-01-01T00:00:00.000Z" : "0000-01-01T00:00:00.000Z";
+    const tampered = { ...cursor, ...(field === "createdAt" ? {} : { asOf: date }), last: { ...cursor.last, createdAt: date } };
+    const response = await get({ ...query, after: Buffer.from(JSON.stringify(tampered)).toString("base64url") }).expect(400);
+    expect(response.body.error).toMatchObject({ code: "VALIDATION_ERROR", details: [{ path: "query.after", code: "custom" }] });
   });
   it("rechecks visibility, both Block directions and owner lifecycle on subsequent pages and public-user lists", async () => {
     const rows = []; for (let i = 0; i < 4; i++) rows.push(await listing());

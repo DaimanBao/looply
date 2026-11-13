@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { discoveryQuerySchema, suggestionsSchema } from "./listing-discovery.schema";
 
 describe("Discovery query contract", () => {
+  it("rejects NUL in search/suggestions and province while preserving ordinary Unicode whitespace", () => {
+    expect(discoveryQuerySchema.safeParse({ q: "bàn\u0000ghế" }).success).toBe(false);
+    expect(suggestionsSchema.safeParse({ q: "bàn\u0000ghế" }).success).toBe(false);
+    expect(discoveryQuerySchema.safeParse({ provinceCode: "79\u0000" }).success).toBe(false);
+    expect(discoveryQuerySchema.parse({ q: "  Đồ\t\nđạc  " }).q).toBe("do dac");
+  });
   it("normalizes Vietnamese consistently without changing punctuation", () => {
     expect(discoveryQuerySchema.parse({ q: "  ĐỒ   ĐẠC %_\\ " }).q).toBe("do dac %_\\");
     expect(suggestionsSchema.parse({ q: "Đập" }).q).toBe("dap");

@@ -6,6 +6,25 @@ import { decodeDiscoveryCursor, encodeDiscoveryCursor } from "./listing-discover
 const now = new Date("2026-11-13T00:00:00.000Z");
 const id = randomUUID();
 describe("Discovery cursor", () => {
+  it("rejects ISO year zero in both timestamp fields before constructing SQL", () => {
+    const query = discoveryQuerySchema.parse({}); const cursor = decodeDiscoveryCursor(query, "discovery", null, now);
+    for (const value of [
+      { ...cursor, asOf: "0000-01-01T00:00:00.000Z", last: { id, createdAt: "0000-01-01T00:00:00.000Z" } },
+      { ...cursor, last: { id, createdAt: "0000-01-01T00:00:00.000Z" } },
+    ]) expect(() => decodeDiscoveryCursor({ ...query, after: Buffer.from(JSON.stringify(value)).toString("base64url") }, "discovery", null, now)).toThrow();
+  });
+  it("validates the derived postedWithin lower bound for price and random as well as time sorts", () => {
+    for (const input of [
+      { postedWithin: "24H" },
+      { postedWithin: "7D", type: "SALE", sort: "PRICE_ASC" },
+      { postedWithin: "30D", feed: "national" },
+    ]) {
+      const query = discoveryQuerySchema.parse(input); const cursor = decodeDiscoveryCursor(query, "discovery", null, now);
+      const last = query.sort === "RANDOM" ? { id, rank: "a".repeat(32) } : query.sort === "PRICE_ASC" ? { id, price: "100" } : { id, createdAt: "0001-01-01T00:00:00.000Z" };
+      const after = Buffer.from(JSON.stringify({ ...cursor, asOf: "0001-01-01T00:00:00.000Z", last })).toString("base64url");
+      expect(() => decodeDiscoveryCursor({ ...query, after }, "discovery", null, now)).toThrow();
+    }
+  });
   it("binds equivalent normalized query, viewer, scope and all effective filters", () => {
     const query = discoveryQuerySchema.parse({ q: "Đồ đạc", limit: "2" });
     const cursor = decodeDiscoveryCursor(query, "discovery", id, now);

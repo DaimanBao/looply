@@ -2059,9 +2059,10 @@
             "schema": {
               "type": "string",
               "maxLength": 150,
-              "default": ""
+              "default": "",
+              "pattern": "^[^\\u0000]*$"
             },
-            "description": "Title only; NFD/accent fold including d-stroke (U+0111/U+0110), lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing."
+            "description": "Title only; NFD/accent fold including d-stroke (U+0111/U+0110), lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing. NUL (U+0000) is rejected with 400 VALIDATION_ERROR."
           },
           {
             "name": "feed",
@@ -2102,9 +2103,10 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 32
+              "maxLength": 32,
+              "pattern": "^[^\\u0000]*$"
             },
-            "description": "Province catalog code; nearby requires explicit selection, no GPS."
+            "description": "Province catalog code; nearby requires explicit selection, no GPS. NUL (U+0000) is rejected with 400 VALIDATION_ERROR."
           },
           {
             "name": "minPrice",
@@ -2378,9 +2380,10 @@
             "schema": {
               "type": "string",
               "maxLength": 150,
-              "default": ""
+              "default": "",
+              "pattern": "^[^\\u0000]*$"
             },
-            "description": "Title only; NFD/accent fold including d-stroke (U+0111/U+0110), lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing."
+            "description": "Title only; NFD/accent fold including d-stroke (U+0111/U+0110), lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing. NUL (U+0000) is rejected with 400 VALIDATION_ERROR."
           }
         ],
         "responses": {
@@ -4343,7 +4346,7 @@
         "minLength": 1,
         "maxLength": 2048,
         "pattern": "^[A-Za-z0-9_-]+$",
-        "description": "Opaque base64url JSON v1; strict scope/viewer/queryHash/sort/seed/asOf/keyset binding. See LISTING_MEDIA_DESIGN.md. Not an authorization credential."
+        "description": "Opaque base64url JSON v1; strict scope/viewer/queryHash/sort/seed/asOf/keyset binding. See LISTING_MEDIA_DESIGN.md. Not an authorization credential. Discovery, public-user and followed cursors require timestamps and the derived postedWithin lower bound to be at least 0001-01-01T00:00:00Z for PostgreSQL parameter encoding; unsupported bounds return 400 VALIDATION_ERROR at query.after."
       },
       "ListingMediaManifest": {
         "type": "object",

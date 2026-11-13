@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { normalizeListingTitle } from "./listing-search";
 
-const queryText = z.string().transform(normalizeListingTitle).refine((value) => [...value].length <= 150, "Query exceeds 150 code points").default("");
+// PostgreSQL text parameters cannot contain NUL; reject it at HTTP validation rather than producing a database error.
+const queryText = z.string().refine((value) => !value.includes("\u0000"), "NUL is not supported").transform(normalizeListingTitle).refine((value) => [...value].length <= 150, "Query exceeds 150 code points").default("");
 const price = z.string().regex(/^[1-9][0-9]{0,14}$/);
 const limit = z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1).max(48)).default(12);
 const sort = z.enum(["NEWEST", "OLDEST", "PRICE_ASC", "PRICE_DESC", "RANDOM"]);
@@ -10,7 +11,7 @@ export const pageValuesSchema = pageQuerySchema.extend({ limit: z.number().int()
 export const suggestionsSchema = z.strictObject({ q: queryText });
 const discoveryFields = {
   ...pageQuerySchema.shape, q: queryText, feed: z.enum(["search", "nearby", "national"]).default("search"),
-  provinceCode: z.string().min(1).max(32).optional(), type: z.enum(["SALE", "RENT", "EXCHANGE"]).optional(),
+  provinceCode: z.string().min(1).max(32).refine((value) => !value.includes("\u0000"), "NUL is not supported").optional(), type: z.enum(["SALE", "RENT", "EXCHANGE"]).optional(),
   rentalUnit: z.enum(["DAY", "MONTH"]).optional(), minPrice: price.optional(), maxPrice: price.optional(),
   postedWithin: z.enum(["ALL", "24H", "7D", "30D"]).default("ALL"),
   sort: sort.optional(),

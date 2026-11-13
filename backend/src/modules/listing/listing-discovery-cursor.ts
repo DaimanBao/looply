@@ -4,7 +4,9 @@ import { listingId } from "./listing.schema";
 import type { DiscoveryQuery, PageQuery } from "./listing-discovery.schema";
 import { AppError } from "../../shared/errors/app-error";
 
-const timestamp = z.iso.datetime().refine((value) => Number.isFinite(Date.parse(value)));
+// The adapter encodes ISO timestamps directly; PostgreSQL rejects ISO year zero, including derived window bounds.
+const minimumTimestamp = Date.parse("0001-01-01T00:00:00.000Z");
+const timestamp = z.iso.datetime().refine((value) => Number.isFinite(Date.parse(value)) && Date.parse(value) >= minimumTimestamp);
 const boundarySchema = z.union([
   z.strictObject({ id: listingId, createdAt: timestamp }),
   z.strictObject({ id: listingId, price: z.string().regex(/^[1-9][0-9]{0,14}$/) }),
@@ -32,9 +34,10 @@ export function decodeDiscoveryCursor(query: DiscoveryQuery | PageQuery, scope: 
     if (cursor.scope !== scope || cursor.viewerId !== viewerId || cursor.queryHash !== hash || new Date(cursor.asOf) > now || !cursor.last) throw new Error("Invalid binding");
     if ((sort === "RANDOM") !== (cursor.seed !== null)) throw new Error("Invalid seed");
     if (sort === "RANDOM" ? !("rank" in cursor.last) : sort.startsWith("PRICE_") ? !("price" in cursor.last) : !("createdAt" in cursor.last)) throw new Error("Invalid sort boundary");
+    const window = "postedWithin" in query ? postedWindow(query.postedWithin) : null;
+    if (Date.parse(cursor.asOf) - (window ?? 0) < minimumTimestamp) throw new Error("Invalid window boundary");
     if ("createdAt" in cursor.last) {
       const last = Date.parse(cursor.last.createdAt); const asOf = Date.parse(cursor.asOf);
-      const window = "postedWithin" in query ? postedWindow(query.postedWithin) : null;
       if (last > asOf || (window !== null && last < asOf - window)) throw new Error("Invalid time boundary");
     }
     return cursor;

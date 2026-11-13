@@ -84,6 +84,8 @@ Cursor chứa `{v:1,scope,queryHash,viewerId,asOf,seed,last}`. scope phân biệ
 
 Reset cursor/seed/dedup khi đổi tab/q/filter/sort/limit/province/auth identity, refresh hoặc cursor invalid. Client hủy request cũ và bỏ response generation cũ, dedup theo Listing.id trong lượt cuộn; hidden/deleted và thay giá có thể làm thiếu/lặp ứng viên khi dữ liệu đổi, không hứa snapshot bất biến. Khi Block/lifecycle đổi, xóa cache hiển thị liên quan và refetch; public API no-store.
 
+Giới hạn biểu diễn PostgreSQL của discovery: `q` (kể cả suggestions) và `provinceCode` không nhận NUL U+0000, trả 400 VALIDATION_ERROR tại field query. Cursor discovery/public User/followed chỉ nhận timestamp từ `0001-01-01T00:00:00Z`; cận dưới `asOf - postedWithin` cũng phải trong miền này. Bound không biểu diễn được trả 400 tại `query.after` trước khi bind SQL, không để thành lỗi database 500. Đây là validation kỹ thuật, không đổi quy tắc chuẩn hóa, lọc hoặc visibility.
+
 ## 5. Follow và API errors
 
 PUT follow idempotent trên unique(userId,listingId), ACTIVE viewer khác owner; owner/Listing ACTIVE, không Block. Đã follow nhưng Listing hidden không được dùng PUT để vượt gate; DELETE unfollow chỉ kiểm tra phiên ACTIVE và quan hệ của viewer, trả 204 kể cả không có quan hệ, không yêu cầu owner ACTIVE/Listing public và không tiết lộ tài nguyên có tồn tại. HIDDEN giữ quan hệ, list thông thường lọc bỏ; reopen hiện lại. DELETED không Follow mới; giữ quan hệ không làm bài hiện lại. Block không tự tạo Notification; không tự bổ sung quy tắc xóa ListingFollow nếu chưa được duyệt. Account finish vẫn dọn relations theo lifecycle hiện có.
