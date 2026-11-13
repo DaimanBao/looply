@@ -62,12 +62,12 @@ describe("Auth/User migration compatibility", () => {
     });
   });
 
-  it("retains all four completed migration records and their content checksums", async () => {
+  it("retains all completed migration records and their content checksums", async () => {
     await withTestTransaction(async (client) => {
       const result = await client.query<{ migration_name: string; checksum: string; finished_at: Date | null; rolled_back_at: Date | null }>(
         'SELECT migration_name, checksum, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name',
       );
-      expect(result.rows.map((row) => row.migration_name)).toEqual([...previousMigrations, authUserMigration]);
+      expect(result.rows.map((row) => row.migration_name)).toEqual([...previousMigrations, authUserMigration, "0005_listing_media_preparation"]);
       for (const row of result.rows) {
         const body = readFileSync(resolve(__dirname, "../../prisma/migrations", row.migration_name, "migration.sql"), "utf8");
         const variants = [body, body.replace(/\r\n/g, "\n"), body.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n")];

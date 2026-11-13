@@ -18,6 +18,7 @@ import { createDeletionRouter } from "./modules/user/deletion/deletion.routes";
 import { CleanupRepository } from "./jobs/cleanup.repository";
 import { AccountCleanup } from "./modules/user/deletion/deletion.worker";
 import { MediaCleanupRepository } from "./modules/media/media-cleanup.repository";
+import { MediaOrphanRecovery } from "./modules/media/media-orphan-recovery.service";
 import { MediaCleanupService, AvatarMediaService } from "./modules/media";
 
 /** Composes private local development storage or the configured S3-compatible production adapter. */
@@ -32,6 +33,7 @@ export function createFeatures(db: PrismaClient, config: AuthConfig, providers?:
   const repository = new UserRepository(db); const users = new UserService(repository, auth.sessions);
   const avatars = new AvatarService(users, repository, new AvatarMediaService(new MediaRepository(db), storage), auth.sessions);
   const deletionRepository = new DeletionRepository(db); const deletion = new DeletionService(deletionRepository, auth.sessions, auth.identity);
-  const cleanup = new AccountCleanup(deletionRepository, new CleanupRepository(db), new MediaCleanupService(new MediaCleanupRepository(db), storage), auth.credentials, auth.sessions);
+  const mediaCleanupRepository = new MediaCleanupRepository(db);
+  const cleanup = new AccountCleanup(deletionRepository, new CleanupRepository(db), new MediaCleanupService(mediaCleanupRepository, storage, new MediaOrphanRecovery(mediaCleanupRepository, storage)), auth.credentials, auth.sessions);
   return { ...auth, users, avatars, deletion, cleanup, storage, routers: [...auth.routers, createUserRouter(createUserController(users, auth.credentials), auth.sessions), createAvatarRouter(createAvatarController(avatars), auth.sessions), createDeletionRouter(createDeletionController(deletion, config.environment === "production"), auth.sessions)] };
 }

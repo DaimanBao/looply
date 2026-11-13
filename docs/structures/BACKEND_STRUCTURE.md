@@ -69,6 +69,8 @@ Auth hiện tách `identity/`, `sessions/`, `credentials/`, `otp/`, `redis/`, `s
 
 Cleanup coordinator thuộc `user/deletion/deletion.worker.ts`, không sửa/xóa Chat Message hoặc Chat Media; nó gọi public Auth/Media cleanup services, cùng transaction khi hoàn tất lifecycle User. Media sở hữu storage/asset cleanup; `jobs/` chỉ sở hữu hạ tầng outbox/lease/poll. Side effect storage ở ngoài transaction, ghi nhận bằng media state/outbox để retry. Runtime nhận lifecycle hook riêng cho Redis/worker, không đọc environment; `server.ts` là nơi đọc/xác thực cấu hình. Tests HTTP có database thật đặt trong `tests/integration/`; `tests/api/` tiếp tục chỉ chứa Core HTTP tests không mở database.
 
+Media preparation có `listing-media.service/repository.ts` cho primitive ảnh nội bộ, `media-cleanup-event.ts` deduplicate outbox, `media-object-keys.ts` định nghĩa rendition versioned và `media-orphan-recovery.service.ts` đối chiếu local inventory với metadata. Public service export qua `media/index.ts`; chưa có Listing HTTP routes. `features.ts` ghép cleanup/reconciliation vào worker hiện có. Không thêm worker hoặc schema snapshot Chat.
+
 `development/` không được mount vào Express app hoặc Auth/User routes. `server.ts` chỉ tạo listener loopback khi config Development opt-in hợp lệ; reader chỉ đọc Redis và đối chiếu fake delivery, không sửa OTP flow. Config/listener từ chối Production; CLI không được sao chép vào `dist`. Chi tiết và hướng dẫn thuộc [OTP inspector](../../backend/src/development/README.md).
 
 ## Quy tắc sở hữu và phụ thuộc

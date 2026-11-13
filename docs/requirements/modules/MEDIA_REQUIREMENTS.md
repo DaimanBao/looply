@@ -43,7 +43,7 @@ Module Media quản lý ảnh và video gắn với Listing: tải lên, xem tr�
 - Khi Listing đã có Conversation, thao tác chỉnh sửa Media tuân theo cảnh báo, xác nhận và thông báo của Module Listing.
 - Conversation cũ có thể hiển thị thông tin Media tóm tắt của Listing; quy tắc card thuộc Module Chat.
 
-## 6. Lifecycle đã duyệt, thiết kế chưa triển khai
+## 6. Lifecycle đã duyệt
 
 - Upload tạm chuyển TEMP → ATTACHED hoặc DELETING. LISTING DELETING có thể chưa có Listing; ATTACHED luôn phải có Listing hợp lệ và đúng uploader/owner. Không attach trái chủ hoặc attach lại DELETING.
 - Hủy editor không thay đổi media đã lưu. Membership/thứ tự/cover/video được lưu nguyên tử cùng Listing; cover độc lập thứ tự và fallback ảnh đầu còn lại khi xóa cover.

@@ -1,5 +1,46 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Final review PR #19 — 13/11/2026
+
+Đã đọc toàn bộ diff so với develop, workflow, thiết kế Listing/Media, migration và các writer/cleanup/account coordinator liên quan. Review giữ nguyên nghiệp vụ, Prisma shape, migration lịch sử, Frontend và dependencies. Không chạy migration trên development/production.
+
+**High — đã sửa:** `S3ObjectStore.put` trước review cho phép overwrite trong khi local dùng `wx`. Hai writer cùng đọc TEMP; writer chậm dừng trước PUT, writer khác ghi đủ rendition và attach; writer chậm tiếp tục sẽ thay bytes của asset ATTACHED trước khi finalize từ chối. Bản sửa dùng `IfNoneMatch: "*"`, không fallback overwrite, và truyền abort signal 30 giây cho các request S3. Regression `prevents a delayed S3 writer from replacing bytes after another writer attaches` trong `media-lifecycle.test.ts` thất bại trước sửa do detail bytes bị đổi, đạt sau sửa và xác nhận metadata vẫn ATTACHED. PostgreSQL/locks/transactions thật; S3 được fake tại SDK send để mô phỏng conditional PUT nguyên tử. Unit `uses immutable writes and bounded provider requests, propagating write conflicts` kiểm tra điều kiện, abort signal và lỗi provider được trả về. Chưa nghiệm thu provider/bucket S3 thật.
+
+Kết quả chạy lại sau sửa: `npm test` **99/99**, `npm run test:integration` **427/427, 26 file**, `npm run test:api` **23/23**; source typecheck, test typecheck, build đều đạt. Đã xác minh actual `looply_test` PostgreSQL 17.11 trước ghi; Redis test `/1`. Prisma validate và migrate status chạy với DATABASE_URL của child process trỏ TEST_DATABASE_URL đã xác minh: schema hợp lệ, năm migration up to date; không cần deploy lại. `git diff --check` đạt. E2E 26 bước phía dưới là bằng chứng lần triển khai trước, không chạy lại trong final review chỉ sửa adapter S3. CI phải kiểm tra trên commit chứa bản sửa; kết quả và link được báo tại PR/final review.
+
+Batch attachment kiểm tra toàn bộ tập khóa trước khi đổi trạng thái; test ảnh thứ hai chưa ready xác nhận ảnh đầu vẫn TEMP sau transaction rollback. Cleanup claim đọc lại reference dưới User/Media lock và commit DELETING trước I/O; retry, stale job, lease fencing và idempotency được đối chiếu với test PostgreSQL. Account preparation chỉ chọn uploader tương ứng, từ chối Listing khác owner, giữ CHAT/Message reference; regression account deletion và avatar nằm trong suite đã chạy. Không phát hiện thêm lỗi Critical/High/Medium/Low cần sửa trong phạm vi phase 1 sau bản sửa này. Giới hạn phase 1 và cấu hình storage riêng theo database vẫn áp dụng như dưới đây.
+
+## Media & Database Preparation — 13/11/2026
+
+Đã xác minh actual PostgreSQL 17.11 `looply_test` tại local port 5435 trước ghi, khác `looply_dev`; Redis test DB `/1` tại local port 6380 khác development `/0`. Không dùng production credentials, không migrate/reset/truncate/seed development. Chỉ thêm và deploy `0005_listing_media_preparation` lên test, không UPDATE/DELETE Media hiện hữu từ migration. Prisma shape và migration 0001–0004 giữ nguyên.
+
+Test-first CHECK: ca LISTING DELETING không listingId thất bại đúng `ck_media_purpose`, 27 ca khác đạt trước migration. Sau deploy, các ca đã duyệt đạt; thêm PROFILE/CHAT ở TEMP/ATTACHED/DELETING, negative purpose/type/cover và lịch sử năm migration/checksum. Migration compatibility chạy trong schema rollback riêng, so sánh toàn bộ Media rows/FK/CHECK khác/index trước/sau; legacy data không tương thích bị chặn và không bị sửa.
+
+`media-lifecycle.test.ts` dùng PostgreSQL transaction/advisory lock thật trên các connection, committed fixture riêng và Redis test. Bao phủ TTL/readiness, uploader/account/Listing ownership, double attach, batch rollback, attach thắng/cleanup thắng, attach/cancel, cancel/cleanup, stale job, Message reference, duplicate workers, deduplicate outbox và private HTTP. Storage I/O fake được điều khiển tại ranh giới: outage, partial variants/late writer, thiếu object và crash sau delete trước DB completion. Lỗi DB completion được fault-inject một lần, các claim/state/retry khác vẫn đi qua PostgreSQL thật. Không dùng mock lock để thay chứng cứ concurrency.
+
+Local object-store unit tests đọc/ghi/xóa file thật, missing-delete idempotent, traversal/Windows key/symlink và inventory. Orphan tests kiểm tra safe-age, cursor lô 20, canonical key, absent-metadata recheck và phục hồi tombstone sau late write; phần recheck/recovery có PostgreSQL integration. Snapshot/Conversation/Message service mới không được triển khai; Message fixture chỉ kiểm tra reference đã có trong schema.
+
+| Kiểm tra thực sự đã chạy tại backend | Kết quả |
+| --- | --- |
+| `npm exec -- prisma validate --config prisma7.config.ts` | PASS, Prisma 7.10.1. |
+| `npm exec -- prisma generate --config prisma7.config.ts` | PASS. |
+| `prisma migrate deploy --config prisma7.config.ts` với DATABASE_URL của riêng child process trỏ TEST_DATABASE_URL đã xác minh | PASS, chỉ áp dụng 0005 lên looply_test. |
+| `prisma migrate status --config prisma7.config.ts` trên test | PASS, 5 migration, up to date. |
+| `npm run test:integration` với TEST_REDIS_URL test riêng | **426/426 PASS, 26 file**; gồm Auth/User/Avatar/account deletion và toàn bộ constraint regression. |
+| `npm test` | **98/98 PASS, 15 file**, gồm 5 OpenAPI contract regression và unit Media mới. |
+| `npm run test:api` | **23/23 PASS, 1 file**. |
+| `npm run typecheck` | PASS. |
+| `npm exec -- tsc --project tests/tsconfig.json` | PASS. |
+| `npm run build` | PASS. |
+| `git diff --check` | PASS. |
+| Chrome E2E `frontend/e2e/auth-user.cjs` | **26/26 bước PASS**, real API/PostgreSQL/Redis, gồm avatar upload/render/remove và account deletion/cancel. |
+
+Sau review bổ sung guard cancel/attach với TEMP có reference, absent-metadata orphan recovery và kiểm tra type IMAGE ở writer, chạy lại 14/14 lifecycle integration cùng source/test typecheck/build đạt. Vitest vẫn có cảnh báo loader CommonJS/ESM cấu hình hiện có, không làm test thất bại. Backend chưa có lint script; không ghi nhận đã chạy lint. CI theo PR là bằng chứng riêng, không thay bằng kết quả local.
+
+E2E chạy sau integration, dùng Chrome có sẵn và harness CDP hiện hành, không cài dependency hoặc sửa Frontend. Lệnh thực thi từ frontend: Node wrapper gọi `require('./e2e/auth-user.cjs')`, chỉ override kết quả parse cấu hình test để `MEDIA_LOCAL_DIRECTORY` là thư mục OS temp mới và `TEST_REDIS_URL` dùng `/1`; không sửa `.env` hoặc application adapters. Harness tự xác minh actual looply_test, giữ các tài khoản `ui_` và catalog tham chiếu trên test theo quy ước; không ghi development. Report/screenshot trong `frontend/tmp/e2e/` bị Git ignore; không đưa vào commit.
+
+Giới hạn: không xác nhận Listing upload/delivery/CRUD hoặc video đã hoàn thành; chỉ primitive ảnh nội bộ nhận output processor tin cậy. Không migration development/production, không test S3 hoặc Chat snapshot/retention. Local storage root phải riêng theo database; E2E dùng root OS temp mới, không dùng `.local-media` development.
+
 ## Review Auth + User trước PR — 13/11/2026
 
 Nhánh `feat/auth-user-implementation` được tạo từ `develop` tại `48d5e2f`; đối chiếu trạng thái và SHA-256 xác nhận giữ nguyên đủ 99 file trước khi sửa. Review đối chiếu Auth/User requirements, OpenAPI, database, module boundaries, providers, session/OTP/concurrency, xóa tài khoản và giới hạn backup. Không chạy migration, seed hoặc thao tác ghi trên development/production trong đợt review này.

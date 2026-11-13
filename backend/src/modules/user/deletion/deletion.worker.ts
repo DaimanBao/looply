@@ -31,7 +31,9 @@ export class AccountCleanup {
         user = await this.accounts.user(user.id, tx);
       }
       if (!user || (user.status === "DELETING" && user.deletionRequestedAt?.getTime() !== requestedAt.getTime())) return false;
-      await this.accounts.prepare(user.id, tx); await this.sessions.revokeAll(user.id, tx); return true;
+      await this.accounts.prepare(user.id, tx);
+      await this.media.prepareAccount(user.id, tx);
+      await this.sessions.revokeAll(user.id, tx); return true;
     });
     if (!run) return;
     await this.media.account(event.aggregateId);
