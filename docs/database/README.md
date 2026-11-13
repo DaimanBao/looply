@@ -5,6 +5,8 @@
 - [`SCHEMA_REVIEW.md`](SCHEMA_REVIEW.md): ràng buộc xuyên bảng, concurrency, migration và các kiểm thử cần có.
 - [`postgres_constraints.reference.sql`](postgres_constraints.reference.sql): SQL CHECK/index **tham khảo**, chưa phải migration được duyệt.
 - [`INTEGRATION_TESTS.md`](INTEGRATION_TESTS.md): phạm vi, cách chạy an toàn, kết quả và lỗi còn tồn tại của Database Integration Test.
+- [`CHAT_SNAPSHOT_DESIGN.md`](CHAT_SNAPSHOT_DESIGN.md): đề xuất snapshot card độc lập, retention ảnh 12/24 tháng, authorization và migration Chat tương lai; chưa sửa Prisma.
+- [Thiết kế Listing/Media](../api/LISTING_MEDIA_DESIGN.md): lifecycle, khóa, search/cursor và kế hoạch triển khai; [chuẩn bị migration](SCHEMA_REVIEW.md#chuẩn-bị-listingmedia--chưa-tạo-migration) chỉ là thiết kế, chưa tạo hoặc áp dụng.
 
 ## Trạng thái và nguồn sự thật
 `docs/database/schema.prisma` là bản thiết kế logic xuất phát từ full draft. Schema thực thi hiện nằm tại [`backend/prisma/schema.prisma`](../../backend/prisma/schema.prisma), cùng lịch sử migration trong [`backend/prisma/migrations/`](../../backend/prisma/migrations/). Trên `looply_test` đã áp dụng bốn migration từ `0001_init` đến `0004_auth_user_preparation`; bằng chứng kiểm thử mới nhất và giới hạn thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Trạng thái Development được ghi riêng như dưới đây; không suy ra hoàn thành chức năng từ việc database test đạt.

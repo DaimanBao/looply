@@ -66,4 +66,16 @@
 
 **Ranh giới module:** Chat quản lý Conversation, Message và card/đề xuất giao dịch (không tách thành module riêng trong phạm vi tài liệu hiện tại); Listing quản lý bài đăng và trạng thái; Media xử lý tệp; User quản lý chặn; Notification quản lý thông báo.
 
+## 6. Snapshot lịch sử và retention ảnh — đã phê duyệt
+
+- Card khi gửi lưu Listing ID, title, type, giá niêm yết/giá đề xuất nếu có, rentalUnit và ảnh cover tại thời điểm gửi; không thay đổi theo sửa bài, cover, HIDDEN/DELETED hoặc account deletion. Snapshot text bất biến trong luồng nghiệp vụ thường; ảnh có lifecycle độc lập với Listing.
+- Ảnh được giữ tới thời điểm đến trước giữa **12 tháng từ hoạt động cuối Conversation** và **24 tháng từ lúc tạo snapshot**. Hoạt động chỉ gồm nội dung người dùng mới đã commit (tin nhắn TEXT/ảnh/card) hoặc proposal chuyển ACCEPTED/REJECTED đã commit. Idempotent retry không tính mới. Đọc/mở Chat/tải ảnh/mark-read, ẩn hội thoại, worker và sự kiện hệ thống không gia hạn. Đây là định nghĩa hoạt động cho retention, không thay đổi chức năng Chat hiện có.
+- Tháng là tháng lịch UTC, clamp ngày cuối tháng, không phải 30 ngày. Ảnh đã hết hạn/thu hồi không được sống lại do hoạt động về sau; giới hạn tuyệt đối không đổi. Thời gian server, không client.
+- Hết hạn thì ngừng phục vụ qua API ngay và card hiển thị placeholder, dù cleanup chưa chạy. Xóa vật lý sau commit qua worker retry, không hứa xóa ngay tức thì. Snapshot text không tự bị xóa cùng ảnh.
+- Chỉ người đủ quyền xem Conversation mới được đọc ảnh; không công khai storage key/file path. Nếu dùng chung file phải theo dõi tất cả reference và chỉ xóa khi không còn reference hợp lệ. Đề xuất kỹ thuật hiện tại chọn copy riêng từng card để tránh shared-file lifecycle.
+- Xóa mềm hội thoại phía một người không xóa lịch sử phía còn lại. Account deletion không tự hủy ảnh cần thiết cho người còn lại hoặc reset retention. Yêu cầu xóa dữ liệu hợp lệ có thể thu hồi trước hạn theo quy trình riêng; không tự quét PII.
+- Retention này độc lập **30 ngày chờ xóa tài khoản** và **retention backup**. Không giữ ảnh vô thời hạn chỉ vì từng có Conversation.
+
+Đề xuất model/authorization/copy/reference tracking và kiểm thử thời gian thuộc [thiết kế snapshot](../../database/CHAT_SNAPSHOT_DESIGN.md). Nghiệp vụ trên đã duyệt; Prisma/migration/Chat API và worker retention **chưa triển khai**.
+
 > **Theo dõi tiến độ:** Xem checklist theo mã chức năng tại [`FUNCTIONAL_REQUIREMENTS.md`](../FUNCTIONAL_REQUIREMENTS.md). File này chỉ mô tả yêu cầu nghiệp vụ, không tự xác nhận trạng thái triển khai.

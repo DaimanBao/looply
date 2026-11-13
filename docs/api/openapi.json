@@ -3,7 +3,7 @@
   "info": {
     "title": "Looply API",
     "version": "1.0.0",
-    "description": "Core and Auth/User Backend contract. End-to-end product completion is tracked in docs/requirements/FUNCTIONAL_REQUIREMENTS.md."
+    "description": "Core/Auth/User implemented contract and planned Listing/Media design. Every operation declares x-implementation-status; planned operations are unavailable. Product completion is tracked separately in docs/requirements/FUNCTIONAL_REQUIREMENTS.md."
   },
   "servers": [
     {
@@ -87,7 +87,8 @@
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/otp/request": {
@@ -152,7 +153,8 @@
             }
           }
         },
-        "description": "LOGIN_PHONE and RESET_PASSWORD challenges are also bound to the verified account that owned the contact when issued. A change of owner invalidates their use for the new account. No User ID is accepted from the client."
+        "description": "LOGIN_PHONE and RESET_PASSWORD challenges are also bound to the verified account that owned the contact when issued. A change of owner invalidates their use for the new account. No User ID is accepted from the client.",
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/register": {
@@ -219,7 +221,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/login/password": {
@@ -286,7 +289,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/login/phone": {
@@ -353,7 +357,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/google/challenge": {
@@ -401,7 +406,8 @@
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/login/google": {
@@ -468,7 +474,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/google/link": {
@@ -550,7 +557,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/refresh": {
@@ -615,7 +623,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/logout": {
@@ -665,7 +674,8 @@
               "type": "string"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/reauthenticate": {
@@ -728,7 +738,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/password/reset": {
@@ -780,7 +791,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/sessions": {
@@ -830,7 +842,8 @@
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/auth/sessions/{sessionId}": {
@@ -881,7 +894,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/provinces": {
@@ -927,7 +941,8 @@
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/me": {
@@ -974,7 +989,8 @@
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       },
       "patch": {
         "operationId": "updateProfile",
@@ -1035,7 +1051,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/me/username": {
@@ -1098,7 +1115,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/me/email": {
@@ -1154,7 +1172,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/me/phone": {
@@ -1210,7 +1229,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/me/password": {
@@ -1266,7 +1286,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/me/deletion": {
@@ -1322,7 +1343,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       },
       "delete": {
         "operationId": "cancelDeletion",
@@ -1360,7 +1382,8 @@
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/me/blocked": {
@@ -1427,7 +1450,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/{userId}": {
@@ -1486,7 +1510,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/{userId}/followers": {
@@ -1563,7 +1588,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/{userId}/following": {
@@ -1640,7 +1666,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/{userId}/follow": {
@@ -1691,7 +1718,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       },
       "delete": {
         "operationId": "unfollowUser",
@@ -1740,7 +1768,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/{userId}/block": {
@@ -1791,7 +1820,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       },
       "delete": {
         "operationId": "unblockUser",
@@ -1840,7 +1870,8 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/me/avatar": {
@@ -1904,7 +1935,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       },
       "delete": {
         "operationId": "deleteAvatar",
@@ -1942,7 +1974,8 @@
           "default": {
             "$ref": "#/components/responses/Error"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/api/users/{userId}/avatar": {
@@ -1999,7 +2032,1479 @@
               "format": "uuid"
             }
           }
-        ]
+        ],
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/api/listings": {
+      "get": {
+        "operationId": "discoverListings",
+        "summary": "[PLANNED] Discover visible Listings",
+        "description": "Planned design; not implemented. Optional auth; invalid token 401. Only ACTIVE listings of ACTIVE owners, excluding Block both directions. All query combinations checked; invalid price/unit/feed/cursor returns 400 VALIDATION_ERROR with query field details. Seeded national keyset, no immutable snapshot promise. No version precondition for read.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150,
+              "default": ""
+            },
+            "description": "Title only; NFD/accent fold including d-stroke (U+0111/U+0110), lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing."
+          },
+          {
+            "name": "feed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "search",
+                "nearby",
+                "national"
+              ]
+            },
+            "description": "Default search. nearby requires provinceCode; national forbids provinceCode."
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingType"
+            },
+            "description": "Single transaction type, not array or CSV."
+          },
+          {
+            "name": "rentalUnit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RentalUnit"
+            },
+            "description": "Only with type RENT; required for RENT price filter/sort."
+          },
+          {
+            "name": "provinceCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            },
+            "description": "Province catalog code; nearby requires explicit selection, no GPS."
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingPrice"
+            },
+            "description": "Requires SALE or RENT; RENT requires rentalUnit; min <= max."
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingPrice"
+            },
+            "description": "Same comparable-price rules as minPrice."
+          },
+          {
+            "name": "postedWithin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ALL",
+                "24H",
+                "7D",
+                "30D"
+              ],
+              "default": "ALL"
+            },
+            "description": "Server UTC window anchored to first-page asOf."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NEWEST",
+                "OLDEST",
+                "PRICE_ASC",
+                "PRICE_DESC",
+                "RANDOM"
+              ]
+            },
+            "description": "Default NEWEST for search/nearby, RANDOM for national. RANDOM only national with empty q. National nonempty q requires explicit nonrandom sort. PRICE requires comparable type/unit."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 48,
+              "default": 12
+            },
+            "description": "Page size bound into cursor."
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingCursor"
+            },
+            "description": "Continuation cursor; repeat the same query and authenticated viewer."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createListing",
+        "summary": "[PLANNED] Create Listing with atomic media manifest",
+        "description": "Planned design; not implemented. ACTIVE session. Valid own ready/unexpired TEMP uploads, 1-5 images and <=1 video. Province active; no self-approved status/owner/cycle. Transaction creates Listing and attaches media, version=1. No expectedVersion for create; failed save leaves uploads TEMP. Response Location is API detail path. Incomplete storage manifest returns 409 MEDIA_NOT_READY; TEMP status alone does not prove readiness.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "/api/listings/{new UUID}"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingCreate"
+              },
+              "examples": {
+                "sale": {
+                  "value": {
+                    "title": "Xe dap thanh pho con tot",
+                    "description": "Xe dap con tot, xem va nhan tai dia diem da hen.",
+                    "type": "SALE",
+                    "price": "250000",
+                    "rentalUnit": null,
+                    "provinceCode": "79",
+                    "media": {
+                      "imageIds": [
+                        "d2a6a3ba-22be-45f9-84cc-53c5929d33d3"
+                      ],
+                      "videoId": null
+                    }
+                  }
+                },
+                "rent": {
+                  "value": {
+                    "title": "Xe dap thanh pho con tot",
+                    "description": "Xe dap con tot, xem va nhan tai dia diem da hen.",
+                    "type": "RENT",
+                    "price": "100000",
+                    "rentalUnit": "DAY",
+                    "provinceCode": "79",
+                    "media": {
+                      "imageIds": [
+                        "d2a6a3ba-22be-45f9-84cc-53c5929d33d3"
+                      ],
+                      "videoId": null
+                    }
+                  }
+                },
+                "exchange": {
+                  "value": {
+                    "title": "Xe dap thanh pho con tot",
+                    "description": "Xe dap con tot, xem va nhan tai dia diem da hen.",
+                    "type": "EXCHANGE",
+                    "price": null,
+                    "rentalUnit": null,
+                    "provinceCode": "79",
+                    "media": {
+                      "imageIds": [
+                        "d2a6a3ba-22be-45f9-84cc-53c5929d33d3"
+                      ],
+                      "videoId": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/listings/suggestions": {
+      "get": {
+        "operationId": "suggestListings",
+        "summary": "[PLANNED] Suggest up to eight Listing titles",
+        "description": "Planned design; not implemented. Optional auth and same public visibility. Empty normalized q returns data []; fewer than five results allowed. NEWEST/id descending, debounce 300ms in client. No pagination/version precondition.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150,
+              "default": ""
+            },
+            "description": "Title only; NFD/accent fold including d-stroke (U+0111/U+0110), lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingSuggestions"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/listings/{listingId}": {
+      "get": {
+        "operationId": "getListing",
+        "summary": "[PLANNED] Get authorized Listing detail",
+        "description": "Planned design; not implemented. Public ACTIVE visibility; ACTIVE owner can read own HIDDEN. DELETED/invisible returns 404. Invalid optional token 401. Read returns current version for later mutation.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateListing",
+        "summary": "[PLANNED] Edit own Listing atomically",
+        "description": "Planned design; not implemented. ACTIVE owner only; others/absent/deleted 404. Body expectedVersion required; stale 409 LISTING_VERSION_CONFLICT. Existing Conversation requires confirmation or 409 LISTING_CONFIRMATION_REQUIRED; type locked 409 LISTING_TYPE_LOCKED; accepted HIDDEN must reopen. Validate final merged price/unit, Province, manifest. One version increment, no implicit status/cycle/follow change. Notification integration remains planned. Unready asset returns 409 MEDIA_NOT_READY.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingPatch"
+              },
+              "example": {
+                "expectedVersion": 1,
+                "title": "Xe dap thanh pho moi sua",
+                "confirmConversationImpact": true
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteListing",
+        "summary": "[PLANNED] Soft-delete own Listing",
+        "description": "Planned design; not implemented. ACTIVE owner, confirmDelete true and expectedVersion required; stale 409. Atomic terminal DELETED, no public media/detail, retains Conversation/proposal/snapshot. Owner retry on tombstone with current version returns 204, stale old version 409. Body required; no hard delete or restore.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed without response body.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingDelete"
+              },
+              "example": {
+                "expectedVersion": 3,
+                "confirmDelete": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/listings/{listingId}/visibility": {
+      "patch": {
+        "operationId": "setListingVisibility",
+        "summary": "[PLANNED] Hide or reopen own Listing",
+        "description": "Planned design; not implemented. ACTIVE owner, expectedVersion required/stale 409. ACTIVE->HIDDEN pauses pending accept, keeps media/follows. HIDDEN->ACTIVE increments activeCycle; any ACCEPTED requires confirmReopenAfterAccepted or 409 LISTING_CONFIRMATION_REQUIRED. Same-state no-op still checks version. DELETED terminal/404.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingVisibility"
+              },
+              "example": {
+                "expectedVersion": 2,
+                "status": "ACTIVE",
+                "confirmReopenAfterAccepted": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/me/listings": {
+      "get": {
+        "operationId": "listMyListings",
+        "summary": "[PLANNED] List own ACTIVE/HIDDEN Listings",
+        "description": "Planned design; not implemented. ACTIVE session. Only own nondeleted listings; default both ACTIVE/HIDDEN, optional status. Listing createdAt DESC,id DESC keyset bound to viewer/scope/status/limit. No version precondition.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "HIDDEN"
+              ]
+            },
+            "description": "Optional owner-only status filter."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 48,
+              "default": 12
+            },
+            "description": "Page size bound into cursor."
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingCursor"
+            },
+            "description": "Continuation cursor; repeat the same query and authenticated viewer."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/users/{userId}/listings": {
+      "get": {
+        "operationId": "listUserListings",
+        "summary": "[PLANNED] List public Listings by User",
+        "description": "Planned design; not implemented. Optional auth, invalid token 401. User profile/state/Block visibility required or 404. Only public ACTIVE Listing even when viewer owns target; use /users/me/listings for hidden. Listing createdAt DESC,id DESC keyset; no version precondition.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 48,
+              "default": 12
+            },
+            "description": "Page size bound into cursor."
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingCursor"
+            },
+            "description": "Continuation cursor; repeat the same query and authenticated viewer."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/users/me/followed-listings": {
+      "get": {
+        "operationId": "listFollowedListings",
+        "summary": "[PLANNED] List visible followed Listings",
+        "description": "Planned design; not implemented. ACTIVE session. Follow relation belongs to viewer; only public ACTIVE Listing/ACTIVE owner and no Block. HIDDEN kept but excluded, returns after reopen. Listing createdAt DESC,id DESC keyset bound to viewer and scope; no version precondition.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 48,
+              "default": 12
+            },
+            "description": "Page size bound into cursor."
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ListingCursor"
+            },
+            "description": "Continuation cursor; repeat the same query and authenticated viewer."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/listings/{listingId}/follow": {
+      "put": {
+        "operationId": "followListing",
+        "summary": "[PLANNED] Follow eligible Listing idempotently",
+        "description": "Planned design; not implemented. ACTIVE viewer and owner, visible ACTIVE Listing, no Block; self returns 403, invisible 404. Unique relation, duplicate eligible PUT 204. Serializes User pair then Listing; no Listing version precondition or increment; no Notification.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed without response body.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "unfollowListing",
+        "summary": "[PLANNED] Remove own follow even if Listing is invisible",
+        "description": "Planned design; not implemented. ACTIVE session; remove only viewer relation, no public visibility/owner lifecycle gate. Valid UUID always 204 including absent relation/Listing; do not disclose existence. No Listing version precondition or increment. Block/hidden/deleted do not prevent removing own relation.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "Listing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed without response body.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/media/listing-uploads": {
+      "post": {
+        "operationId": "uploadListingMedia",
+        "summary": "[PLANNED] Upload one validated TEMP Listing asset",
+        "description": "Planned design; not implemented. ACTIVE session. Raw file input IMAGE JPG/PNG/WebP <=10485760 bytes or VIDEO MP4/WebM <=104857600 bytes with real duration >0 <=180s. Server inspects actual content, optimizes image and thumbnail. 201 only after private object variants ready; TTL15 minutes from reservation, sizeBytes is stored rendition size. No Listing/version yet. Invalid duration 400; invalid content 415; over input size 413. Video unavailable until video phase returns 503 MEDIA_VIDEO_UNAVAILABLE.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "ListingMedia"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Successful planned response.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingUpload"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "413": {
+            "$ref": "#/components/responses/Error"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary",
+                "description": "One image or video, never client-provided metadata JSON."
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/listing-uploads/{mediaId}": {
+      "delete": {
+        "operationId": "cancelListingUpload",
+        "summary": "[PLANNED] Cancel own TEMP upload idempotently",
+        "description": "Planned design; not implemented. ACTIVE uploader; foreign/unknown 404. TEMP->DELETING and outbox atomic; own DELETING/deleted 204; ATTACHED 409 MEDIA_ALREADY_ATTACHED. No Listing version precondition. Delete physical file after commit with retry, never claim current attachment.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "ListingMedia"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Completed without response body.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/listings/{listingId}/media/{mediaId}": {
+      "get": {
+        "operationId": "getListingMedia",
+        "summary": "[PLANNED] Deliver authorized current Listing media",
+        "description": "Planned design; not implemented. Optional auth; invalid token 401. Apply same detail visibility including owner HIDDEN; asset must be ATTACHED on this Listing and not deleted. DELETED, TEMP, wrong Listing or denied Block/state returns 404. variant thumbnail/detail for IMAGE, original for VIDEO; omitted defaults detail IMAGE/original VIDEO. Unsupported variant returns 400. Single bytes Range for VIDEO only; invalid/multiple/unsatisfiable range 416. Not a Chat snapshot endpoint; no version precondition.",
+        "x-implementation-status": "planned",
+        "tags": [
+          "ListingMedia"
+        ],
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "listingId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          },
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Server resource UUID."
+          },
+          {
+            "name": "variant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "thumbnail",
+                "detail",
+                "original"
+              ]
+            },
+            "description": "Image thumbnail/detail, video original; default depends on media type."
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Optional single bytes range for VIDEO; IMAGE does not support Range (416)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized IMAGE WebP thumbnail/detail or VIDEO original. Check visibility on every request; no storage URL.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Accept-Ranges": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bytes",
+                    "none"
+                  ]
+                }
+              }
+            },
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Single video byte range.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              },
+              "Accept-Ranges": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bytes",
+                    "none"
+                  ]
+                }
+              },
+              "Content-Range": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "bytes start-end/total"
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "416": {
+            "description": "Invalid or unsupported range; same ErrorResponse JSON.",
+            "headers": {
+              "Content-Range": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "bytes */total for unsatisfiable video range"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     }
   },
@@ -2787,6 +4292,957 @@
         "required": [
           "data",
           "pagination"
+        ]
+      },
+      "ListingType": {
+        "type": "string",
+        "enum": [
+          "SALE",
+          "RENT",
+          "EXCHANGE"
+        ]
+      },
+      "ListingStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "HIDDEN",
+          "DELETED"
+        ]
+      },
+      "RentalUnit": {
+        "type": "string",
+        "enum": [
+          "DAY",
+          "MONTH"
+        ]
+      },
+      "ListingPrice": {
+        "type": "string",
+        "pattern": "^[1-9][0-9]{0,14}$",
+        "description": "Positive integer VND Decimal(15,0), never JSON number, NaN or exponent.",
+        "examples": [
+          "250000"
+        ]
+      },
+      "MediaSizeBytes": {
+        "type": "string",
+        "pattern": "^[1-9][0-9]*$",
+        "description": "Positive byte count serialized safely from BigInt; input limits checked separately.",
+        "examples": [
+          "10485760"
+        ]
+      },
+      "ListingVersion": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647
+      },
+      "ListingCursor": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "description": "Opaque base64url JSON v1; strict scope/viewer/queryHash/sort/seed/asOf/keyset binding. See LISTING_MEDIA_DESIGN.md. Not an authorization credential."
+      },
+      "ListingMediaManifest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "imageIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "minItems": 1,
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "coverImageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "videoId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "imageIds",
+          "videoId"
+        ],
+        "description": "Full atomic final membership/order. All IDs owned and ready: retained ATTACHED on this Listing or unexpired TEMP. cover must be an image in imageIds; if omitted preserve old cover if retained, else first image. Null videoId removes video."
+      },
+      "ListingCreate": {
+        "description": "Create ACTIVE Listing only with valid final media. Strict alternatives enforce type/price/unit. Text and media must pass server checks.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 150,
+                "description": "Unicode code points after trimming ASCII spaces at both ends, matching database btrim."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 5000,
+                "description": "Unicode code points after trimming ASCII spaces."
+              },
+              "provinceCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32,
+                "description": "Active Province catalog code. Independent of User Province."
+              },
+              "contactPhone": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\+[1-9][0-9]{7,14}$",
+                    "maxLength": 20,
+                    "description": "Explicitly published E.164 contact; never silently copied from User.phone."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "media": {
+                "$ref": "#/components/schemas/ListingMediaManifest"
+              },
+              "type": {
+                "const": "SALE"
+              },
+              "price": {
+                "$ref": "#/components/schemas/ListingPrice"
+              },
+              "rentalUnit": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "title",
+              "description",
+              "provinceCode",
+              "media",
+              "type",
+              "price",
+              "rentalUnit"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 150,
+                "description": "Unicode code points after trimming ASCII spaces at both ends, matching database btrim."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 5000,
+                "description": "Unicode code points after trimming ASCII spaces."
+              },
+              "provinceCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32,
+                "description": "Active Province catalog code. Independent of User Province."
+              },
+              "contactPhone": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\+[1-9][0-9]{7,14}$",
+                    "maxLength": 20,
+                    "description": "Explicitly published E.164 contact; never silently copied from User.phone."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "media": {
+                "$ref": "#/components/schemas/ListingMediaManifest"
+              },
+              "type": {
+                "const": "RENT"
+              },
+              "price": {
+                "$ref": "#/components/schemas/ListingPrice"
+              },
+              "rentalUnit": {
+                "$ref": "#/components/schemas/RentalUnit"
+              }
+            },
+            "required": [
+              "title",
+              "description",
+              "provinceCode",
+              "media",
+              "type",
+              "price",
+              "rentalUnit"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 150,
+                "description": "Unicode code points after trimming ASCII spaces at both ends, matching database btrim."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 5000,
+                "description": "Unicode code points after trimming ASCII spaces."
+              },
+              "provinceCode": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32,
+                "description": "Active Province catalog code. Independent of User Province."
+              },
+              "contactPhone": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\+[1-9][0-9]{7,14}$",
+                    "maxLength": 20,
+                    "description": "Explicitly published E.164 contact; never silently copied from User.phone."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "media": {
+                "$ref": "#/components/schemas/ListingMediaManifest"
+              },
+              "type": {
+                "const": "EXCHANGE"
+              },
+              "price": {
+                "type": "null"
+              },
+              "rentalUnit": {
+                "type": "null"
+              }
+            },
+            "required": [
+              "title",
+              "description",
+              "provinceCode",
+              "media",
+              "type",
+              "price",
+              "rentalUnit"
+            ]
+          }
+        ]
+      },
+      "ListingPatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 150,
+            "description": "Unicode code points after trimming ASCII spaces at both ends, matching database btrim."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 5000,
+            "description": "Unicode code points after trimming ASCII spaces."
+          },
+          "provinceCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "Active Province catalog code. Independent of User Province."
+          },
+          "contactPhone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\+[1-9][0-9]{7,14}$",
+                "maxLength": 20,
+                "description": "Explicitly published E.164 contact; never silently copied from User.phone."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/ListingType"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rentalUnit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RentalUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "media": {
+            "$ref": "#/components/schemas/ListingMediaManifest"
+          },
+          "expectedVersion": {
+            "$ref": "#/components/schemas/ListingVersion"
+          },
+          "confirmConversationImpact": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "title"
+            ]
+          },
+          {
+            "required": [
+              "description"
+            ]
+          },
+          {
+            "required": [
+              "provinceCode"
+            ]
+          },
+          {
+            "required": [
+              "contactPhone"
+            ]
+          },
+          {
+            "required": [
+              "type"
+            ]
+          },
+          {
+            "required": [
+              "price"
+            ]
+          },
+          {
+            "required": [
+              "rentalUnit"
+            ]
+          },
+          {
+            "required": [
+              "media"
+            ]
+          }
+        ],
+        "description": "At least one mutable field. Validate final merged type/price/unit as in ListingCreate. Type immutable after any Conversation. Requires confirmation when Conversation exists; accepted HIDDEN must reopen before transaction-content edit. Omitted media retains all media."
+      },
+      "ListingVisibility": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "HIDDEN"
+            ]
+          },
+          "expectedVersion": {
+            "$ref": "#/components/schemas/ListingVersion"
+          },
+          "confirmReopenAfterAccepted": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "status",
+          "expectedVersion"
+        ]
+      },
+      "ListingDelete": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "$ref": "#/components/schemas/ListingVersion"
+          },
+          "confirmDelete": {
+            "const": true
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "confirmDelete"
+        ]
+      },
+      "ListingMedia": {
+        "description": "Discriminated validated IMAGE or VIDEO rendition; no storage key.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "type": {
+                "const": "IMAGE"
+              },
+              "mimeType": {
+                "const": "image/webp"
+              },
+              "sizeBytes": {
+                "$ref": "#/components/schemas/MediaSizeBytes"
+              },
+              "durationSeconds": {
+                "type": "null"
+              },
+              "position": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4
+              },
+              "isCover": {
+                "type": "boolean"
+              },
+              "deliveryPath": {
+                "type": "string",
+                "pattern": "^/api/listings/",
+                "description": "Authorized API route, never object storage URL. IMAGE thumbnail/detail variants; VIDEO original."
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "mimeType",
+              "sizeBytes",
+              "durationSeconds",
+              "position",
+              "isCover",
+              "deliveryPath"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "type": {
+                "const": "VIDEO"
+              },
+              "mimeType": {
+                "type": "string",
+                "enum": [
+                  "video/mp4",
+                  "video/webm"
+                ]
+              },
+              "sizeBytes": {
+                "$ref": "#/components/schemas/MediaSizeBytes"
+              },
+              "durationSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 180
+              },
+              "position": {
+                "type": "null"
+              },
+              "isCover": {
+                "const": false
+              },
+              "deliveryPath": {
+                "type": "string",
+                "pattern": "^/api/listings/",
+                "description": "Authorized API route, never object storage URL. IMAGE thumbnail/detail variants; VIDEO original."
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "mimeType",
+              "sizeBytes",
+              "durationSeconds",
+              "position",
+              "isCover",
+              "deliveryPath"
+            ]
+          }
+        ]
+      },
+      "ListingItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 150,
+            "description": "Unicode code points after trimming ASCII spaces at both ends, matching database btrim."
+          },
+          "type": {
+            "$ref": "#/components/schemas/ListingType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rentalUnit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RentalUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "province": {
+            "$ref": "#/components/schemas/Province"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/PublicProfile"
+          },
+          "cover": {
+            "$ref": "#/components/schemas/ListingCover"
+          },
+          "isFollowed": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "type",
+          "status",
+          "price",
+          "rentalUnit",
+          "province",
+          "owner",
+          "cover",
+          "isFollowed",
+          "createdAt",
+          "updatedAt"
+        ],
+        "description": "List projection with one IMAGE cover. Public lists ACTIVE only; own list ACTIVE/HIDDEN. isFollowed false for anonymous. Visibility always rechecked."
+      },
+      "ListingDetail": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 150,
+            "description": "Unicode code points after trimming ASCII spaces at both ends, matching database btrim."
+          },
+          "type": {
+            "$ref": "#/components/schemas/ListingType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ListingStatus"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListingPrice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rentalUnit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RentalUnit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "province": {
+            "$ref": "#/components/schemas/Province"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/PublicProfile"
+          },
+          "cover": {
+            "$ref": "#/components/schemas/ListingCover"
+          },
+          "isFollowed": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 5000,
+            "description": "Unicode code points after trimming ASCII spaces."
+          },
+          "contactPhone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\+[1-9][0-9]{7,14}$",
+                "maxLength": 20,
+                "description": "Explicitly published E.164 contact; never silently copied from User.phone."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListingMedia"
+            },
+            "minItems": 1,
+            "maxItems": 6,
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "IMAGE"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "minContains": 1,
+                "maxContains": 5,
+                "type": "array"
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "VIDEO"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "minContains": 0,
+                "maxContains": 1,
+                "type": "array"
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "isCover": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "isCover"
+                  ]
+                },
+                "minContains": 1,
+                "maxContains": 1,
+                "type": "array"
+              }
+            ]
+          },
+          "version": {
+            "$ref": "#/components/schemas/ListingVersion"
+          },
+          "activeCycle": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "hasConversations": {
+            "type": "boolean"
+          },
+          "hasAcceptedProposal": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "type",
+          "status",
+          "price",
+          "rentalUnit",
+          "province",
+          "owner",
+          "cover",
+          "isFollowed",
+          "createdAt",
+          "updatedAt",
+          "description",
+          "contactPhone",
+          "media",
+          "version",
+          "activeCycle",
+          "hasConversations",
+          "hasAcceptedProposal"
+        ],
+        "description": "Full visible detail. hasConversations/hasAcceptedProposal indicate required owner confirmation; false for non-owner (do not disclose private interaction existence). Media is 1-5 images + <=1 video, exactly one IMAGE cover."
+      },
+      "ListingPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListingItem"
+            },
+            "maxItems": 48
+          },
+          "pagination": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "nextCursor": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ListingCursor"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "nextCursor"
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "pagination"
+        ]
+      },
+      "ListingSuggestions": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 10,
+                  "maxLength": 150,
+                  "description": "Unicode code points after trimming ASCII spaces at both ends, matching database btrim."
+                }
+              },
+              "required": [
+                "id",
+                "title"
+              ]
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "ListingUpload": {
+        "description": "Returned only after all private file variants are ready. 15-minute TTL from reservation server time. Never contains storage key; sizeBytes is stored rendition size; input limits apply to uploaded bytes.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "const": "TEMP"
+              },
+              "type": {
+                "const": "IMAGE"
+              },
+              "mimeType": {
+                "const": "image/webp"
+              },
+              "sizeBytes": {
+                "$ref": "#/components/schemas/MediaSizeBytes"
+              },
+              "durationSeconds": {
+                "type": "null"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "type",
+              "mimeType",
+              "sizeBytes",
+              "durationSeconds",
+              "expiresAt"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "const": "TEMP"
+              },
+              "type": {
+                "const": "VIDEO"
+              },
+              "mimeType": {
+                "type": "string",
+                "enum": [
+                  "video/mp4",
+                  "video/webm"
+                ]
+              },
+              "sizeBytes": {
+                "$ref": "#/components/schemas/MediaSizeBytes"
+              },
+              "durationSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 180
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "type",
+              "mimeType",
+              "sizeBytes",
+              "durationSeconds",
+              "expiresAt"
+            ]
+          }
+        ]
+      },
+      "ListingCover": {
+        "description": "Exactly the IMAGE flagged as cover; never VIDEO.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListingMedia"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "IMAGE"
+              },
+              "isCover": {
+                "const": true
+              }
+            },
+            "required": [
+              "type",
+              "isCover"
+            ]
+          }
         ]
       }
     },

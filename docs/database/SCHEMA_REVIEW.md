@@ -1,10 +1,10 @@
 # Required review before integration
 
-> Cập nhật 13/11/2026: đã bổ sung migration chuẩn bị Auth/User `0004_auth_user_preparation`, chỉ áp dụng trên `looply_test`. Bằng chứng kiểm thử và lịch sử trước đó thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Danh sách dưới đây vẫn là yêu cầu review và kiểm chứng rộng hơn ở tầng service/concurrency, không phải xác nhận đã triển khai module.
+> Auth/User `0004_auth_user_preparation` đã áp dụng trên looply_test và development theo [README](README.md#triển-khai-authuser-và-catalog); không suy ra trạng thái production. Bằng chứng kiểm thử thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Thiết kế Listing/Media và snapshot mới dưới đây chưa triển khai hoặc tạo migration.
 
 ## Cross-table invariants (cannot be fully expressed by ordinary Prisma relations)
 1. User.avatarMediaId must point to ATTACHED PROFILE IMAGE uploaded by the same User. UNIQUE prevents two current avatars pointing at the same MediaAsset; historical unused PROFILE media is allowed. Changing avatar must be atomic with the pointer change. `User.avatarMediaId` creates an FK cycle in the schema, so create User first and avatar later.
-2. Listing must have 1–5 active attached images and exactly one cover, max one video; these *minimum/maximum count* constraints require locking Listing and validating in a transaction. Video <=100MB/180s; image <=10MB; verify actual MIME/file contents. `MediaAsset` is exclusively linked to a single Listing or current avatar; no copying the same asset ID to another target. TEMP may have no Listing. Deleting a Listing must revoke media access even if URL is known.
+2. Listing must have 1–5 active attached images and exactly one cover, max one video; these *minimum/maximum count* constraints require locking Listing and validating in a transaction. Video <=100 MiB/180s; image <=10 MiB; verify actual MIME/file contents. `MediaAsset` is exclusively linked to a single Listing or current avatar; no copying the same asset ID to another target. TEMP may have no Listing. Deleting a Listing must revoke media access even if URL is known.
 3. Media physical storage is not transactional with PostgreSQL. TEMP expiry and attachment need a claim/lock protocol; delete objects only after committed detachment and retry safely. `DELETING` is an optional internal transition introduced for worker coordination.
 4. Listing type cannot change once any Conversation exists; HIDDEN->ACTIVE increments activeCycle; DELETED is terminal. SALE/EXCHANGE ACCEPTED atomically hides Listing, while RENT remains ACTIVE. PENDING from old cycle can be accepted in a later cycle after fresh eligibility checks. Reject stale price edits from altering proposal snapshots.
 5. Conversation LISTING pair is (listingId, contactUserId); contactUserId must not be Listing owner. DIRECT low/high pair is canonical. Exactly two participants, both correct, are created transactionally. Participant.lastReadMessageId must reference a Message in the same Conversation, and only move forward. User Block and new send/proposal must serialize consistently.
@@ -13,11 +13,26 @@
 8. ProcessedEvent is transactional with the Notification change; use consumerName/eventId UNIQUE. Outbox claims use SKIP LOCKED, lease/timeout and retry. Commit notification processing before realtime emit; clients deduplicate and resync after reconnect. Realtime delivery is not exactly-once.
 9. `createdAt,id` pagination is deterministic for existing rows, but not a commit-order cursor. For reconnect sync use overlap/backfill or a separately designed durable watermark, not forward-only cursor with timestamp alone.
 10. Google signup creates a unique generated username and never merges by email. User may store unverified email declarations; only verified ownership is unique. See [the approved Auth/User design](README.md#chuẩn-bị-schema-auth--user) for normalization, atomic invalidation and lifecycle rules. Auth uses Redis for HMAC OTP, one-use proofs and shared quotas; the old OTP table remains unused for new challenges. Refresh uses compare-and-swap under the same User lock as revocation. Current service/concurrency evidence is recorded in [integration tests](INTEGRATION_TESTS.md); future Chat/Listing consumers must still use the public User gates.
-11. SearchTitle is normalized from title by one canonical algorithm (Vietnamese accent folding including đ/Đ), kept in sync on edits. pg_trgm is an index choice, not an automatic accent normalizer. Search only active listings publicly. Cursor sort price puts EXCHANGE last using explicit query order.
+11. SearchTitle is normalized from title by one canonical algorithm (Vietnamese accent folding including đ/Đ), kept in sync on edits. pg_trgm is an index choice, not an automatic accent normalizer. Search only active listings publicly. Price filter/sort requires SALE or RENT; RENT additionally requires DAY/MONTH. EXCHANGE is excluded, never sorted last as if it had a comparable price. Algorithm/cursor: [Listing/Media design](../api/LISTING_MEDIA_DESIGN.md#4-search-filter-feed-và-cursor).
 12. Province IDs are UUID FKs; code is UNIQUE and API-facing. Do not delete referenced provinces; administrative code changes require mapping.
-13. Listing contactPhone is optional and **must be explicitly supplied for publication**, never silently populated from private User.phone. Confirm if it is desired in MVP before implementation.
+13. Listing contactPhone is optional and **must be explicitly supplied for publication**, never silently populated from private User.phone. User may accept/edit the UI suggestion explicitly; Listing Province is independent of User Province.
 14. `DECIMAL(15,0)` maps to Prisma Decimal; serialize as string for JSON/API and compare using decimal-safe operations, not JS floating point. All three price fields (`Listing.price`, `TransactionProposal.proposedPrice`, `TransactionProposal.listedPriceSnapshot`) reject NaN after `0003_reject_nan_prices`. Snapshot nullability and all previous price/type/unit/status rules are preserved; fixed precision already rejects positive/negative Infinity.
 15. Unique indexes and CHECK constraints in companion SQL are illustrative; confirm enum SQL literals, case, generated DDL, and historical data before applying. Avoid duplicate Prisma and SQL unique indexes.
+
+## Chuẩn bị Listing/Media — chưa tạo migration
+
+Migration SQL mới sau 0004 chỉ thay `ck_media_purpose`; không đổi Prisma shape, enum hoặc migration lịch sử. Trong transaction, preflight constraint hiện tại/dữ liệu, DROP rồi ADD lại CHECK với nguyên hai nhánh PROFILE/CHAT và nhánh LISTING thay chính xác:
+
+```sql
+purpose = 'LISTING'
+AND (status IN ('TEMP', 'DELETING') OR "listingId" IS NOT NULL)
+```
+
+Giữ nguyên `ck_media_attached`, `ck_media_cover`, size/duration, FK RESTRICT và partial unique cover/video. Đây là đoạn thiết kế, không phải migration executable. Cần xem lock/validation chi phí trên dữ liệu thật trước deploy; không tự backfill/update/delete dữ liệu cũ. Test hiện tại `rejects deleting listing asset without listing` phải đổi thành chấp nhận đúng trường hợp đã duyệt; vẫn reject ATTACHED null, sai purpose/type/cover. Test tất cả nhánh cũ và checksum migration lịch sử.
+
+Detach service đồng thời clear listingId/position/cover và chuyển DELETING; giải phóng unique video slot ngay trong tx. Không chờ physical delete rồi mới thay video. Count 1–5 ảnh/exact cover, ownership và attachment readiness là service invariants, không được coi migration CHECK giải quyết hết. Cleanup hiện chưa guard live Listing attachment; phải sửa claim, account preparation và reconciliation theo [lifecycle](../api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle) trước mở Listing upload.
+
+Listing.version/activeCycle/Follow/Province/searchTitle/pg_trgm đã có, không thêm field/index cho các chức năng này. Đo query plan trước đề xuất index mới. Snapshot card hiện thiếu text/ảnh lịch sử độc lập; [đề xuất model và migration Chat riêng](CHAT_SNAPSHOT_DESIGN.md) không chặn image CRUD, nhưng bắt buộc trước Chat integration. Không sửa hai bản schema.prisma hoặc SQL tham khảo trong nhiệm vụ thiết kế.
 
 ## Required tests before any integration
 - Use the installed Prisma 7.10.1 CLI with the actual `backend/prisma7.config.ts`; `prisma validate --config prisma7.config.ts` has passed. Review formatting without rewriting applied migrations.
