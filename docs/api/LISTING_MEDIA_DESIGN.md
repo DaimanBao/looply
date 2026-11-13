@@ -1,6 +1,6 @@
 # Thiết kế Listing và Media
 
-> Trạng thái: đã triển khai nền tảng Media/database phase 1, chi tiết tại mục 9. Listing CRUD, API upload/cancel/delivery và Chat vẫn chưa triển khai. Nghiệp vụ thuộc [Listing](../requirements/modules/LISTING_REQUIREMENTS.md), [Media](../requirements/modules/MEDIA_REQUIREMENTS.md), [User](../requirements/modules/USER_REQUIREMENTS.md). Hợp đồng HTTP thuộc [OpenAPI](openapi.json); snapshot Chat thuộc [thiết kế database](../database/CHAT_SNAPSHOT_DESIGN.md).
+> Trạng thái: đã triển khai nền tảng Media/database phase 1 và Listing Backend CRUD/ảnh phase 2 (mục 9–10). Discovery/Follow, video và Chat chưa triển khai. Nghiệp vụ thuộc [Listing](../requirements/modules/LISTING_REQUIREMENTS.md), [Media](../requirements/modules/MEDIA_REQUIREMENTS.md), [User](../requirements/modules/USER_REQUIREMENTS.md). Hợp đồng HTTP thuộc [OpenAPI](openapi.json); snapshot Chat thuộc [thiết kế database](../database/CHAT_SNAPSHOT_DESIGN.md).
 
 ## 1. Ranh giới và thay đổi dự kiến
 
@@ -138,3 +138,15 @@ Phạm vi lần triển khai này theo yêu cầu phase 1: chuẩn bị database
 - Thêm reference kind tương lai phải cập nhật đồng thời claim, discovery/reconciliation, tombstone recovery, account preparation và attachment; mọi writer theo cùng thứ tự khóa và từ chối DELETING. Không có giả định `purpose != CHAT` đủ để xóa. Snapshot có object độc lập; chưa thêm schema/service/retention worker.
 
 Bằng chứng kiểm thử và giới hạn ở [INTEGRATION_TESTS](../database/INTEGRATION_TESTS.md#media--database-preparation--13112026). Vận hành local storage và retry ở [Backend README](../../backend/README.md#media-preparation-nội-bộ).
+
+## 10. Listing Backend CRUD — Phase 2
+
+Đã mount chín operation CRUD/detail/My Listings/visibility/delete và upload/cancel/delivery ảnh theo OpenAPI; các operation này là implemented. Không thêm schema/migration/dependency hoặc sửa Frontend. Discovery, public User Listings, Follow, Chat/Notification và video vẫn ngoài phạm vi.
+
+- Listing sở hữu validation Unicode/Decimal/final terms, owner/visibility, expectedVersion, terminal state và cursor My Listings. Media sở hữu image processing, readiness, final membership/order/cover, detach và private delivery. Composition root ghép public Auth/User/Media boundaries; route chỉ nối middleware/controller.
+- Mutation khóa User trước Listing rồi union Media sorted, recheck session/account/owner/version/Conversation dưới khóa. Create và attach atomic; edit chuyển ảnh bỏ sang DELETING, clear cover/link/position và queue cùng transaction. Không có physical delete trong transaction hoặc trước commit. Soft delete giữ attachment và lịch sử, thu hồi quyền qua Listing predicate.
+- `listing.updated` được ghi bền vững cùng content update, chỉ chứa listingId/version; transaction rollback không publish event. Chưa có consumer thông báo participant, không phát thông báo đến follower hoặc tuyên bố liên thông Chat đã hoàn thành. Conversation/proposal fixtures chứng minh type lock/confirmation/reopen và lịch sử không bị sửa; Chat writer tương lai vẫn phải tuân thủ cùng protocol.
+- Delivery giữ User/Listing/Media locks trong bounded storage read, kiểm tra uploader/link/status và session trước trả bytes. Không public static route hoặc storage URL. My Listings dùng createdAt DESC/id DESC, asOf và cursor strict gắn viewer/status/limit; mỗi trang áp lại quyền.
+- Upload thật mới chỉ hỗ trợ ảnh. Video upload/delivery và attach TEMP VIDEO trả 503 MEDIA_VIDEO_UNAVAILABLE; chỉ giữ/bỏ metadata VIDEO ATTACHED hợp lệ có sẵn. Không coi fixture metadata là nghiệm thu video inspector/playback/Range. Thông số ảnh và cách gọi API thuộc [Backend README](../../backend/README.md#listing-crud-và-ảnh--phase-2).
+
+Bằng chứng thực tế và rà soát cuối tại [INTEGRATION_TESTS](../database/INTEGRATION_TESTS.md#listing-backend-crud--phase-2--13112026).

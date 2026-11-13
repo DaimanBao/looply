@@ -1,5 +1,33 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Final review PR #20 — 13/11/2026
+
+Review diff so với develop, contract/DTO, visibility/lifecycle, lock ordering, atomic manifest/rollback, cleanup/reference guards và regression Auth/User/Avatar. Không đổi schema/migration, dependencies, Frontend hoặc nghiệp vụ đã duyệt.
+
+**Medium — đã sửa:** `listing-image.ts` nhận diện video từ `ftyp` tại offset 4 trước decode ảnh. JPEG hợp lệ có APP15 length/payload cùng bytes bị trả 503 MEDIA_VIDEO_UNAVAILABLE dù sharp xác nhận JPEG và decode được. Đã ưu tiên JPEG signature trước sniff BMFF; file vẫn phải qua kiểm tra format/decode/size/pixels như trước. Unit regression thất bại trước sửa (503), đạt sau sửa với WebP detail/thumbnail. HTTP/PostgreSQL regression upload JPEG đó, create/attach và delivery hai variant đạt 201/200. Bổ sung assertion ảnh vẫn trả 200 khi Listing đồng thời có VIDEO trả 503; không biến video stub thành inspector hoặc chấp nhận VIDEO TEMP.
+
+Kiểm chứng review: targeted unit/contract **13/13 PASS**; `listing-crud.test.ts` **22/22 PASS** trên actual PostgreSQL 17.11 `looply_test`, Redis test riêng `/1`; source/test typecheck và build PASS. Không chạy lại toàn bộ suite local; bằng chứng đầy đủ trước review tại mục Phase 2 bên dưới, CI được kiểm tra trên commit bản sửa và báo trong kết luận. Không chạy migration hoặc test trên development/production. Live S3, video inspector/playback/Range và browser Listing E2E vẫn chưa kiểm chứng.
+
+## Listing Backend CRUD — Phase 2 — 13/11/2026
+
+Đã xác minh PR #19 merged và nhánh bắt đầu từ origin/develop `df9bd4f`, working tree sạch. PostgreSQL thực tế là `looply_test` 17.11 tại localhost:5435; Redis test riêng `/1` tại localhost:6380. Không chạy migration, seed, reset, truncate trên development/production; không thêm migration/schema/dependency hoặc sửa Frontend.
+
+`listing-crud.test.ts` có **21 HTTP/PostgreSQL integration tests**: SALE/RENT/EXCHANGE, exact Decimal, text/searchTitle/Province/contact; authentication/IDOR/Block/account lifecycle/private delivery; create/edit batch rollback, unready/expired/foreign/duplicate IDs; 1–5 ảnh/cover/reorder/removal; concurrent create/update/cancel/cleanup; version 400/409/no-op/cycle; soft-delete terminal/tombstone retry; My Listings equal-timestamp keyset và cursor bindings; Conversation confirmation/type lock/reopen và giữ giá lịch sử. Upload dùng sharp thật, metadata/transactions/advisory locks/session PostgreSQL thật; chỉ storage/provider ở boundary được fake. Response upload/detail/page được kiểm tra với component schema OpenAPI. Fixture VIDEO ATTACHED chỉ chứng minh quản lý metadata/slot/removal, không chứng minh upload/inspector/playback video.
+
+Rollback được kiểm chứng cả khi ảnh thứ hai chưa ready lẫn khi trigger PostgreSQL cố ý abort Listing UPDATE cuối, sau phase Media: ảnh cũ/cover phục hồi, ảnh mới TEMP, version/content không đổi, không cleanup outbox/file delete. Trigger/function tên UUID chỉ trên database test đã xác minh và được gỡ trong finally. Coordinator regression dùng gallery tạo qua HTTP mới, xác nhận xóa đúng tài khoản và giữ avatar/Media người khác. Existing suite giữ nguyên guard/history/lease/Avatar/Auth tests.
+
+Test-first validator đã thất bại khi module chưa tồn tại; sau implementation đạt. Test phân trang phát hiện parse lại limit đã transform gây 500; đã tách schema raw query khỏi schema DTO đã validate và chạy lại đạt. Review bổ sung kiểm tra uploader khi delivery, final TEMP/expiry/session trước trả upload và so sánh thời gian cursor bằng Date thay vì thứ tự chuỗi ISO khác precision. Unit image fixture thật xác minh WebP 1600/400, đúng tỷ lệ và bỏ EXIF; MIME giả/GIF/truncated/video bị từ chối.
+
+| Lệnh thực sự đã chạy ở backend | Kết quả |
+| --- | --- |
+| `npm test` | **106/106 PASS, 18 file**. |
+| `npm run test:integration` với TEST_REDIS_URL riêng | **448/448 PASS, 27 file**. |
+| `npm run test:api` | **23/23 PASS**; Listing HTTP/contract dùng database thuộc integration suite phía trên. |
+| `npm run typecheck`, `npm exec -- tsc --project tests/tsconfig.json`, `npm run build` | PASS. |
+| Prisma validate + migrate status, DATABASE_URL riêng child process trỏ test đã xác minh | PASS, 5 migration up to date, không deploy lại. |
+
+Rà soát sau test: ownership/lifecycle/visibility, mass assignment, Decimal, lock hierarchy, attachment/reference/cover, rollback, outbox, error mapping và regression đã được đối chiếu. Không còn lỗi chặn đã biết trong phạm vi phase 2. Không chạy browser E2E/Angular Listing, live S3, video inspector hoặc Notification consumer. Checklist toàn sản phẩm không đánh dấu các chức năng chưa hoàn tất Frontend/video/Chat. CI được kiểm tra trên commit bàn giao và báo link tại PR; local PASS không thay thế CI thật.
+
 ## Final review PR #19 — 13/11/2026
 
 Đã đọc toàn bộ diff so với develop, workflow, thiết kế Listing/Media, migration và các writer/cleanup/account coordinator liên quan. Review giữ nguyên nghiệp vụ, Prisma shape, migration lịch sử, Frontend và dependencies. Không chạy migration trên development/production.

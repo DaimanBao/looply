@@ -2,22 +2,22 @@
 
 ## Trạng thái contract
 
-Mỗi operation trong [OpenAPI](openapi.json) bắt buộc có `x-implementation-status: implemented|planned`. Core/Auth/User hiện có là implemented; Listing/Media mới là planned với summary bắt đầu `[PLANNED]`. Planned là hợp đồng thiết kế, chưa có route, không phải endpoint hoạt động. Khi triển khai phải đổi classification đồng thời mount route và bổ sung test. Contract regression vẫn đối chiếu chính xác toàn bộ Core/Auth/User routes, không cho route có thật bị gắn planned; local refs/operationId/schema được kiểm tra cho cả hai nhóm. Không dùng planned để bỏ qua kiểm chứng route đã triển khai.
+Mỗi operation trong [OpenAPI](openapi.json) bắt buộc có `x-implementation-status: implemented|planned`. Core/Auth/User và chín operation Listing CRUD/management/ảnh phase 2 là implemented; Discovery/Follow/public User Listings vẫn planned với summary bắt đầu `[PLANNED]`. Planned là hợp đồng thiết kế, chưa có route, không phải endpoint hoạt động. Khi triển khai phải đổi classification đồng thời mount route và bổ sung test. Contract regression đối chiếu chính xác toàn bộ routes đã triển khai; local refs/operationId/schema được kiểm tra cho cả hai nhóm. Không dùng planned để bỏ qua kiểm chứng route đã triển khai.
 
 Thiết kế lifecycle, search/cursor và các giai đoạn triển khai thuộc [LISTING_MEDIA_DESIGN.md](LISTING_MEDIA_DESIGN.md), snapshot thuộc [database design](../database/CHAT_SNAPSHOT_DESIGN.md). Không đánh dấu Listing/Chat hoàn thành.
 
-## Listing/Media transport — planned
+## Listing/Media transport
 
 - Optional Bearer cho public read; token sai trả 401. Public predicate luôn áp owner lifecycle và Block hai chiều. Mutation bắt buộc ACTIVE; owner được đọc HIDDEN của mình, DELETED không có detail/media thường.
 - Optimistic concurrency chỉ dùng `expectedVersion` trong body PATCH/DELETE, tận dụng Listing.version; thiếu/sai 400, stale 409 `LISTING_VERSION_CONFLICT`. Không dùng ETag/If-Match/412/428 cho API này. Follow/cancel TEMP không thay Listing version.
 - Price Decimal(15,0) và sizeBytes BigInt đều serialize decimal string. Image input <=10 MiB, video <=100 MiB/180 giây; MIME/duration do server xác minh. Upload raw application/octet-stream một file, không base64/multipart; không storage key/presigned URL public.
 - Listing lists `{data,pagination:{nextCursor}}`, opaque `after` keyset, default limit12/max48; độc lập pagination UUID của User hiện có. Suggestions tối đa8, không pagination. Response/media no-store, X-Request-ID; binary errors vẫn ErrorResponse JSON.
 - Video delivery dự kiến hỗ trợ một bytes Range (206/416); image variants thumbnail/detail WebP. Không phục vụ file qua static mount bỏ authorization. Video chưa hỗ trợ trước phase6 phải trả 503 `MEDIA_VIDEO_UNAVAILABLE`, không claim đã nghiệm thu.
-- Mọi lỗi dùng cùng `components.responses.Error`/ErrorResponse hiện tại; mã domain planned được mô tả ở operation, không đổi logic runtime trong nhiệm vụ này.
+- Mọi lỗi dùng cùng `components.responses.Error`/ErrorResponse hiện tại; mã domain được mô tả ở operation. Video hiện trả 503 MEDIA_VIDEO_UNAVAILABLE; IMAGE Range trả 416.
 
 ## Quy ước chung
 
-Nguồn hợp đồng HTTP là [`openapi.json`](openapi.json), OpenAPI 3.1, gồm Core/Auth/User đã triển khai và Listing/Media planned. `GET /api/health` giữ nguyên response `{ "status": "ok", "service": "looply-backend" }`; đây là liveness, không cam kết kiểm tra database cho từng request.
+Nguồn hợp đồng HTTP là [`openapi.json`](openapi.json), OpenAPI 3.1, phân loại implemented/planned theo từng operation. `GET /api/health` giữ nguyên response `{ "status": "ok", "service": "looply-backend" }`; đây là liveness, không cam kết kiểm tra database cho từng request.
 
 Mọi response đi qua app có header `X-Request-ID`. Chỉ tái sử dụng request ID có dạng UUID; giá trị khác được thay bằng UUID mới. Server không tin `X-Forwarded-For` khi chưa có cấu hình reverse proxy được duyệt.
 

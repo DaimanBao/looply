@@ -1,6 +1,6 @@
 # Required review before integration
 
-> Auth/User `0004_auth_user_preparation` đã áp dụng trên looply_test và development theo [README](README.md#triển-khai-authuser-và-catalog). Media preparation `0005` chỉ áp dụng trên looply_test; không suy ra trạng thái development/production. Bằng chứng thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Listing CRUD và snapshot chưa triển khai.
+> Auth/User `0004_auth_user_preparation` đã áp dụng trên looply_test và development theo [README](README.md#triển-khai-authuser-và-catalog). Media preparation `0005` chỉ áp dụng trên looply_test; không suy ra trạng thái development/production. Listing Backend CRUD/ảnh phase 2 dùng nguyên schema và năm migration; snapshot chưa triển khai. Bằng chứng thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md).
 
 ## Cross-table invariants (cannot be fully expressed by ordinary Prisma relations)
 1. User.avatarMediaId must point to ATTACHED PROFILE IMAGE uploaded by the same User. UNIQUE prevents two current avatars pointing at the same MediaAsset; historical unused PROFILE media is allowed. Changing avatar must be atomic with the pointer change. `User.avatarMediaId` creates an FK cycle in the schema, so create User first and avatar later.
@@ -30,7 +30,7 @@ AND (status IN ('TEMP', 'DELETING') OR "listingId" IS NOT NULL)
 
 Giữ nguyên `ck_media_attached`, `ck_media_cover`, size/duration, FK RESTRICT và partial unique cover/video. Đã áp dụng trên looply_test; chưa áp dụng development/production. ACCESS EXCLUSIVE lock chặn truy cập trong lúc validation, cần chọn thời điểm phù hợp trước deploy trên dữ liệu thật. Không backfill/update/delete Media. Test hồi quy đã chấp nhận DELETING null; vẫn reject ATTACHED null, sai purpose/type/cover và kiểm tra checksum toàn bộ lịch sử.
 
-Account preparation đã clear listingId/position/cover và chuyển DELETING trong transaction trước physical delete. Claim chặn mọi Listing link, current avatar và Message reference; reconciliation dùng outbox lease/retry. Primitive attach ảnh nội bộ kiểm tra owner, ACTIVE, TTL/readiness dưới khóa User→Listing→Media. Final gallery/cover, detach khi sửa Listing và video replacement thuộc Listing phase sau; không coi migration CHECK giải quyết các invariant này. Chi tiết tại [lifecycle](../api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle).
+Account preparation đã clear listingId/position/cover và chuyển DELETING trong transaction trước physical delete. Claim chặn mọi Listing link, current avatar và Message reference; reconciliation dùng outbox lease/retry. Primitive attach ảnh kiểm tra owner, ACTIVE, TTL/readiness dưới khóa User→Listing→Media. Phase 2 thực thi final gallery/cover/detach trong cùng transaction với Listing/version; video upload/replacement mới vẫn cần phase video. Không coi migration CHECK giải quyết các invariant đếm ảnh hoặc ownership; chi tiết tại [lifecycle](../api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle).
 
 Listing.version/activeCycle/Follow/Province/searchTitle/pg_trgm đã có, không thêm field/index cho các chức năng này. Đo query plan trước đề xuất index mới. Snapshot card hiện thiếu text/ảnh lịch sử độc lập; [đề xuất model và migration Chat riêng](CHAT_SNAPSHOT_DESIGN.md) không chặn image CRUD, nhưng bắt buộc trước Chat integration. Không sửa hai bản schema.prisma hoặc SQL tham khảo trong nhiệm vụ thiết kế.
 

@@ -79,6 +79,8 @@ Chi tiết: [`USER_REQUIREMENTS.md`](modules/USER_REQUIREMENTS.md)
 
 Chi tiết: [`LISTING_REQUIREMENTS.md`](modules/LISTING_REQUIREMENTS.md)
 
+Phase 2 đã triển khai Backend CRUD/management và upload/cancel/delivery ảnh theo [thiết kế](../api/LISTING_MEDIA_DESIGN.md#10-listing-backend-crud--phase-2). Checklist toàn chức năng vẫn để `[ ]`: Angular Listing, liên thông Chat/Notification và video chưa hoàn thành. Bằng chứng Backend nằm ở [kiểm thử](../database/INTEGRATION_TESTS.md#listing-backend-crud--phase-2--13112026).
+
 | Xong | Mã | Chức năng |
 |---|---|---|
 | [ ] | `LISTING-001` | Tạo bài đăng |

@@ -20,6 +20,15 @@ import { AccountCleanup } from "./modules/user/deletion/deletion.worker";
 import { MediaCleanupRepository } from "./modules/media/media-cleanup.repository";
 import { MediaOrphanRecovery } from "./modules/media/media-orphan-recovery.service";
 import { MediaCleanupService, AvatarMediaService } from "./modules/media";
+import { ListingMediaRepository } from "./modules/media/listing-media.repository";
+import { ListingMediaService, ListingManifestService } from "./modules/media";
+import { ListingUploadService } from "./modules/media/listing-upload.service";
+import { createListingUploadController } from "./modules/media/listing-upload.controller";
+import { createListingUploadRouter } from "./modules/media/listing-upload.routes";
+import { ListingRepository } from "./modules/listing/listing.repository";
+import { ListingService } from "./modules/listing/listing.service";
+import { createListingController } from "./modules/listing/listing.controller";
+import { createListingRouter } from "./modules/listing/listing.routes";
 
 /** Composes private local development storage or the configured S3-compatible production adapter. */
 export function createStorage(config: AuthConfig): ObjectStore {
@@ -34,6 +43,10 @@ export function createFeatures(db: PrismaClient, config: AuthConfig, providers?:
   const avatars = new AvatarService(users, repository, new AvatarMediaService(new MediaRepository(db), storage), auth.sessions);
   const deletionRepository = new DeletionRepository(db); const deletion = new DeletionService(deletionRepository, auth.sessions, auth.identity);
   const mediaCleanupRepository = new MediaCleanupRepository(db);
+  const listingMediaRepository = new ListingMediaRepository(db);
+  const listingMedia = new ListingMediaService(listingMediaRepository, storage);
+  const listingUploads = new ListingUploadService(listingMedia, listingMediaRepository, auth.sessions);
+  const listings = new ListingService(new ListingRepository(db), auth.sessions, new ListingManifestService(listingMediaRepository, listingMedia, storage));
   const cleanup = new AccountCleanup(deletionRepository, new CleanupRepository(db), new MediaCleanupService(mediaCleanupRepository, storage, new MediaOrphanRecovery(mediaCleanupRepository, storage)), auth.credentials, auth.sessions);
-  return { ...auth, users, avatars, deletion, cleanup, storage, routers: [...auth.routers, createUserRouter(createUserController(users, auth.credentials), auth.sessions), createAvatarRouter(createAvatarController(avatars), auth.sessions), createDeletionRouter(createDeletionController(deletion, config.environment === "production"), auth.sessions)] };
+  return { ...auth, users, avatars, deletion, cleanup, storage, listings, listingUploads, routers: [...auth.routers, createUserRouter(createUserController(users, auth.credentials), auth.sessions), createAvatarRouter(createAvatarController(avatars), auth.sessions), createDeletionRouter(createDeletionController(deletion, config.environment === "production"), auth.sessions), createListingRouter(createListingController(listings), auth.sessions), createListingUploadRouter(createListingUploadController(listingUploads), auth.sessions)] };
 }
