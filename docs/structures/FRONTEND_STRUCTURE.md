@@ -110,6 +110,14 @@ Các quy ước này không yêu cầu refactor hàng loạt Auth/User hiện t�
 - Routes lazy-load từng page. Avatar tải bytes bằng HTTP stack rồi dùng Blob URL tạm, không dùng URL ảnh bỏ qua Bearer/Block. Các trang Profile/list phản ứng khi route đổi User ID và bỏ phản hồi cũ.
 - Project đang client-rendered, không bật SSR. Chi tiết cấu hình, test và mức nghiệm thu thuộc [Frontend README](../../frontend/README.md); các thư mục tương lai trong sơ đồ trên chưa được tạo nếu chưa có trách nhiệm thực tế.
 
+## Listing public discovery hiện tại
+
+- `features/listing/pages/`: Home discovery và detail lazy-loaded, HTML/SCSS riêng; điều phối form, route và hiển thị.
+- `components/`: card/giá, gallery/media và directive infinite scroll; HTTP bytes đi qua API client, Blob URL thuộc lifecycle media component.
+- `data-access/`: API và runtime decoder, dựng projection công khai, kiểm tra media thuộc đúng Listing; dùng HTTP/Auth infrastructure hiện hữu.
+- `models/`: DTO và ràng buộc query/filter; `state/`: pagination store cấp page, hủy request/reset/deduplicate/retry. Catalog Province dùng User public API.
+- Guest dùng `/` và `/listings/:listingId`; không có mutation/Follow/upload UI trong Phase 5A. Hành vi, kiểm thử và giới hạn tại [Frontend README](../../frontend/README.md#listing-public-discovery--phase-5a).
+
 ## Quy tắc
 - **Page** điều phối hiển thị; **component** tập trung UI; **data-access** gọi API; **state** quản lý trạng thái; không nhúng gọi HTTP và nghiệp vụ phức tạp trực tiếp trong template/component.
 - Dùng Angular Signals cho trạng thái UI phù hợp, RxJS cho luồng bất đồng bộ; không tạo nhiều nguồn sự thật cho cùng một session/dữ liệu.

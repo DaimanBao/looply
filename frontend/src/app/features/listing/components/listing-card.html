@@ -1,0 +1,19 @@
+<article>
+  <app-listing-media
+    [listingId]="listing().id"
+    [asset]="listing().cover"
+    [thumbnail]="true"
+    [alt]="listing().title"
+  />
+  <div class="card-content">
+    <span class="type-label">{{ typeLabels[listing().type] }} · {{ listing().type }}</span>
+    <h2>
+      <a [routerLink]="['/listings', listing().id]">{{ listing().title }}</a>
+    </h2>
+    <p class="price"><app-listing-price [listing]="listing()" /></p>
+    <p class="muted">{{ listing().province.name }}</p>
+    <time [attr.datetime]="listing().createdAt"
+      >Đăng {{ listing().createdAt | date: 'dd/MM/yyyy HH:mm' }}</time
+    >
+  </div>
+</article>

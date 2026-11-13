@@ -36,7 +36,37 @@ Mọi path dưới đây có prefix `/api`.
 | Follow/Block                 | `PUT/DELETE /users/{id}/follow`, `/block`, `GET /users/me/blocked`; cursor do server cấp       |
 | Xóa/hủy xóa                  | `POST/DELETE /users/me/deletion`                                                               |
 
-Không gọi Google hoặc giả nút Google hoạt động. PublicProfile chưa có viewer relationship flags hay lookup username; UI cung cấp Follow/Unfollow tường minh, không suy đoán trạng thái hoặc thêm endpoint. Profile được mở từ liên kết ID trong profile/list. Listing/Chat đầy đủ và tìm kiếm người dùng nằm ngoài nhiệm vụ.
+Không gọi Google hoặc giả nút Google hoạt động. PublicProfile chưa có viewer relationship flags hay lookup username; UI cung cấp Follow/Unfollow tường minh, không suy đoán trạng thái hoặc thêm endpoint. Profile được mở từ liên kết ID trong profile/list. Listing CRUD/Follow, Chat và tìm kiếm người dùng chưa có UI.
+
+## Listing public discovery — Phase 5A
+
+Trang `/` lazy-load Listing discovery; `/listings/:listingId` mở chi tiết, giữ `publicGuard` của Auth cho guest và lifecycle tài khoản. `features/listing/` tách pages/components, API decoding/query parameters, models/constraints và page-scoped pagination store. Không thay Backend, contract, dependencies hoặc cấu hình SSR.
+
+- Nearby yêu cầu chọn Province từ catalog User; không suy đoán GPS hoặc tỉnh. National mặc định RANDOM, không gửi Province; chuyển Nearby để lọc tỉnh. Query có từ khóa chuyển sang NEWEST; hỗ trợ newest/oldest hoặc giá hợp lệ.
+- Tìm theo title và suggestions debounce 300 ms; giữ nguyên tiếng Việt cho Backend chuẩn hóa. Đổi input/tab/filter/sort hủy request cũ ngay, xóa dữ liệu/cursor trước debounce. National giữ nguyên seed trong cursor Backend cấp, không tạo tham số seed ngoài contract.
+- Giá nguyên VNĐ giữ dạng chuỗi; chỉ so sánh SALE hoặc RENT với DAY/MONTH đã chọn. EXCHANGE không có giá. Đổi loại không còn so sánh được sẽ bỏ giá/sort giá; min/max sai hiển thị lỗi, không gửi request.
+- Cursor tải 12 bài/lượt, chặn tải đồng thời, loại trùng theo ID; có loading/empty/error/retry/end state, nút tải thêm và IntersectionObserver được dọn khi rời trang. Lỗi trang sau giữ dữ liệu/cursor để thử lại.
+- Detail hiển thị mô tả, giá/đơn vị, Province, ngày đăng/cập nhật, owner công khai và contactPhone xuất bản riêng trên Listing; không suy ra phone/email từ owner. Server quyết định quyền: guest xem ACTIVE, owner có thể xem HIDDEN kèm thông báo, 403/404 có trạng thái không khả dụng.
+- Media tải qua HttpClient/Bearer và API delivery hiện hành, kiểm tra MIME rồi tạo Blob URL; không đưa token vào URL hoặc dùng storage URL. Gallery chỉ tải asset đang chọn, native video có controls/playsinline, không autoplay; dọn subscription/URL khi đổi asset, identity hoặc rời trang. Rotation cùng identity không tải lại video. Có loading/error/retry cho HTTP và browser decoding.
+- Video tải trọn tệp trước khi phát, seek trên Blob đã tải; chưa streaming Range trực tiếp trong browser. Deadline media mặc định 120 giây qua `LISTING_MEDIA_TIMEOUT_MS`, override bằng DI. Chưa đo bộ nhớ/độ trễ với video 100 MiB; codec phát được phụ thuộc trình duyệt. SSR chưa bật và chưa nghiệm thu hydration.
+
+Kiểm chứng Phase 5A (13/11/2026): targeted tests cho query constraints, HTTP params/decoder/error, cursor reset/dedup/retry, debounce/stale cancellation, route guest/identity, gallery/video và observer lifecycle. Angular/source/test typecheck và production build đã đạt. CI theo commit/PR là nguồn kết quả full frontend suite; không chạy full suite local mặc định.
+
+Chạy targeted tests từ `frontend/`:
+
+```powershell
+npm test -- --watch=false --include="src/app/features/listing/**/*.spec.ts" --include="src/app/core/auth/auth.guards.spec.ts"
+```
+
+Chrome integration harness chạy từ root (cần binary đã provision theo [Backend README](../backend/README.md#provision-ffprobeffmpeg)):
+
+```powershell
+node --env-file=.video-tools/video.env --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listing.cjs
+```
+
+Harness tái sử dụng Backend fixture với PostgreSQL `looply_test` đã có schema và Redis test nonzero; xác minh database thực trước ghi, tạo owner/Province và 14 Listing qua API với ảnh/video tổng hợp. Dọn đúng graph/namespace do fixture sở hữu, không reset/migrate hoặc ghi development. Local media/staging và Chrome profile trong OS temp riêng; cổng 3000/4200/9230 phải trống. Report/screenshots tại `frontend/tmp/listing-e2e/` (Git ignore). Auth provider là fake tại ranh giới fixture; Listing HTTP, PostgreSQL, Redis, storage, video validation và Chrome là thật. Không coi đây là nghiệm thu đăng ký/OTP production.
+
+Đã kiểm chứng local: guest search/suggestions tiếng Việt, 12→14 bài bằng cuộn/cursor không trùng, chọn Province, RENT DAY controls, detail/gallery, MP4 playback, HIDDEN/DELETED bị từ chối, responsive desktop/mobile. E2E chưa chạy CI; chưa nghiệm thu WebM, Safari/Firefox hoặc video dung lượng lớn. Final Review thực hiện riêng; Phase 5A không có Listing mutations/upload/Follow UI, Chat, Admin hoặc Payment.
 
 ## Session và bảo mật
 

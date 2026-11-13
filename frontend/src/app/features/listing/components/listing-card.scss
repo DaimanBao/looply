@@ -1,0 +1,42 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+article {
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  overflow: hidden;
+}
+.card-content {
+  padding: 18px;
+}
+h2 {
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+h2 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+h2 a:hover {
+  text-decoration: underline;
+}
+.type-label {
+  color: var(--green);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.price {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--green);
+}
+p {
+  margin-bottom: 8px;
+}
+time {
+  color: var(--muted);
+  font-size: 0.8rem;
+}

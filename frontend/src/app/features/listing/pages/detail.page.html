@@ -1,0 +1,57 @@
+<a routerLink="/">← Khám phá bài đăng</a>
+@if (loading()) {
+  <p role="status" class="detail-status">Đang tải bài đăng…</p>
+}
+@if (error()) {
+  <section class="card detail-status" role="alert">
+    @if (unavailable()) {
+      <h1>Bài đăng không khả dụng</h1>
+      <p>Bài đã được ẩn, xóa hoặc bạn không có quyền xem.</p>
+    } @else {
+      <h1>Chưa tải được bài đăng</h1>
+      <p>{{ error() }}</p>
+    }
+    <button type="button" class="secondary" (click)="retry()">Thử lại</button>
+  </section>
+}
+@if (listing(); as item) {
+  <article class="detail-layout">
+    <app-listing-gallery [listing]="item" />
+    <div class="detail-content">
+      @if (item.status === 'HIDDEN') {
+        <p class="notice warning" role="status">
+          Bài đăng đang ẩn. Chỉ hiển thị theo quyền truy cập của bạn.
+        </p>
+      }
+      <span class="eyebrow">{{ typeLabels[item.type] }} · {{ item.type }}</span>
+      <h1>{{ item.title }}</h1>
+      <p class="detail-price"><app-listing-price [listing]="item" /></p>
+      <p>{{ item.province.name }}</p>
+      <p class="muted">
+        Đăng
+        <time [attr.datetime]="item.createdAt">{{
+          item.createdAt | date: 'dd/MM/yyyy HH:mm'
+        }}</time>
+      </p>
+      @if (item.updatedAt !== item.createdAt) {
+        <p class="muted">
+          Cập nhật
+          <time [attr.datetime]="item.updatedAt">{{
+            item.updatedAt | date: 'dd/MM/yyyy HH:mm'
+          }}</time>
+        </p>
+      }
+      <h2>Mô tả</h2>
+      <p class="description">{{ item.description }}</p>
+      <h2>Người đăng</h2>
+      <p>
+        <a [routerLink]="['/users', item.owner.id]">{{ item.owner.displayName }}</a>
+      </p>
+      @if (item.contactPhone) {
+        <p>
+          Liên hệ công khai: <a [href]="'tel:' + item.contactPhone">{{ item.contactPhone }}</a>
+        </p>
+      }
+    </div>
+  </article>
+}

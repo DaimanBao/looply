@@ -79,7 +79,7 @@ Chi tiết: [`USER_REQUIREMENTS.md`](modules/USER_REQUIREMENTS.md)
 
 Chi tiết: [`LISTING_REQUIREMENTS.md`](modules/LISTING_REQUIREMENTS.md)
 
-Backend đã triển khai CRUD/management và ảnh ở phase 2, Search/Suggestions/Filters/Sorting/keyset pagination, hai Home Feed và Follow/Unfollow/Followed Listings ở phase 3, Backend Video ở phase 4 theo [thiết kế](../api/LISTING_MEDIA_DESIGN.md). Checklist toàn chức năng vẫn để `[ ]`: Angular Listing và liên thông Chat/Notification chưa hoàn thành. Bằng chứng Backend nằm ở [kiểm thử](../database/INTEGRATION_TESTS.md).
+Backend đã triển khai CRUD/management và ảnh ở phase 2, Search/Suggestions/Filters/Sorting/keyset pagination, hai Home Feed và Follow/Unfollow/Followed Listings ở phase 3, Backend Video ở phase 4 theo [thiết kế](../api/LISTING_MEDIA_DESIGN.md). Angular public discovery đã triển khai và targeted test ở Phase 5A, chờ Final Review riêng; bằng chứng/giới hạn tại [Frontend README](../../frontend/README.md#listing-public-discovery--phase-5a). Checklist toàn chức năng vẫn để `[ ]` trong khi chờ nghiệm thu; Angular Listing mutations/Follow và liên thông Chat/Notification chưa hoàn thành. Bằng chứng Backend nằm ở [kiểm thử](../database/INTEGRATION_TESTS.md).
 
 | Xong | Mã | Chức năng |
 |---|---|---|

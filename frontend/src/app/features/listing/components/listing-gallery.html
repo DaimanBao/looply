@@ -1,0 +1,19 @@
+<section aria-label="Ảnh và video bài đăng">
+  <app-listing-media [listingId]="listing().id" [asset]="selected()" [alt]="listing().title" />
+  <nav aria-label="Chọn ảnh hoặc video">
+    @for (asset of assets(); track asset.id; let index = $index) {
+      <button
+        type="button"
+        class="secondary"
+        [attr.aria-pressed]="selectedId() === asset.id"
+        (click)="selectedId.set(asset.id)"
+      >
+        {{
+          asset.type === 'VIDEO'
+            ? 'Video · ' + asset.durationSeconds + ' giây'
+            : 'Ảnh ' + (index + 1)
+        }}
+      </button>
+    }
+  </nav>
+</section>

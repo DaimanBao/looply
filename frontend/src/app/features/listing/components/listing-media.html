@@ -1,0 +1,29 @@
+<div class="media-frame" [class.thumbnail]="thumbnail()" [attr.aria-busy]="loading()">
+  @if (failed()) {
+    <div class="media-message" role="status">
+      <span>Không tải được {{ asset().type === 'VIDEO' ? 'video' : 'ảnh' }}.</span>
+      <button type="button" class="text-button" (click)="retry()">Thử tải lại</button>
+    </div>
+  } @else {
+    @if (loading()) {
+      <span class="media-message" role="status"
+        >Đang tải {{ asset().type === 'VIDEO' ? 'video' : 'ảnh' }}…</span
+      >
+    }
+    @if (source(); as url) {
+      @if (asset().type === 'VIDEO') {
+        <video
+          controls
+          playsinline
+          preload="metadata"
+          [src]="url"
+          (loadedmetadata)="loaded()"
+          (error)="mediaError()"
+          aria-label="Video bài đăng"
+        ></video>
+      } @else {
+        <img [src]="url" [alt]="alt()" (load)="loaded()" (error)="mediaError()" />
+      }
+    }
+  }
+</div>

@@ -1,0 +1,176 @@
+<section class="discovery-header">
+  <span class="eyebrow">THÊM MỘT VÒNG ĐỜI, THÊM MỘT KẾT NỐI</span>
+  <h1>Khám phá món đồ<br /><em>cho câu chuyện tiếp theo.</em></h1>
+  <p class="muted">Mua, trao đổi hoặc thuê đồ dùng từ cộng đồng Looply.</p>
+</section>
+<div class="feed-tabs" role="group" aria-label="Phạm vi khám phá">
+  <button type="button" [attr.aria-pressed]="tab() === 'nearby'" (click)="selectTab('nearby')">
+    Nearby · Gần bạn
+  </button>
+  <button type="button" [attr.aria-pressed]="tab() === 'national'" (click)="selectTab('national')">
+    National · Toàn quốc
+  </button>
+</div>
+<form
+  class="discovery-controls"
+  [formGroup]="form"
+  (submit)="$event.preventDefault()"
+  aria-label="Tìm kiếm và lọc bài đăng"
+>
+  <label class="search-label"
+    >Tìm theo tiêu đề
+    <input
+      type="search"
+      formControlName="q"
+      placeholder="Bạn đang tìm món đồ gì?"
+      aria-describedby="search-help"
+    />
+  </label>
+  <p id="search-help" class="muted">Hỗ trợ tiếng Việt có dấu và không dấu.</p>
+  @if (suggesting()) {
+    <p role="status">Đang tìm gợi ý…</p>
+  }
+  @if (suggestionError()) {
+    <p role="status">Chưa tải được gợi ý. {{ suggestionError() }}</p>
+  }
+  @if (suggestions().length) {
+    <ul class="suggestions" aria-label="Gợi ý tiêu đề">
+      @for (suggestion of suggestions(); track suggestion.id) {
+        <li>
+          <a [routerLink]="['/listings', suggestion.id]">{{ suggestion.title }}</a>
+        </li>
+      }
+    </ul>
+  }
+  <div class="filter-grid">
+    <label
+      >Loại giao dịch
+      <select formControlName="type">
+        <option value="">Tất cả</option>
+        <option value="SALE">Bán</option>
+        <option value="EXCHANGE">Trao đổi</option>
+        <option value="RENT">Cho thuê</option>
+      </select>
+    </label>
+    @if (values().type === 'RENT') {
+      <label
+        >Đơn vị thuê
+        <select formControlName="rentalUnit">
+          <option value="">Tất cả đơn vị</option>
+          <option value="DAY">Ngày</option>
+          <option value="MONTH">Tháng</option>
+        </select>
+      </label>
+    }
+    @if (tab() === 'nearby') {
+      <label
+        >Tỉnh/thành phố
+        <select formControlName="provinceCode">
+          <option value="">Chọn địa điểm</option>
+          @for (province of provinces(); track province.code) {
+            <option [value]="province.code">{{ province.name }}</option>
+          }
+        </select>
+      </label>
+    }
+    <label
+      >Thời gian đăng
+      <select formControlName="postedWithin">
+        <option value="ALL">Tất cả thời gian</option>
+        <option value="24H">24 giờ qua</option>
+        <option value="7D">7 ngày qua</option>
+        <option value="30D">30 ngày qua</option>
+      </select>
+    </label>
+    <label
+      >Sắp xếp
+      <select formControlName="sort">
+        @if (tab() === 'national' && !values().q.trim()) {
+          <option value="RANDOM">Khám phá ngẫu nhiên</option>
+        }
+        <option value="NEWEST">Mới nhất</option>
+        <option value="OLDEST">Cũ nhất</option>
+        @if (comparablePrice()) {
+          <option value="PRICE_ASC">Giá tăng dần</option>
+          <option value="PRICE_DESC">Giá giảm dần</option>
+        }
+      </select>
+    </label>
+    @if (comparablePrice()) {
+      <label
+        >Giá tối thiểu (VNĐ)<input inputmode="numeric" formControlName="minPrice" placeholder="Từ"
+      /></label>
+      <label
+        >Giá tối đa (VNĐ)<input inputmode="numeric" formControlName="maxPrice" placeholder="Đến"
+      /></label>
+    }
+  </div>
+  @if (!comparablePrice()) {
+    <p class="muted">Để lọc hoặc sắp xếp giá, chọn Bán hoặc Cho thuê với đơn vị ngày/tháng.</p>
+  }
+  @if (tab() === 'national') {
+    <p class="muted">Đang xem toàn quốc. Chọn Nearby để lọc theo tỉnh/thành phố.</p>
+  }
+  @if (provinceLoading() && tab() === 'nearby') {
+    <p role="status">Đang tải tỉnh/thành phố…</p>
+  }
+  @if (provinceError() && tab() === 'nearby') {
+    <p role="alert">
+      {{ provinceError() }}
+      <button type="button" class="text-button" (click)="loadProvinces()">Tải lại địa điểm</button>
+    </p>
+  }
+</form>
+<section aria-label="Bài đăng" [attr.aria-busy]="store.loading() || waiting()">
+  @if (validation()) {
+    <p class="notice" role="status">{{ validation() }}</p>
+  }
+  <div class="listing-grid">
+    @for (listing of store.items(); track listing.id) {
+      <app-listing-card [listing]="listing" />
+    }
+  </div>
+  @if (store.loading() || waiting()) {
+    <p class="feed-status" role="status">Đang tải bài đăng…</p>
+  }
+  @if (store.error()) {
+    <div class="feed-status notice" role="alert">
+      {{ store.error() }}
+      <button type="button" class="secondary" (click)="store.loadMore()">Thử lại</button>
+    </div>
+  } @else if (!validation() && !waiting() && !store.loading()) {
+    @if (store.finished() && !store.items().length) {
+      <p class="feed-status" role="status">
+        Chưa có bài đăng phù hợp. Thử thay đổi từ khóa hoặc bộ lọc.
+      </p>
+    } @else if (store.finished()) {
+      <p class="feed-status" role="status">Bạn đã xem hết bài đăng trong lượt này.</p>
+    }
+  }
+  <div
+    appInfiniteScroll
+    [enabled]="
+      !waiting() &&
+      !store.loading() &&
+      !store.error() &&
+      !validation() &&
+      !store.finished() &&
+      store.items().length > 0
+    "
+    (loadNext)="store.loadMore()"
+    class="feed-status"
+  >
+    @if (
+      !waiting() && !validation() && !store.error() && store.items().length && !store.finished()
+    ) {
+      <button
+        type="button"
+        class="secondary"
+        (click)="store.loadMore()"
+        [disabled]="store.loading()"
+      >
+        Tải thêm bài đăng
+      </button>
+    }
+  </div>
+</section>
