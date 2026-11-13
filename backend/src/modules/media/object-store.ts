@@ -62,14 +62,14 @@ export class LocalObjectStore implements ObjectStore {
 export class S3ObjectStore implements ObjectStore {
   /** Uses the S3-compatible provider selected by deployment configuration; credentials never enter HTTP DTOs. */
   constructor(private readonly client: S3Client, private readonly bucket: string) {}
-  /** Persists optimized private images, leaving access authorization to Backend. */
-  async put(key: string, bytes: Buffer): Promise<void> { await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: bytes, ContentType: "image/webp" })); }
+  /** Keeps generated keys immutable across concurrent writers, including writes delayed until after attachment. */
+  async put(key: string, bytes: Buffer): Promise<void> { await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: bytes, ContentType: "image/webp", IfNoneMatch: "*" }), { abortSignal: AbortSignal.timeout(30_000) }); }
   /** Fetches private bytes without exposing a reusable storage URL. */
   async get(key: string): Promise<Buffer> {
-    const object = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    const object = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }), { abortSignal: AbortSignal.timeout(30_000) });
     if (!object.Body) throw new AppError(404, "NOT_FOUND", "Media not found.");
     return Buffer.from(await object.Body.transformToByteArray());
   }
   /** S3 deletion is idempotent; failures propagate so the outbox can retry. */
-  async delete(key: string): Promise<void> { await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key })); }
+  async delete(key: string): Promise<void> { await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }), { abortSignal: AbortSignal.timeout(30_000) }); }
 }

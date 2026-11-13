@@ -8,6 +8,8 @@ import { ListingMediaService } from "../../src/modules/media/listing-media.servi
 import { lockResources } from "../../src/shared/database/locks";
 import { MediaOrphanRecovery } from "../../src/modules/media/media-orphan-recovery.service";
 import request from "supertest";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3ObjectStore } from "../../src/modules/media/object-store";
 
 let fixture: AuthFixture;
 let cleanup: MediaCleanupService;
@@ -39,6 +41,36 @@ async function attach(data: Awaited<ReturnType<typeof setup>>) {
 }
 
 describe("Listing Media lifecycle and committed cleanup", () => {
+  it("prevents a delayed S3 writer from replacing bytes after another writer attaches", async () => {
+    const owner = await fixture.user(); const province = await fixture.province();
+    const listing = await fixture.db.listing.create({ data: { ownerId: owner.id, provinceId: province.id, title: "Concurrent S3 listing", searchTitle: "concurrent s3 listing", description: "Concurrent image writer regression.", type: "SALE", price: 100 } });
+    const client = new S3Client({ region: "test" });
+    let entered!: () => void; let release!: () => void;
+    const ready = new Promise<void>((resolve) => { entered = resolve; });
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    // Model the provider's conditional write atomically, after the delayed request reaches storage.
+    vi.spyOn(client, "send").mockImplementation(async (command) => {
+      if (!(command instanceof PutObjectCommand) || !command.input.Key || !Buffer.isBuffer(command.input.Body)) throw new Error("Unexpected storage command");
+      if (command.input.Body.equals(Buffer.from("second"))) { entered(); await gate; }
+      if (command.input.IfNoneMatch === "*" && fixture.objects.has(command.input.Key)) throw new Error("PreconditionFailed");
+      fixture.objects.set(command.input.Key, command.input.Body);
+      return { $metadata: {} };
+    });
+    const storage = new S3ObjectStore(client, "fixture-private");
+    const service = new ListingMediaService(new ListingMediaRepository(fixture.db), { ...fixture.storage, put: storage.put.bind(storage) });
+    const media = await service.reserve(owner.id, 6);
+    const delayed = service.write(media.id, owner.id, { detail: Buffer.from("second"), thumbnail: Buffer.from("second thumbnail") });
+    await ready;
+    try {
+      await service.write(media.id, owner.id, { detail: Buffer.from("detail"), thumbnail: Buffer.from("thumbnail") });
+      await fixture.db.$transaction((tx) => service.attach({ assets: [{ id: media.id, position: 0 }], userId: owner.id, listingId: listing.id }, tx));
+    } finally { release(); }
+    const result = await Promise.allSettled([delayed]);
+    expect(result[0].status).toBe("rejected");
+    expect(fixture.objects.get(`listing/v1/${media.id}.webp`)).toEqual(Buffer.from("detail"));
+    expect((await fixture.db.mediaAsset.findUniqueOrThrow({ where: { id: media.id } })).status).toBe("ATTACHED");
+    client.destroy();
+  });
   it("reconciles partial renditions when cancel and cleanup win against an in-flight writer", async () => {
     const owner = await fixture.user(); const media = await listingMedia.reserve(owner.id, 6);
     let release!: () => void; let entered!: () => void;

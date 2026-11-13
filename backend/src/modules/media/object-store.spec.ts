@@ -2,8 +2,29 @@ import { mkdtemp, rmdir, symlink, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
-import { LocalObjectStore } from "./object-store";
+import { describe, expect, it, vi } from "vitest";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { LocalObjectStore, S3ObjectStore } from "./object-store";
+
+describe("Private S3 object storage", () => {
+  it("uses immutable writes and bounded provider requests, propagating write conflicts", async () => {
+    const client = new S3Client({ region: "test" });
+    const send = vi.spyOn(client, "send").mockImplementation(async () => ({ $metadata: {} }));
+    const store = new S3ObjectStore(client, "fixture-private");
+    try {
+      await store.put("profile/fixture.webp", Buffer.from("private"));
+      expect(send.mock.calls[0]?.[0]).toBeInstanceOf(PutObjectCommand);
+      expect(send.mock.calls[0]?.[0].input).toMatchObject({ IfNoneMatch: "*" });
+      await expect(store.get("profile/fixture.webp")).rejects.toMatchObject({ status: 404 });
+      expect(send.mock.calls[1]?.[0]).toBeInstanceOf(GetObjectCommand);
+      await store.delete("profile/fixture.webp");
+      expect(send.mock.calls[2]?.[0]).toBeInstanceOf(DeleteObjectCommand);
+      for (const call of send.mock.calls) expect(call[1]).toMatchObject({ abortSignal: expect.any(AbortSignal) });
+      send.mockRejectedValueOnce(new Error("PreconditionFailed"));
+      await expect(store.put("profile/fixture.webp", Buffer.from("replacement"))).rejects.toThrow("PreconditionFailed");
+    } finally { send.mockRestore(); client.destroy(); }
+  });
+});
 
 describe("Private local object storage", () => {
   it("stores private bytes, rejects traversal and makes deletion idempotent", async () => {

@@ -1,5 +1,15 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Final review PR #19 — 13/11/2026
+
+Đã đọc toàn bộ diff so với develop, workflow, thiết kế Listing/Media, migration và các writer/cleanup/account coordinator liên quan. Review giữ nguyên nghiệp vụ, Prisma shape, migration lịch sử, Frontend và dependencies. Không chạy migration trên development/production.
+
+**High — đã sửa:** `S3ObjectStore.put` trước review cho phép overwrite trong khi local dùng `wx`. Hai writer cùng đọc TEMP; writer chậm dừng trước PUT, writer khác ghi đủ rendition và attach; writer chậm tiếp tục sẽ thay bytes của asset ATTACHED trước khi finalize từ chối. Bản sửa dùng `IfNoneMatch: "*"`, không fallback overwrite, và truyền abort signal 30 giây cho các request S3. Regression `prevents a delayed S3 writer from replacing bytes after another writer attaches` trong `media-lifecycle.test.ts` thất bại trước sửa do detail bytes bị đổi, đạt sau sửa và xác nhận metadata vẫn ATTACHED. PostgreSQL/locks/transactions thật; S3 được fake tại SDK send để mô phỏng conditional PUT nguyên tử. Unit `uses immutable writes and bounded provider requests, propagating write conflicts` kiểm tra điều kiện, abort signal và lỗi provider được trả về. Chưa nghiệm thu provider/bucket S3 thật.
+
+Kết quả chạy lại sau sửa: `npm test` **99/99**, `npm run test:integration` **427/427, 26 file**, `npm run test:api` **23/23**; source typecheck, test typecheck, build đều đạt. Đã xác minh actual `looply_test` PostgreSQL 17.11 trước ghi; Redis test `/1`. Prisma validate và migrate status chạy với DATABASE_URL của child process trỏ TEST_DATABASE_URL đã xác minh: schema hợp lệ, năm migration up to date; không cần deploy lại. `git diff --check` đạt. E2E 26 bước phía dưới là bằng chứng lần triển khai trước, không chạy lại trong final review chỉ sửa adapter S3. CI phải kiểm tra trên commit chứa bản sửa; kết quả và link được báo tại PR/final review.
+
+Batch attachment kiểm tra toàn bộ tập khóa trước khi đổi trạng thái; test ảnh thứ hai chưa ready xác nhận ảnh đầu vẫn TEMP sau transaction rollback. Cleanup claim đọc lại reference dưới User/Media lock và commit DELETING trước I/O; retry, stale job, lease fencing và idempotency được đối chiếu với test PostgreSQL. Account preparation chỉ chọn uploader tương ứng, từ chối Listing khác owner, giữ CHAT/Message reference; regression account deletion và avatar nằm trong suite đã chạy. Không phát hiện thêm lỗi Critical/High/Medium/Low cần sửa trong phạm vi phase 1 sau bản sửa này. Giới hạn phase 1 và cấu hình storage riêng theo database vẫn áp dụng như dưới đây.
+
 ## Media & Database Preparation — 13/11/2026
 
 Đã xác minh actual PostgreSQL 17.11 `looply_test` tại local port 5435 trước ghi, khác `looply_dev`; Redis test DB `/1` tại local port 6380 khác development `/0`. Không dùng production credentials, không migrate/reset/truncate/seed development. Chỉ thêm và deploy `0005_listing_media_preparation` lên test, không UPDATE/DELETE Media hiện hữu từ migration. Prisma shape và migration 0001–0004 giữ nguyên.
