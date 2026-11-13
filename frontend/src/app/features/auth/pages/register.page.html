@@ -1,0 +1,56 @@
+<section class="card form-card">
+  <span class="eyebrow">BẮT ĐẦU VÒNG KẾT NỐI</span>
+  <h1>Tạo tài khoản Looply</h1>
+  <p class="muted">Một tài khoản, nhiều cơ hội trao đổi.</p>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label>Tên đăng nhập<input formControlName="username" autocomplete="username" /></label
+    ><small>3–30 chữ cái, chữ số hoặc dấu gạch dưới. Tên sẽ được viết thường.</small>
+    <label
+      >Mật khẩu<input
+        type="password"
+        formControlName="password"
+        autocomplete="new-password" /></label
+    ><small>8–128 ký tự Unicode. Tránh mật khẩu phổ biến hoặc đã bị lộ.</small>
+    <label
+      >Số điện thoại<input
+        type="tel"
+        formControlName="phone"
+        autocomplete="tel"
+        placeholder="+84901234567"
+        (input)="proof.set(null)"
+    /></label>
+    <app-otp-input
+      purpose="REGISTER_PHONE"
+      [destination]="form.controls.phone.valid ? form.controls.phone.value : ''"
+      (proof)="proof.set($event)"
+    />
+    <label
+      >Tỉnh / thành phố<select formControlName="provinceCode">
+        <option value="">Chọn tỉnh / thành phố</option>
+        @for (province of provinces(); track province.code) {
+          <option [value]="province.code">{{ province.name }}</option>
+        }
+      </select></label
+    >
+    <app-feedback [state]="catalogState" />
+    @if (catalogState.error()) {
+      <button type="button" class="secondary" (click)="loadProvinces()">Tải lại danh mục</button>
+    }
+    <label
+      >Email <span class="muted">(không bắt buộc)</span
+      ><input type="email" formControlName="email" autocomplete="email" maxlength="254"
+    /></label>
+    @if (form.touched && form.invalid) {
+      <p class="notice error" role="alert">
+        Kiểm tra tên đăng nhập, mật khẩu, số điện thoại, email và tỉnh/thành phố theo hướng dẫn.
+      </p>
+    }
+    <app-feedback [state]="state" /><button
+      class="primary wide"
+      [disabled]="state.busy() || catalogState.busy() || !provinces().length"
+    >
+      Tạo tài khoản
+    </button>
+  </form>
+  <p class="auth-footer">Đã có tài khoản? <a routerLink="/auth/login">Đăng nhập</a></p>
+</section>

@@ -1,0 +1,75 @@
+<section class="auth-layout">
+  <aside class="auth-story">
+    <span class="eyebrow">MỘT VÒNG ĐỜI MỚI CHO ĐỒ DÙNG</span>
+    <h1>Đồ cũ của bạn.<br />Khởi đầu mới<br />của ai đó.</h1>
+    <p>
+      Kết nối với cộng đồng Looply, tìm điều hữu ích và trao đi những món đồ bạn từng yêu thích.
+    </p>
+    <div class="loop-art" aria-hidden="true">↻</div>
+    <span class="story-note">Bớt lãng phí · Thêm kết nối</span>
+  </aside>
+  <div class="card auth-card">
+    <span class="eyebrow">CHÀO MỪNG TRỞ LẠI</span>
+    <h2>Đăng nhập Looply</h2>
+    <p class="muted">Tiếp tục câu chuyện của những món đồ.</p>
+    @if (deletionRequested) {
+      <p class="notice" role="status">
+        Đã ghi nhận yêu cầu xóa. Tài khoản có thời gian chờ 30 ngày. Đăng nhập để xem trạng thái
+        hoặc hủy yêu cầu một cách tường minh.
+      </p>
+    }
+    <div class="tabs">
+      <button
+        type="button"
+        [attr.aria-pressed]="mode() === 'password'"
+        (click)="mode.set('password')"
+      >
+        Tên đăng nhập</button
+      ><button type="button" [attr.aria-pressed]="mode() === 'phone'" (click)="mode.set('phone')">
+        Số điện thoại
+      </button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      @if (mode() === 'password') {
+        <label
+          >Tên đăng nhập<input
+            formControlName="username"
+            autocomplete="username"
+            placeholder="Tên đăng nhập của bạn"
+            [attr.aria-invalid]="form.controls.username.touched && form.controls.username.invalid"
+        /></label>
+        <small>3–30 chữ cái, chữ số hoặc dấu gạch dưới.</small>
+        <label
+          >Mật khẩu<input
+            type="password"
+            formControlName="password"
+            autocomplete="current-password"
+            maxlength="512"
+        /></label>
+        <a routerLink="/auth/reset">Quên mật khẩu?</a>
+      } @else {
+        <label
+          >Số điện thoại<input
+            type="tel"
+            [formControl]="phone"
+            autocomplete="tel"
+            placeholder="+84…"
+            (input)="proof.set(null)" /></label
+        ><small>Dùng định dạng quốc tế, ví dụ +84901234567.</small>
+        <app-otp-input
+          purpose="LOGIN_PHONE"
+          [destination]="phone.valid ? phone.value : ''"
+          (proof)="proof.set($event)"
+        />
+      }
+      <app-feedback [state]="state" /><button
+        class="primary wide"
+        type="submit"
+        [disabled]="state.busy()"
+      >
+        Đăng nhập <span aria-hidden="true">→</span>
+      </button>
+    </form>
+    <p class="auth-footer">Chưa có tài khoản? <a routerLink="/auth/register">Tham gia Looply</a></p>
+  </div>
+</section>

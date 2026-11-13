@@ -7,7 +7,10 @@ export class FakeMessageProvider implements MessageProvider {
   async send(destination: string, code: string): Promise<void> {
     for (const [key, delivery] of this.deliveries) if (delivery.expiresAt <= Date.now()) this.deliveries.delete(key);
     if (this.deliveries.size >= 1000) this.deliveries.clear();
-    this.deliveries.set(destination, { code, expiresAt: Date.now() + 300000 });
+    const delivery = { code, expiresAt: Date.now() + 300000 };
+    this.deliveries.set(destination, delivery);
+    // Remove plaintext from idle processes too; a previous timer must not delete a replacement delivery.
+    setTimeout(() => { if (this.deliveries.get(destination) === delivery) this.deliveries.delete(destination); }, 300000).unref();
   }
   /** Exposes the latest delivery only to in-process test fixtures; no HTTP route accesses this method. */
   lastCode(destination: string): string | undefined {

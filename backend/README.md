@@ -1,6 +1,6 @@
 # Looply Backend
 
-Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar và worker dọn tài khoản/media. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Listing/Chat/Notification đầy đủ và Angular chưa nằm trong triển khai này; các điểm tích hợp quyền dùng public API của User. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
+Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar và worker dọn tài khoản/media. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Listing/Chat/Notification đầy đủ chưa nằm trong triển khai Backend này; các điểm tích hợp quyền dùng public API của User. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
 
 ## Cấu hình và chạy
 
@@ -95,14 +95,18 @@ Từ root chạy `docker compose up -d postgres redis`; Redis local cổng 6380,
 - `GOOGLE_CLIENT_ID`: audience của ứng dụng Google thực tế. `AUTH_ISSUER` mặc định `looply`.
 - `AUTH_ALLOWED_ORIGINS`: origin chính xác của Angular; chúng phải nằm trong `CORS_ORIGINS`, với `CORS_CREDENTIALS=true`. Production yêu cầu HTTPS.
 - `REDIS_URL`: Redis runtime; `TEST_REDIS_URL`: database Redis test riêng, ví dụ local `/15`. Không dùng database `/0` cho test; helper xác minh DB Redis thực tế và chỉ dọn namespace UUID của test, không FLUSHDB.
-- `SMS_PROVIDER`/`EMAIL_PROVIDER`: `fake` hoặc `http`. Adapter `http` gửi POST JSON `{destination, code, expiresIn}` qua HTTPS và Bearer key riêng; gateway thật phải tương thích contract này hoặc được thay bằng adapter nhà cung cấp. Fake chỉ giữ mã tạm trong process cho test, không có HTTP endpoint/log xem OTP; không phải SMS/email thật.
+- `SMS_PROVIDER`/`EMAIL_PROVIDER`: `fake` hoặc `http`. Adapter `http` gửi POST JSON `{destination, code, expiresIn}` qua HTTPS và Bearer key riêng; gateway thật phải tương thích contract này hoặc được thay bằng adapter nhà cung cấp. Fake giữ mã tạm trong process, tự loại khỏi bộ nhớ sau tối đa 5 phút; không có endpoint xem mã trong API Auth/User hoặc log. Công cụ CLI Development tách riêng được mô tả dưới đây; không phải SMS/email thật.
 - `MEDIA_PROVIDER=local`: private directory `.local-media` cho dev/test; không phục vụ trực tiếp thư mục. Production bắt buộc `s3` cùng endpoint HTTPS, bucket, region, access key và secret key trong môi trường. Backend đọc ảnh qua route có kiểm tra quyền; không công khai storage key.
 
 Production từ chối fake message providers/local storage. Redis chưa sẵn sàng thì startup thất bại; Redis mất kết nối khi đang chạy thì thao tác xác thực cần Redis trả 503, không fallback. Client Redis không lưu offline queue; cần khởi động lại backend sau khi mất kết nối Redis. Mặc định login password có shared limit 10 lần/15 phút theo username, Auth có 60 request/phút/IP, re-auth 5 lần/15 phút/session; có thể cấu hình qua `AUTH_PASSWORD_LIMIT/WINDOW_SECONDS`, `AUTH_IP_LIMIT/WINDOW_SECONDS` và `AUTH_REAUTH_LIMIT/WINDOW_SECONDS` như `.env.example`. Quota OTP tuân thủ yêu cầu đã duyệt. Không tin proxy headers; cấu hình proxy triển khai phải được duyệt riêng.
 
+Công cụ CLI xem fake OTP chỉ Development, opt-in mặc định tắt, listener loopback và key riêng: xem [hướng dẫn inspector](src/development/README.md). Không dùng API công khai hoặc log để lấy mã.
+
 Password mới được kiểm tra bằng [Have I Been Pwned Pwned Passwords](https://haveibeenpwned.com/API/v3#PwnedPasswords), chỉ gửi SHA-1 prefix 5 ký tự với response padding; không gửi plaintext hoặc full hash. Lỗi/malformed response từ provider thì từ chối tạo/đổi password. Hash lưu bằng Argon2id 64 MiB, 3 lượt, parallelism 1. Không cần API key HIBP cho range endpoint.
 
 ## Tích hợp Angular
+
+Giao diện tài khoản nội bộ và bằng chứng kiểm thử browser thật thuộc [Frontend README](../frontend/README.md). Google và các gateway thật chưa được nghiệm thu.
 
 Contract và danh sách endpoint đầy đủ thuộc [OpenAPI](../docs/api/openapi.json); hướng dẫn transport thuộc [API conventions](../docs/api/CONVENTIONS.md).
 
