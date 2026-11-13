@@ -56,9 +56,9 @@ Từ `frontend/`:
 
 ```powershell
 npm test -- --watch=false
-npm exec -- tsc --project tsconfig.app.json --noEmit
+npm exec -- ngc --project tsconfig.app.json --noEmit
 npm exec -- tsc --project tsconfig.spec.json --noEmit
-npm run build
+npm run build -- --configuration production
 node e2e/auth-user.cjs
 ```
 
@@ -67,6 +67,16 @@ E2E dùng Chromium DevTools Protocol/WebSocket của Node 24, không cài thêm 
 Harness đọc `TEST_DATABASE_URL`, kiểm tra URL và `SELECT current_database()` đúng local `looply_test` trước mọi ghi dữ liệu; Redis phải dùng database riêng khác `/0` (mặc định local `/15`, hoặc `TEST_REDIS_URL`). `e2e/backend.cjs` dùng composition Backend thật với config database test, upsert catalog 34 tỉnh chính thức chỉ trên test và chạy API/inspector bằng process Development cô lập; không thay quy tắc environment/database của server thông thường. Dùng khóa ngẫu nhiên trong RAM, không sửa `.env`, migrate/reset/truncate hoặc ghi/xóa dữ liệu Development. Password breach vẫn dùng HIBP thực tế và fail closed khi dịch vụ lỗi. Tạo tài khoản tiền tố `ui_` bằng API, giữ lại trên `looply_test`; password/code/token không ghi report/log. Fixture không dành cho đăng nhập thủ công. Không chạy song song harness với integration suite dùng cùng database/Redis. Các lượt cũ trước review từng tạo tài khoản `ui_` trên Development; review không xóa hay chỉnh sửa chúng.
 
 Report/screenshot local tại `frontend/tmp/e2e/` được Git ignore; Chromium profile ở OS temp riêng. Browser và process do harness tạo được dừng khi hoàn tất. Không dừng process người dùng. Cần giữ profile temp trong phạm vi truy cập riêng của người phát triển vì Chromium có cookie phiên.
+
+### Frontend CI
+
+Workflow [`frontend-ci.yml`](../.github/workflows/frontend-ci.yml) chạy trên mọi PR vào `develop`/`main` và push tới hai nhánh này, tương ứng với phạm vi nhánh của Backend CI. Không lọc theo đường dẫn để check `Frontend checks` luôn có kết quả khi được chọn làm required check. Workflow chỉ tạo kết quả kiểm tra; việc bắt buộc check trước merge cần cấu hình branch protection/ruleset riêng, không được tự thay đổi trong nhiệm vụ này.
+
+Job dùng Node.js 24, `npm ci` với `frontend/package-lock.json`, Angular compiler `ngc --noEmit` kiểm tra source/template, `tsc --noEmit` kiểm tra tests, Angular CLI/Vitest chạy unit/component không watch và build production bằng các lệnh phía trên. Không cài Backend dependencies, dùng production secrets, khởi động PostgreSQL/Redis hoặc chạy migration. Backend CI hiện hữu tiếp tục chạy độc lập.
+
+Chưa bật formatting gate: `package.json` chưa có script formatting phù hợp. Kiểm tra local `npm exec -- prettier --check "src/**/*.{ts,html,scss}"` ngày 13/11/2026 phát hiện 55 file có lỗi định dạng sẵn có; cần xử lý riêng trước khi áp dụng gate toàn Frontend. Không thay mã nghiệp vụ hoặc dependency để làm CI đạt.
+
+Chrome E2E **chưa được đưa vào CI và chưa được kiểm chứng trên GitHub Actions**. Harness CDP có thể dùng Chrome headless trên Linux qua `CHROMIUM_PATH`, nhưng cần một job tích hợp riêng: dependencies cả hai project, Prisma client đã generate, PostgreSQL 17 `looply_test` đã có schema/migration phù hợp, Redis 7.4 test riêng, `backend/.env` test tạm và các cổng nêu trên. Job tương lai phải xác minh database thực tế trước khi chuẩn bị schema/dữ liệu, giữ fake SMS/email và local media trong môi trường cô lập, chờ cooldown thật và cho phép kết nối HIBP. Không dùng file `.env` hoặc credentials production. Harness hiện upsert catalog và tạo tài khoản trên test, không tự migrate; không thể chỉ thêm lệnh E2E vào job Frontend hiện tại. Thiết lập hạ tầng và chạy thành công E2E trên Actions thuộc nhiệm vụ riêng.
 
 ### Bằng chứng local 13/11/2026
 
@@ -92,7 +102,7 @@ Lỗi avatar Signal tự fetch lặp, native form submit và late response khi �
 
 Google, SMS/email gateway, S3 thật chưa được tích hợp/nghiệm thu. Fake OTP và local media chỉ Development. Backup retention 30 ngày, restore và nguồn trạng thái xóa độc lập vẫn là yêu cầu vận hành chưa có hạ tầng. Không nghiệm thu worker sau 30 ngày bằng E2E frontend; Backend regression giữ trách nhiệm Chat history/Chat Media và cleanup.
 
-Nhánh `feat/auth-user-frontend` tạo từ `develop` sau khi PR #14 merge. Nhiệm vụ review tiếp theo đã cho phép commit/push/tạo PR vào `develop` khi kiểm tra đạt; không tự merge. CI hiện hữu chỉ chạy Backend; Frontend unit/typecheck/build và Chrome E2E được kiểm chứng local, không được coi là GitHub Frontend CI.
+Nhánh `feat/auth-user-frontend` tạo từ `develop` sau khi PR #14 merge; PR #15 đã được merge vào `develop`. Bằng chứng Chrome E2E phía trên là kết quả local của nhiệm vụ Auth/User, không phải kết quả E2E trên GitHub Actions. Phạm vi Frontend CI hiện tại xem mục riêng phía trên.
 
 Đã bổ sung các biến Auth/Redis/CORS còn thiếu vào `backend/.env` cục bộ đã Git ignore, sinh khóa riêng ngẫu nhiên và giữ nguyên mọi giá trị cũ không rỗng. Inspector ở cấu hình local vẫn tắt mặc định; muốn dùng thủ công cần bật flag theo hướng dẫn. Các lượt E2E tự opt-in riêng trong môi trường process, không sửa file này.
 
