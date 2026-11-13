@@ -24,7 +24,7 @@ Giúp AI Agent tìm đúng tài liệu, hiểu yêu cầu và cập nhật đún
 
 1. **BẮT BUỘC** đọc `AGENTS.md` và tài liệu liên quan trực tiếp đến nhiệm vụ trước khi sửa code.
 2. **BẮT BUỘC** chỉ ghi chi tiết tại tài liệu sở hữu nội dung; tài liệu khác dẫn chiếu, không sao chép.
-3. **BẮT BUỘC** cập nhật tài liệu liên quan khi yêu cầu, API contract, cấu trúc hoặc quyết định kỹ thuật được phê duyệt thay đổi.
+3. **BẮT BUỘC** chỉ cập nhật tài liệu sở hữu nội dung thực sự bị ảnh hưởng khi yêu cầu, API contract, cấu trúc hoặc quyết định kỹ thuật được phê duyệt thay đổi; không đồng bộ hàng loạt docs khi không có thay đổi tương ứng.
 4. **BẮT BUỘC** phân biệt yêu cầu đã chốt, đề xuất và trạng thái triển khai; không tự xem đề xuất là quyết định.
 5. **BẮT BUỘC** báo cáo khi tài liệu thiếu, mâu thuẫn hoặc không khớp code; không tự ý thay đổi nghiệp vụ đã chốt.
 6. **NÊN** dùng tiêu đề rõ, bảng hoặc danh sách ngắn; ưu tiên thông tin có thể hành động, tránh diễn giải dài dòng.

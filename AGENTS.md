@@ -71,16 +71,16 @@ Tài liệu này áp dụng cho toàn bộ repository Looply. `AGENTS.md` quy đ
 
 ## 4. Nghĩa vụ trong quy trình làm việc của Agent
 
-Tuân thủ `docs/workflows/DEVELOPMENT_WORKFLOW.md` và tài liệu liên quan trong `docs/workflows/`. Tối thiểu, với mỗi nhiệm vụ được cho phép:
+Tuân thủ [Lean Development Workflow](docs/workflows/DEVELOPMENT_WORKFLOW.md); chỉ đọc hướng dẫn chi tiết cần dùng. Có thể gộp phân tích và thiết kế khi yêu cầu rõ; không cần kế hoạch dài hoặc báo cáo riêng từng bước. Tìm kiếm có mục tiêu, không đọc toàn repository hoặc đọc lại nội dung chưa thay đổi. Tối thiểu, với mỗi nhiệm vụ được cho phép:
 
 1. **Phân tích — BẮT BUỘC:** Đọc yêu cầu, code, test, contract và quy ước liên quan; không đoán nội dung file chưa xem.
 2. **Đánh giá tác động — BẮT BUỘC:** Xác định module, nơi sử dụng, schema, test và rủi ro bị ảnh hưởng trước khi sửa.
 3. **Thiết kế — BẮT BUỘC:** Xác định ranh giới trách nhiệm, thay đổi contract và kế hoạch kiểm chứng; xin quyết định khi còn vấn đề nghiệp vụ/kiến trúc chưa được duyệt.
 4. **Triển khai — BẮT BUỘC:** Thay đổi tập trung, tái sử dụng thành phần hiện có, không tự refactor phần không liên quan.
-5. **Kiểm chứng — BẮT BUỘC:** Viết/cập nhật test phù hợp và thực sự chạy các kiểm tra áp dụng được: test, type check, lint, build, runtime/API. Mock phù hợp với unit test nhưng không thay thế kiểm chứng tích hợp bắt buộc.
+5. **Kiểm chứng — BẮT BUỘC:** Áp dụng [Risk-Based Targeted Testing](docs/workflows/TESTING.md); chọn test, type check, lint, build, runtime/API theo rủi ro. Không mặc định full suite local, không lặp kết quả PASS còn hiệu lực; tận dụng CI đúng commit và phạm vi. Documentation-only kiểm tra Markdown, liên kết liên quan và `git diff --check`, không chạy test ứng dụng/build. Mock không thay thế kiểm chứng tích hợp bắt buộc.
 6. **Điều tra lỗi — BẮT BUỘC:** Tìm nguyên nhân lỗi; không xóa, làm yếu, bỏ qua hoặc làm sai lệch test hợp lệ chỉ để có kết quả xanh. Chạy lại kiểm tra sau khi sửa.
-7. **Rà soát — BẮT BUỘC:** Kiểm tra tính đúng đắn, bảo mật, tương thích contract, phân tách trách nhiệm, trùng lặp và thay đổi ngoài ý muốn.
-8. **Báo cáo — BẮT BUỘC:** Cập nhật tài liệu bị ảnh hưởng và báo cáo kết quả đã kiểm chứng cùng phần chưa giải quyết.
+7. **Rà soát — BẮT BUỘC:** Review diff và phạm vi ảnh hưởng, ưu tiên correctness, security, concurrency và regression; kiểm tra contract, phân tách trách nhiệm và thay đổi ngoài ý muốn. Không review lại nội dung chưa đổi nếu không có rủi ro hoặc bằng chứng mới.
+8. **Báo cáo — BẮT BUỘC:** Chỉ cập nhật tài liệu thực sự bị ảnh hưởng; bàn giao ngắn thay đổi, kiểm tra/kết quả, rủi ro và PR nếu có. Không tạo báo cáo trung gian dài; chỉ hỏi khi có blocker hoặc quyết định cần phê duyệt.
 
 **Tiêu chí hoàn thành (Definition of Done):** Chỉ xác nhận **hoàn thành** khi hành vi đã duyệt được triển khai, trách nhiệm được phân tách đúng, các bước kiểm chứng áp dụng được đều đạt và contract/tài liệu liên quan đã đồng bộ. Nếu không thể chạy kiểm chứng, ghi rõ **đã triển khai nhưng chưa kiểm chứng đầy đủ**. Skeleton, mock và placeholder không được tính là tính năng hoàn chỉnh.
 

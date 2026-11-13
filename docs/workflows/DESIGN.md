@@ -4,7 +4,7 @@
 Chuyển kết quả của `ANALYSIS.md` thành thiết kế đủ rõ để AI Agent triển khai đúng yêu cầu, phù hợp kiến trúc Looply Đồ án 1.
 
 ## Đầu vào
-- Kết quả phân tích đã được xác nhận ở giai đoạn **ANALYSIS**: luồng nghiệp vụ, quy tắc, dữ liệu, phân quyền, tiêu chí chấp nhận.
+- Yêu cầu đã rõ từ **ANALYSIS**: luồng nghiệp vụ, quy tắc, dữ liệu, phân quyền, tiêu chí chấp nhận; không cần lượt phê duyệt riêng nếu không phát sinh quyết định cần duyệt.
 - Kiến trúc, tech stack, cấu trúc dự án và mã nguồn hiện có liên quan.
 
 ## Nhiệm vụ của Agent
@@ -16,6 +16,8 @@ Chuyển kết quả của `ANALYSIS.md` thành thiết kế đủ rõ để AI 
 6. Đối chiếu thiết kế với yêu cầu và công nghệ đã chốt; nêu rõ điểm chưa xác định, không tự thêm nghiệp vụ.
 
 ## Đầu ra
+Thiết kế vừa đủ cho rủi ro của thay đổi; có thể gộp với phân tích và triển khai theo [Lean Development Workflow](DEVELOPMENT_WORKFLOW.md), không bắt buộc kế hoạch dài hoặc tài liệu thiết kế riêng.
+
 - Phương án thiết kế có thể triển khai: thành phần/file dự kiến, luồng xử lý, dữ liệu và giao diện giữa các thành phần.
 - Danh sách thay đổi và các trường hợp kiểm thử cần thực hiện.
 - Các quyết định hoặc vướng mắc cần xác nhận (nếu có).

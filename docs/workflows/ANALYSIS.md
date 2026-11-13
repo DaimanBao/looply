@@ -4,6 +4,8 @@
 Làm rõ **cần xây dựng gì** trước khi thiết kế hoặc viết code. Kết quả của giai đoạn này là đầu vào cho `DESIGN.md`.
 
 ## Đầu vào
+Chỉ đọc đầu vào liên quan trực tiếp theo [Lean Development Workflow](DEVELOPMENT_WORKFLOW.md); dùng lại thông tin đã biết nếu chưa thay đổi.
+
 - Yêu cầu người dùng và phạm vi Đồ án 1 trong `docs/PROJECT_OVERVIEW.md`.
 - Quy tắc nghiệp vụ trong `docs/requirements/FUNCTIONAL_REQUIREMENTS.md` và tài liệu module liên quan.
 - Trạng thái code, database và API hiện có (nếu có).
@@ -17,7 +19,7 @@ Làm rõ **cần xây dựng gì** trước khi thiết kế hoặc viết code.
 6. Nếu yêu cầu thiếu, mâu thuẫn hoặc chưa được quyết định: nêu rõ câu hỏi cần xác nhận; **không tự coi giả định là quyết định đã chốt**.
 
 ## Đầu ra bắt buộc
-Bản phân tích ngắn gọn gồm:
+Xác định ngắn gọn các nội dung áp dụng dưới đây; có thể giữ trong ngữ cảnh làm việc, không cần báo cáo/file riêng khi yêu cầu đã rõ:
 - **Mục tiêu & phạm vi:** làm gì, không làm gì.
 - **Luồng nghiệp vụ:** luồng chính và ngoại lệ quan trọng.
 - **Quy tắc & dữ liệu:** ràng buộc, quyền truy cập, dữ liệu cần xử lý.
