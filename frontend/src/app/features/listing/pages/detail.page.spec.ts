@@ -28,6 +28,7 @@ describe('Public listing routes', () => {
     await harness.navigateByUrl(`/listings/${listing.id}`, DetailPage);
     http.expectOne(`/api/listings/${listing.id}`).flush(listing);
     await harness.fixture.whenStable();
+    http.expectOne('/api/users/me').flush({ id: 'viewer' });
     http
       .expectOne(`${listing.cover.deliveryPath}?variant=detail`)
       .flush(new Blob(['image'], { type: 'image/webp' }));
@@ -72,6 +73,7 @@ describe('Public listing routes', () => {
     await harness.navigateByUrl(`/listings/${listing.id}`, DetailPage);
     http.expectOne(`/api/listings/${listing.id}`).flush(listing);
     await harness.fixture.whenStable();
+    http.expectOne('/api/users/me').flush({ id: listing.owner.id });
     http
       .expectOne(`${listing.cover.deliveryPath}?variant=detail`)
       .flush(new Blob(['image'], { type: 'image/webp' }));

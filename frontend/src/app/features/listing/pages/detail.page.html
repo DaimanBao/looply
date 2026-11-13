@@ -1,4 +1,8 @@
 <a routerLink="/">← Khám phá bài đăng</a>
+<p>
+  <a routerLink="/account/followed-listings">Bài đăng đang theo dõi</a> ·
+  <a routerLink="/account/listings">Bài đăng của tôi</a>
+</p>
 @if (loading()) {
   <p role="status" class="detail-status">Đang tải bài đăng…</p>
 }
@@ -26,6 +30,7 @@
       <span class="eyebrow">{{ typeLabels[item.type] }} · {{ item.type }}</span>
       <h1>{{ item.title }}</h1>
       <p class="detail-price"><app-listing-price [listing]="item" /></p>
+      <app-listing-follow [listing]="item" />
       <p>{{ item.province.name }}</p>
       <p class="muted">
         Đăng

@@ -22,6 +22,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/listing/pages/editor.page').then((m) => m.EditorPage),
   },
   {
+    path: 'account/followed-listings',
+    canActivate: [activeGuard],
+    loadComponent: () =>
+      import('./features/listing/pages/followed-listings.page').then((m) => m.FollowedListingsPage),
+  },
+  {
     path: 'account/listings',
     canActivate: [activeGuard],
     loadComponent: () =>

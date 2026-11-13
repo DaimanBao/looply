@@ -126,6 +126,8 @@ Các quy ước này không yêu cầu refactor hàng loạt Auth/User hiện t�
 - Membership/order/cover/video gửi cùng mutation Listing; hủy editor không xóa media ATTACHED. Kiểm chứng/giới hạn thuộc [Frontend README](../../frontend/README.md#listing-management-và-media--phase-5b).
 
 ## Quy tắc
+
+Phase 5C thêm `listing-follow` dùng chung ở card/detail, `data-access/listing-follow.api.ts` và state singleton theo danh tính. GET Discovery/Detail và danh sách theo dõi có dấu revision để response cũ không ghi đè mutation. `/account/followed-listings` dùng lại `DiscoveryStore` với nguồn trang riêng, giữ cursor/dedup/retry và hủy request của tài khoản cũ. Quyền chủ lấy từ User public API `/users/me`; không giải mã JWT ở UI. Bằng chứng/giới hạn thuộc [Frontend README](../../frontend/README.md#follow-listing-và-tích-hợp--phase-5c).
 - **Page** điều phối hiển thị; **component** tập trung UI; **data-access** gọi API; **state** quản lý trạng thái; không nhúng gọi HTTP và nghiệp vụ phức tạp trực tiếp trong template/component.
 - Dùng Angular Signals cho trạng thái UI phù hợp, RxJS cho luồng bất đồng bộ; không tạo nhiều nguồn sự thật cho cùng một session/dữ liệu.
 - `core/` dành cho singleton và hạ tầng ứng dụng; `shared/` chỉ dành cho UI/utility tái sử dụng, không chứa logic riêng của feature.
