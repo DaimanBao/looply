@@ -192,10 +192,12 @@ Output mặc định `.video-tools/` (Git ignore), file `.video-tools/video.env`
 Từ `backend/`, chạy bằng cấu hình local và binary đã provision:
 
 ```text
-node --env-file=.env --env-file=../.video-tools/video.env --run dev
-node --env-file=.env --env-file=../.video-tools/video.env --run test -- --run src/modules/media
-node --env-file=.env --env-file=../.video-tools/video.env --run test:integration -- listing-video.test.ts
+node --env-file=.env --env-file=../.video-tools/video.env --import=tsx --watch src/server.ts
+node --env-file=.env --env-file=../.video-tools/video.env node_modules/vitest/vitest.mjs run src/modules/media
+node --env-file=.env --env-file=../.video-tools/video.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts listing-video.test.ts
 ```
+
+Gọi trực tiếp entrypoint để env file được áp dụng; [Node.js 24 CLI](https://nodejs.org/download/release/v24.20.0/docs/api/cli.html#--run) không truyền biến từ `--env-file` vào command của `--run`. Với `npm run`, cần export các biến vào môi trường shell trước.
 
 Integration chỉ được dùng `TEST_DATABASE_URL` trỏ tới `looply_test` và Redis test nonzero đã xác minh; `.env` phải cấu hình hai giá trị này riêng. Helper kiểm tra database thực trước ghi và chỉ dọn graph/namespace do test tạo. Không chạy migration hoặc test trên `looply_dev`/production.
 

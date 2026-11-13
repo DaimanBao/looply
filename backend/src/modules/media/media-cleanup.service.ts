@@ -13,7 +13,7 @@ export class MediaCleanupService {
     if (!media) return;
     // Immutable keys and terminal DELETING make duplicate deliveries safe even after a lease expires.
     for (const key of mediaObjectKeys(media.storageKey)) await this.storage.delete(key);
-    await this.repository.deleted(id);
+    if (!(await this.repository.deleted(id, userId, media.cleanupVersion)).count) throw new Error("Media cleanup claim changed; retry required");
   }
   /** Retries bounded batches of expired uploads without ever scanning/deleting Chat media. */
   async expired(): Promise<void> {

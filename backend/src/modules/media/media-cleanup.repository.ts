@@ -36,8 +36,10 @@ export class MediaCleanupRepository {
       const media = await tx.mediaAsset.findFirst({ where: { id, uploadedById: userId, purpose: { not: "CHAT" }, listingId: null, currentAvatarOf: null, chatMessage: null, deletedAt: null,
         OR: [{ status: "DELETING" }, { status: "TEMP", expiresAt: { lte: now } }, { purpose: "PROFILE", status: "ATTACHED" }] } });
       if (!media) return null;
-      await tx.mediaAsset.update({ where: { id }, data: { status: "DELETING", isCover: false, position: null } });
-      return media;
+      if (media.status !== "DELETING" || media.isCover || media.position !== null) await tx.mediaAsset.update({ where: { id }, data: { status: "DELETING", isCover: false, position: null } });
+      const [version] = await tx.$queryRaw<Array<{ cleanupVersion: string }>>`SELECT xmin::text AS "cleanupVersion" FROM media_assets WHERE id = ${id}::uuid`;
+      if (!version) throw new Error("Missing cleanup claim version");
+      return { ...media, cleanupVersion: version.cleanupVersion };
     });
   }
   /** Selects only private account media, protecting both CHAT purpose and any Message reference. */
@@ -69,8 +71,20 @@ export class MediaCleanupRepository {
     if (foreignListing) throw new Error("Unexpected private media ownership");
     await tx.mediaAsset.updateMany({ where: { id: { in: candidates.map((asset) => asset.id) }, currentAvatarOf: null, chatMessage: null, deletedAt: null }, data: { status: "DELETING", listingId: null, position: null, isCover: false } });
   }
-  /** Commits physical-deletion success while retaining FK-safe metadata rows. */
-  deleted(id: string) { return this.db.mediaAsset.updateMany({ where: { id, status: "DELETING", listingId: null, deletedAt: null, purpose: { not: "CHAT" }, chatMessage: null, currentAvatarOf: null }, data: { deletedAt: new Date(), expiresAt: null, isCover: false } }); }
+  /** Fences completion to the claimed row version; a late writer's abandon must remain eligible for retry. */
+  deleted(id: string, userId: string, cleanupVersion: string) {
+    return this.db.$transaction(async (tx) => {
+      await lockResources(tx, [`user:${userId.toLowerCase()}`]);
+      await lockResources(tx, [`media:${id.toLowerCase()}`]);
+      const guard = { id, uploadedById: userId, status: "DELETING" as const, listingId: null, purpose: { not: "CHAT" as const }, chatMessage: null, currentAvatarOf: null };
+      // Duplicate workers may finish the same generation; an already committed tombstone is success.
+      if (await tx.mediaAsset.count({ where: { ...guard, deletedAt: { not: null } } })) return { count: 1 };
+      // xmin is a short-lived PostgreSQL MVCC token, never a durable version or public identifier.
+      const [current] = await tx.$queryRaw<Array<{ cleanupVersion: string }>>`SELECT xmin::text AS "cleanupVersion" FROM media_assets WHERE id = ${id}::uuid`;
+      if (current?.cleanupVersion !== cleanupVersion) return { count: 0 };
+      return tx.mediaAsset.updateMany({ where: { ...guard, deletedAt: null }, data: { deletedAt: new Date(), expiresAt: null, isCover: false } });
+    });
+  }
   /** Refuses account completion if private media remains blocked by an unexpected live reference. */
   pending(userId: string, tx: DatabaseTransaction) { return tx.mediaAsset.count({ where: { uploadedById: userId, purpose: { not: "CHAT" }, chatMessage: null, deletedAt: null } }); }
 }

@@ -140,6 +140,8 @@ Test unit/contract không ghi DB. Test ghi database chỉ được phép trên a
 
 ## 9. Media & Database Preparation — 13/11/2026
 
+Cleanup completion dùng token `xmin` của row sau committed claim, rồi khóa lại User→Media và so phiên bản trước ghi `deletedAt`. Theo [PostgreSQL 17 system columns](https://www.postgresql.org/docs/17/ddl-system-columns.html), mỗi UPDATE tạo row version mới; vì vậy `abandon` của writer hoàn tất muộn vô hiệu hóa completion cũ kể cả `deletedAt` trước/sau đều null. Completion stale phải ném lỗi để outbox giữ retry/backoff, không acknowledge thành công rồi bỏ sót file S3. Duplicate claim không UPDATE lại một DELETING đã chuẩn hóa; tombstone đã commit được coi thành công idempotent. Token chỉ sống trong một lần storage cleanup hữu hạn, không lưu làm version lâu dài hoặc đưa vào DTO; không đổi schema/migration và không giữ transaction trong storage I/O.
+
 Phạm vi lần triển khai này theo yêu cầu phase 1: chuẩn bị database, cleanup và primitive nội bộ; không mở API Listing/Media mới. OpenAPI vẫn đánh dấu các operation Listing/Media là planned. Không coi upload ảnh/video hoặc Listing CRUD đã hoàn thành.
 
 - `ListingMediaService` là public boundary nội bộ: reserve ảnh đã xử lý với TTL 15 phút, write detail/thumbnail rồi marker server-only, attach theo batch trong transaction do Listing caller sở hữu, cancel idempotent. Caller truyền output tin cậy của image processor, không nhận storage key từ client. Chưa có HTTP upload/image processor cho Listing; pipeline đó cần hoàn thiện ở bước tích hợp Listing.

@@ -1,5 +1,12 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Final Review PR #22 — 13/11/2026
+
+- Tái hiện trên PostgreSQL thật: cleanup đã xóa original/marker nhưng chưa complete; writer muộn ghi lại original rồi `abandon`; completion cũ ghi tombstone làm file bị bỏ sót, đặc biệt S3 không có inventory. Regression video mới FAIL trước sửa và PASS sau thêm row-version fence; test không dùng inventory cứu dữ liệu. Bổ sung regression ảnh cho `abandon` khi `deletedAt` giữ nguyên null.
+- Sửa lệnh vận hành env-file: Node `--run` không truyền biến env-file vào script con; lệnh cũ tái hiện 503 do spawn `ffprobe` ENOENT dù binary đã provision. README gọi trực tiếp entrypoint; lệnh Vitest mới thực sự chạy inspector với binary đã pin.
+- Targeted integration `listing-video.test.ts`, `media-lifecycle.test.ts`, `account-deletion.test.ts`: **38/38 PASS**, gồm duplicate cleanup, attachment guards, late writer, cleanup retry và bảo toàn Chat/account lifecycle; targeted avatar `account-management.test.ts -t "validates image contents"` **1/1 PASS**. Unit cleanup **3/3 PASS**, real MP4/WebM bằng lệnh env-file mới **2/2 PASS**; source/test typecheck PASS. Actual database `looply_test`, PostgreSQL 17.11 và Redis `127.0.0.1:6380/1` PONG đã xác minh trước ghi.
+- Không chạy full suite local, API suite, Prisma validation/migrations hoặc build lại trong lượt review: không đổi HTTP contract/schema, CI kiểm tra build/full regression ở commit sửa. Backend/Frontend CI và SHA cuối báo riêng tại bàn giao. Browser playback/live S3 chưa nghiệm thu; không coi SDK mock là provider thật.
+
 ## Phase 4 — Media Video Backend — 13/11/2026
 
 Triển khai từ develop `9a74964`, sau khi người dùng duyệt FFprobe/FFmpeg CLI. Không đổi Prisma schema/migration, npm dependency hoặc Frontend. Setup Windows thực đã tải build cố định, xác minh SHA-256/version và chạy fixtures; setup Linux được ghép vào Backend CI, kết quả GitHub báo riêng trên PR.

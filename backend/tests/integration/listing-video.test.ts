@@ -176,6 +176,34 @@ describe("Listing videos with real PostgreSQL, local files and FFmpeg", () => {
     const asset = await fixture.db.mediaAsset.findUniqueOrThrow({ where: { id } }); expect(asset.status).toBe("DELETING"); expect(asset.deletedAt).toBeNull();
     await cleanup().detached(id, ownerId); await expect(store.size(asset.storageKey)).rejects.toThrow();
   });
+  it("retries stale cleanup completion when a late writer reopens cleanup after object deletion", async () => {
+    let writing!: () => void; let finishWrite!: () => void; let deleting!: () => void; let finishDelete!: () => void;
+    const started = new Promise<void>((resolve) => { writing = resolve; }); const writeGate = new Promise<void>((resolve) => { finishWrite = resolve; });
+    const removed = new Promise<void>((resolve) => { deleting = resolve; }); const deleteGate = new Promise<void>((resolve) => { finishDelete = resolve; });
+    const put = store.putFile.bind(store); const remove = store.delete.bind(store);
+    vi.spyOn(store, "putFile").mockImplementation(async (...args) => { writing(); await writeGate; await put(...args); });
+    const deletion = vi.spyOn(store, "delete").mockImplementation(async (key) => { await remove(key); if (key.endsWith(".mp4.complete")) { deleting(); await deleteGate; } });
+    // A due outbox event must recover without inventory, including S3 deployments.
+    const inventory = vi.spyOn(store, "listManaged");
+    const pending = upload(await bytes()).then((response) => response);
+    let task: Promise<boolean> | undefined; let id = ""; let key = "";
+    try {
+      await Promise.race([started, pending.then((response) => { throw new Error(`Upload ended before writing (${response.status})`); })]);
+      const asset = await fixture.db.mediaAsset.findFirstOrThrow({ where: { uploadedById: ownerId, type: "VIDEO" } }); id = asset.id; key = asset.storageKey;
+      await request(fixture.app).delete(`/api/media/listing-uploads/${id}`).auth(token, { type: "bearer" }).expect(204);
+      task = fixture.cleanup.runOnce(); await removed;
+      finishWrite(); expect((await pending).status).toBe(409); expect(await store.size(key)).toBeGreaterThan(0);
+    } finally { finishWrite(); finishDelete(); }
+    expect(await task).toBe(true);
+    const job = await fixture.db.outboxEvent.findFirstOrThrow({ where: { aggregateId: ownerId, eventType: "media.cleanup" } });
+    expect(job).toMatchObject({ status: "FAILED", lastError: "CLEANUP_RETRY", attempts: 1 }); expect(job.nextRetryAt).not.toBeNull();
+    expect((await fixture.db.mediaAsset.findUniqueOrThrow({ where: { id } })).deletedAt).toBeNull();
+    deletion.mockRestore(); await fixture.db.outboxEvent.update({ where: { id: job.id }, data: { nextRetryAt: new Date(0) } });
+    expect(await fixture.cleanup.runOnce()).toBe(true); expect(inventory).not.toHaveBeenCalled();
+    await expect(store.size(key)).rejects.toThrow();
+    expect((await fixture.db.mediaAsset.findUniqueOrThrow({ where: { id } })).deletedAt).not.toBeNull();
+    expect(await fixture.db.outboxEvent.findUniqueOrThrow({ where: { id: job.id } })).toMatchObject({ status: "PROCESSED", attempts: 2 });
+  });
   it("refuses publication when the account or TEMP expiry changes during the write", async () => {
     for (const change of ["account", "expiry"]) {
       let ready!: () => void; let release!: () => void; const started = new Promise<void>((resolve) => { ready = resolve; }); const gate = new Promise<void>((resolve) => { release = resolve; });
