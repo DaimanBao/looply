@@ -48,6 +48,15 @@ features/<feature>/
 ```
 Không tạo mọi thư mục nếu chưa sử dụng. Feature lớn có thể chia theo use case; tránh component/service khổng lồ.
 
+## Auth/User hiện tại
+
+- `core/auth/`: session Signals trong RAM, cookie refresh single-flight, interceptor và lifecycle guards; không chứa form giao diện. `core/http/` giữ API prefix, DTO contract và lỗi công khai.
+- `features/auth/`: API client, các trang đăng nhập/đăng ký/khôi phục và controls OTP/re-auth. `public-api.ts` là entry cho các form User tái sử dụng xác minh của Auth.
+- `features/user/`: API client, owner profile store, avatar và các trang profile/contact/password/session/username/Follow/Block/deletion. `public-api.ts` cho Auth đọc catalog Province của User, không import các page hoặc state nội bộ.
+- `shared/ui/` chỉ giữ feedback/loading của thao tác, `shared/validation/` giữ validators form; không thực thi quyền sở hữu, liên kết hay trạng thái xóa ở shared.
+- Routes lazy-load từng page. Avatar tải bytes bằng HTTP stack rồi dùng Blob URL tạm, không dùng URL ảnh bỏ qua Bearer/Block. Các trang Profile/list phản ứng khi route đổi User ID và bỏ phản hồi cũ.
+- Project đang client-rendered, không bật SSR. Chi tiết cấu hình, test và mức nghiệm thu thuộc [Frontend README](../../frontend/README.md); các thư mục tương lai trong sơ đồ trên chưa được tạo nếu chưa có trách nhiệm thực tế.
+
 ## Quy tắc
 - **Page** điều phối hiển thị; **component** tập trung UI; **data-access** gọi API; **state** quản lý trạng thái; không nhúng gọi HTTP và nghiệp vụ phức tạp trực tiếp trong template/component.
 - Dùng Angular Signals cho trạng thái UI phù hợp, RxJS cho luồng bất đồng bộ; không tạo nhiều nguồn sự thật cho cùng một session/dữ liệu.

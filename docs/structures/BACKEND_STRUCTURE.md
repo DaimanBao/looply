@@ -16,6 +16,7 @@ backend/
 │   ├── features.ts               # Composition root ghép public services, providers, routers và cleanup
 │   ├── runtime/                  # Lifecycle startup/shutdown, không đọc environment
 │   ├── config/                   # Đọc và xác thực cấu hình môi trường
+│   ├── development/              # Inspector fake OTP opt-in: config, read-only reader và listener riêng
 │   ├── shared/
 │   │   ├── database/             # Prisma client/adapter, quản lý kết nối
 │   │   ├── errors/               # Lỗi ứng dụng và xử lý lỗi chung
@@ -39,6 +40,7 @@ backend/
 │   ├── api/                     # HTTP integration với dependency test, không mở database
 │   ├── integration/             # Database integration riêng trên looply_test
 │   └── helpers/                 # App factory, fixture và connection guard cho test
+├── scripts/inspect-otp.cjs       # CLI Development riêng; không thuộc build/API công khai
 ├── README.md                    # Cấu hình, chạy và kiểm chứng Backend Core
 ├── .env.example
 ├── package.json
@@ -66,6 +68,8 @@ Auth hiện tách `identity/`, `sessions/`, `credentials/`, `otp/`, `redis/`, `s
 `modules/user/username.ts` là public entry riêng cho quy tắc username, không phụ thuộc service/HTTP/Auth. Auth nhập trực tiếp entry này để tránh vòng runtime `auth.schema -> user/index -> UserService -> auth/index -> auth.schema`; các nghiệp vụ User khác dùng `user/index.ts` như trước.
 
 Cleanup coordinator thuộc `user/deletion/deletion.worker.ts`, không sửa/xóa Chat Message hoặc Chat Media; nó gọi public Auth/Media cleanup services, cùng transaction khi hoàn tất lifecycle User. Media sở hữu storage/asset cleanup; `jobs/` chỉ sở hữu hạ tầng outbox/lease/poll. Side effect storage ở ngoài transaction, ghi nhận bằng media state/outbox để retry. Runtime nhận lifecycle hook riêng cho Redis/worker, không đọc environment; `server.ts` là nơi đọc/xác thực cấu hình. Tests HTTP có database thật đặt trong `tests/integration/`; `tests/api/` tiếp tục chỉ chứa Core HTTP tests không mở database.
+
+`development/` không được mount vào Express app hoặc Auth/User routes. `server.ts` chỉ tạo listener loopback khi config Development opt-in hợp lệ; reader chỉ đọc Redis và đối chiếu fake delivery, không sửa OTP flow. Config/listener từ chối Production; CLI không được sao chép vào `dist`. Chi tiết và hướng dẫn thuộc [OTP inspector](../../backend/src/development/README.md).
 
 ## Quy tắc sở hữu và phụ thuộc
 - `routes → controller → service → repository`; controller mỏng, nghiệp vụ ở service, repository không chứa quy tắc HTTP.
