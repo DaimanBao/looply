@@ -172,3 +172,43 @@ npm run build
 ```
 
 Kết quả cuối và giới hạn được ghi tại [Database Integration Tests](../docs/database/INTEGRATION_TESTS.md). Không coi fake provider hoặc tài liệu backup là tích hợp production hoàn tất; cần Google client ID, gateway SMS/email và S3 thực tế trước vận hành.
+
+## Video Backend — Phase 4
+
+Backend nhận MP4/WebM thực, tối đa 100 MiB và thời lượng thực >0 đến 180 giây. Giữ nguyên bytes video; không chuyển mã, tạo thumbnail video hoặc CDN. Upload vẫn raw `application/octet-stream`; client không gửi MIME/extension/duration để quyết định loại Media. Ảnh dùng pipeline sharp hiện có. Mỗi manifest Listing có 1–5 ảnh và tối đa một video; thay toàn bộ manifest và version trong cùng transaction.
+
+### Provision FFprobe/FFmpeg
+
+Từ root repository, Windows x64 hoặc Linux x64 có Node.js 24 và `tar`:
+
+```text
+node scripts/setup-video-tools.mjs
+```
+
+Script tải build BtbN được trang download FFmpeg dẫn chiếu, release cố định `autobuild-2026-11-12-15-40`, version `n8.1.3-35-gf1acb0a266`. Windows ZIP SHA-256 `688d6d2d33ff3b91ae15eb8be5660e7ccaec7d3170fb25f091c4972dcb447d9d`; Linux TAR.XZ SHA-256 `320c1f97653ad0740343f87abe2303656b85eb119c3f06abcb639837e9beaed3`. Chỉ extract/chạy sau khi hash khớp; xác minh version của cả hai executable. Đây là build trên nhánh release 8.1 tại source commit đã pin, không tự cập nhật theo URL `latest`. Muốn nâng binary phải review lại artifact/hash và fixtures. Không thêm npm dependency, không tải công cụ trong runtime.
+
+Output mặc định `.video-tools/` (Git ignore), file `.video-tools/video.env` chứa đường dẫn tuyệt đối của máy đang setup. Có thể truyền thư mục đích làm argument; không commit file env hoặc binary. Bộ build giữ license/source metadata đi kèm; khi đóng gói image, giữ các thông tin phân phối của build. Linux runtime cần môi trường tương thích binary (glibc, không dùng Alpine/musl trực tiếp). Setup CI dùng cùng script và ghi đường dẫn qua `GITHUB_ENV`.
+
+Từ `backend/`, chạy bằng cấu hình local và binary đã provision:
+
+```text
+node --env-file=.env --env-file=../.video-tools/video.env --run dev
+node --env-file=.env --env-file=../.video-tools/video.env --run test -- --run src/modules/media
+node --env-file=.env --env-file=../.video-tools/video.env --run test:integration -- listing-video.test.ts
+```
+
+Integration chỉ được dùng `TEST_DATABASE_URL` trỏ tới `looply_test` và Redis test nonzero đã xác minh; `.env` phải cấu hình hai giá trị này riêng. Helper kiểm tra database thực trước ghi và chỉ dọn graph/namespace do test tạo. Không chạy migration hoặc test trên `looply_dev`/production.
+
+Trong image/runtime Backend, provision vào thư mục read-only dành cho tools ở bước build, rồi truyền `MEDIA_FFPROBE_PATH`, `MEDIA_FFMPEG_PATH`, `MEDIA_VIDEO_BINARY_VERSION` theo `video.env`. Chạy Backend bằng user không đặc quyền; staging là thư mục private có quyền ghi riêng, storage private và không có static mount. Binary thiếu, sai version, crash/hết timeout đều từ chối video có kiểm soát; không bỏ qua validation. Ảnh vẫn upload/delivery bình thường khi thiếu binary video.
+
+### Giới hạn và lỗi vận hành
+
+`MEDIA_STAGING_DIRECTORY` mặc định là `looply-private-staging` trong OS temp; thư mục 0700, file 0600 ở hệ thống hỗ trợ POSIX. Windows cần ACL của thư mục tài khoản chạy Backend không cho user khác đọc. Không đặt staging trong web root/shared public directory. Upload stream tối đa 100 MiB; mặc định hai upload/instance, vượt capacity trả 503 `MEDIA_UPLOAD_BUSY`; không xếp hàng vô hạn. Mỗi request có tối đa 120 giây nhận bytes; probe/decode mỗi process tối đa 60 giây; cấu hình giới hạn trong `.env.example`. Process dùng một decode/filter thread, max allocation 64 MiB/lần, stdout tối đa 128 KiB và stderr tối đa 64 KiB. Chỉ protocol file và demuxer MOV/Matroska; không shell, không đường dẫn/command lấy từ client. Đây là giới hạn ứng dụng, không phải sandbox hay hard RSS quota của OS; khi deploy cần CPU/memory/disk quota phù hợp cho instance.
+
+Chấp nhận một video stream, tối đa một audio stream; từ chối stream attachment/data hoặc metadata không xác minh được. MP4 major brands: isom, iso2–iso6, mp41/mp42, avc1, dash; WebM phải có DocType webm trong EBML header thật, video VP8/VP9/AV1 và audio Vorbis/Opus; không nhận generic MOV/Matroska. Giới hạn decode 40 triệu pixel/frame. Kiểm tra duration container/stream và thời gian decode thực (sai lệch >1 giây bị từ chối); lưu ceil của thời lượng lớn nhất đã xác minh. File quá 180 giây bị 400 `VALIDATION_ERROR`; giả mạo/hỏng/truncated/không decode được bị 415 `UNSUPPORTED_MEDIA`. Binary thiếu/sai version/timeout/output quá giới hạn bị 503 `MEDIA_VIDEO_UNAVAILABLE`. Không trả stderr, executable path, storage key hoặc metadata nội bộ trong lỗi.
+
+Staging được xóa trước 201 hoặc khi lỗi/ngắt kết nối. Mỗi upload quét tối đa 100 entry, chỉ xóa thư mục upload server quá một giờ (lớn hơn tổng deadline cấu hình). Crash-left staging được thu hồi khi có upload tiếp theo; nếu instance không nhận upload thì cần dọn temp định kỳ khi bảo trì. Sau validation mới reserve TEMP TTL15 phút; original + completion marker được ghi immutable. Lỗi sau reserve chuyển DELETING và queue cleanup; attach dùng marker + bounded metadata check dưới khóa, không đọc lại toàn bộ video. Outbox/worker xóa cả file và marker, retry idempotent; local inventory nhận diện video mồ côi, S3 vẫn dùng reconciliation TEMP/DELETING hiện có, chưa có bucket inventory.
+
+Delivery dùng route hiện tại và kiểm tra Listing visibility/Block/lifecycle trên mỗi request. Video hỗ trợ full 200 và single byte Range 206; suffix/open-ended/clamp end đúng tổng bytes, invalid/multiple/unsatisfiable trả 416 cùng `Content-Range: bytes */total`. Có `Content-Type`, `Content-Length`, `Accept-Ranges: bytes`, `Cache-Control: no-store`; If-Range không khớp validator trả full 200. Ảnh giữ WebP detail/thumbnail và không phục vụ Range. Mở stream trong authorization transaction nhưng đọc body sau commit, đóng khi client ngắt hoặc deadline delivery 120 giây. Quyền được quyết định tại lúc mở, không thu hồi bytes đã cấp giữa một response đang truyền; request mới phải kiểm tra lại. Không cấp URL storage công khai.
+
+Fixtures MP4 H.264/WebM VP9 tổng hợp nằm tại `tests/fixtures/video/`, có hướng dẫn tạo lại. Kiểm thử decode và HTTP bytes không thay thế nghiệm thu browser playback thực; chưa tuyên bố mọi codec trong MP4/WebM phát được trên mọi trình duyệt. Live S3 và browser video chưa được nghiệm thu trong phase này; adapter S3 có contract test MIME/HEAD/Range/immutability.

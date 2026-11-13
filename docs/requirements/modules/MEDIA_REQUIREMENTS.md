@@ -50,7 +50,7 @@ Module Media quản lý ảnh và video gắn với Listing: tải lên, xem tr�
 - Chỉ xóa file sau commit; kiểm tra attachment/reference mới nhất dưới khóa chung với attach, cleanup có retry/idempotency và orphan recovery. Database rollback không rollback file system.
 - Ảnh snapshot Chat có object/lifecycle độc lập; quyền đọc qua Conversation, retention và placeholder theo [Chat](CHAT_REQUIREMENTS.md#6-snapshot-lịch-sử-và-retention-ảnh--đã-phê-duyệt). Không xóa file còn tham chiếu lịch sử hợp lệ.
 
-Transaction/lock/rollback/race/tests của từng luồng thuộc [thiết kế Listing/Media](../../api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle). Video inspector là đề xuất cần duyệt dependency trước cài đặt; chưa xác nhận hỗ trợ video đã chạy.
+Transaction/lock/rollback/race/tests của từng luồng thuộc [thiết kế Listing/Media](../../api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle). FFprobe/FFmpeg đã được người dùng duyệt cho Backend Video Phase 4; kết quả kiểm chứng và giới hạn thực tế thuộc [INTEGRATION_TESTS](../../database/INTEGRATION_TESTS.md).
 
 ## 7. Ngoài phạm vi Đồ án 1
 

@@ -1,12 +1,28 @@
-import { mkdtemp, rmdir, symlink, unlink } from "node:fs/promises";
+import { mkdtemp, rmdir, symlink, unlink, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { Readable } from "node:stream";
 import { LocalObjectStore, S3ObjectStore } from "./object-store";
 
 describe("Private S3 object storage", () => {
+  it("preserves video MIME/immutability and uses HEAD plus bounded upstream byte ranges", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "looply-s3-video-test-")); const path = join(directory, "input"); await writeFile(path, "video");
+    const client = new S3Client({ region: "test" });
+    const send = vi.spyOn(client, "send").mockImplementation(async () => ({ $metadata: {} })); const store = new S3ObjectStore(client, "private");
+    try {
+      await store.putFile("listing/v1/video.mp4", path, "video/mp4", 5);
+      expect(send.mock.calls[0]?.[0]).toBeInstanceOf(PutObjectCommand); expect(send.mock.calls[0]?.[0].input).toMatchObject({ ContentType: "video/mp4", ContentLength: 5, IfNoneMatch: "*" });
+      send.mockImplementationOnce(async () => ({ ContentLength: 5 })); expect(await store.size("listing/v1/video.mp4")).toBe(5); expect(send.mock.calls[1]?.[0]).toBeInstanceOf(HeadObjectCommand);
+      send.mockImplementationOnce(async () => ({ ContentLength: 2, ContentRange: "bytes 1-2/5", Body: Readable.from([Buffer.from("id")]) }));
+      const stream = await store.readRange("listing/v1/video.mp4", 1, 2); const parts: Buffer[] = []; for await (const part of stream) parts.push(Buffer.from(part)); expect(Buffer.concat(parts).toString()).toBe("id");
+      expect(send.mock.calls[2]?.[0].input).toMatchObject({ Range: "bytes=1-2" });
+      send.mockImplementationOnce(async () => ({ ContentLength: 5, Body: Readable.from([Buffer.from("video")]) }));
+      await expect(store.readRange("listing/v1/video.mp4", 1, 2)).rejects.toThrow("Invalid private range response");
+    } finally { send.mockRestore(); client.destroy(); await rm(directory, { recursive: true, force: true }); }
+  });
   it("uses immutable writes and bounded provider requests, propagating write conflicts", async () => {
     const client = new S3Client({ region: "test" });
     const send = vi.spyOn(client, "send").mockImplementation(async () => ({ $metadata: {} }));

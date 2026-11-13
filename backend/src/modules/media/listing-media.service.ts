@@ -3,22 +3,49 @@ import type { DatabaseTransaction } from "../../shared/database/prisma";
 import { AppError } from "../../shared/errors/app-error";
 import type { ObjectStore } from "./object-store";
 import type { ListingMediaRepository } from "./listing-media.repository";
-import { listingMediaObjectKeys } from "./media-object-keys";
+import { listingMediaObjectKeys, videoObjectKeys } from "./media-object-keys";
+import type { ValidatedVideo } from "./listing-video";
 
 export class ListingMediaService {
-  /** Shares the image lifecycle between Listing management and authenticated upload workflows. */
+  /** Shares the media lifecycle between Listing management and authenticated upload workflows. */
   constructor(private readonly repository: ListingMediaRepository, private readonly storage: ObjectStore) {}
-  /** Reserves an expiring image; input is trusted output of the server image processor, never client metadata. */
-  async reserve(userId: string, sizeBytes: number): Promise<{ id: string; expiresAt: Date }> {
-    if (!Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > 10 * 1024 * 1024) throw new Error("Invalid processed image size");
+  /** Reserves expiring media from trusted processor/inspector output, never client metadata. */
+  async reserve(userId: string, sizeBytes: number, video?: ValidatedVideo): Promise<{ id: string; expiresAt: Date }> {
+    if (!Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > (video ? 100 : 10) * 1024 * 1024 || (video && (!Number.isInteger(video.durationSeconds) || video.durationSeconds < 1 || video.durationSeconds > 180))) throw new Error("Invalid processed media size/duration");
     return this.repository.transaction(async (tx) => {
       await this.repository.lockUser(userId, tx);
       await this.requireActive(userId, tx);
       const now = await this.repository.now(tx);
       const id = randomUUID(); const expiresAt = new Date(now.getTime() + 15 * 60_000);
-      await this.repository.reserve({ id, userId, bytes: sizeBytes, expiresAt }, tx);
+      await this.repository.reserve({ id, userId, bytes: sizeBytes, expiresAt, video }, tx);
       return { id, expiresAt };
     });
+  }
+  /** Publishes validated original video, then readiness under the same User/Media lock protocol as images. */
+  async writeVideo(id: string, userId: string, video: ValidatedVideo): Promise<void> {
+    if (!this.storage.putFile || !this.storage.size) throw new AppError(503, "MEDIA_VIDEO_UNAVAILABLE", "Video storage is unavailable.");
+    const key = await this.repository.transaction(async (tx) => {
+      await this.repository.lockUser(userId, tx); await this.repository.lockMedia([id], tx); await this.requireActive(userId, tx);
+      const asset = await this.repository.asset(id, tx);
+      if (!asset || asset.uploadedById !== userId || asset.type !== "VIDEO" || asset.purpose !== "LISTING" || asset.status !== "TEMP" || asset.deletedAt || !asset.expiresAt || asset.expiresAt <= await this.repository.now(tx) || asset.sizeBytes !== BigInt(video.sizeBytes) || asset.mimeType !== video.mimeType || asset.durationSeconds !== video.durationSeconds) throw new AppError(409, "MEDIA_NOT_AVAILABLE", "Upload is no longer available.");
+      return videoObjectKeys(asset.storageKey);
+    });
+    try {
+      await this.storage.putFile(key[0], video.path, video.mimeType, video.sizeBytes);
+      await this.repository.transaction(async (tx) => {
+        await this.repository.lockUser(userId, tx); await this.repository.lockMedia([id], tx); await this.requireActive(userId, tx);
+        const asset = await this.repository.asset(id, tx);
+        if (!asset || asset.status !== "TEMP" || asset.deletedAt || !asset.expiresAt || asset.expiresAt <= await this.repository.now(tx)) throw new AppError(409, "MEDIA_NOT_AVAILABLE", "Upload is no longer available.");
+        await this.storage.put(key[1], Buffer.from("looply-video-v1"), "application/octet-stream");
+      });
+    } catch (error) {
+      await this.repository.transaction(async (tx) => {
+        await this.repository.lockUser(userId, tx); await this.repository.lockMedia([id], tx);
+        const asset = await this.repository.asset(id, tx);
+        if (asset && asset.status !== "ATTACHED") await this.repository.abandon(id, userId, tx);
+      });
+      throw error instanceof AppError ? error : new AppError(503, "MEDIA_UNAVAILABLE", "Video storage is temporarily unavailable.");
+    }
   }
   /** Writes processor output only to the reserved keys; readiness is published last under the shared locks. */
   async write(id: string, userId: string, images: { detail: Buffer; thumbnail: Buffer }): Promise<void> {
@@ -56,9 +83,14 @@ export class ListingMediaService {
       throw error;
     }
   }
-  /** Rejects attachment until the server has durably completed every deterministic rendition. */
+  /** Rejects attachment until the server has durably completed the image renditions or original video. */
   private async requireReady(key: string, sizeBytes: bigint): Promise<void> {
     try {
+      if (/\.(mp4|webm)$/.test(key)) {
+        const keys = videoObjectKeys(key);
+        if (!this.storage.size || !(await this.storage.get(keys[1])).equals(Buffer.from("looply-video-v1")) || BigInt(await this.storage.size(keys[0])) !== sizeBytes) throw new Error("Incomplete video");
+        return;
+      }
       const keys = listingMediaObjectKeys(key);
       const marker = await this.storage.get(keys[2]);
       if (!marker.equals(Buffer.from("looply-listing-v1"))) throw new Error("Invalid completion marker");
@@ -68,10 +100,11 @@ export class ListingMediaService {
     } catch { throw new AppError(409, "MEDIA_NOT_READY", "Upload is not ready."); }
   }
   /** Attaches inside the caller's Listing transaction; caller validates the final gallery/cover and holds all User locks first. */
-  async attach(input: { assets: Array<{ id: string; position: number }>; userId: string; listingId: string }, tx: DatabaseTransaction): Promise<void> {
-    if (!input.assets.length || input.assets.length > 5 || new Set(input.assets.map((asset) => asset.id)).size !== input.assets.length
-      || new Set(input.assets.map((asset) => asset.position)).size !== input.assets.length
-      || input.assets.some((asset) => !Number.isSafeInteger(asset.position) || asset.position < 0)) throw new AppError(400, "VALIDATION_ERROR", "Invalid image attachments.");
+  async attach(input: { assets: Array<{ id: string; position: number | null }>; userId: string; listingId: string }, tx: DatabaseTransaction): Promise<void> {
+    const images = input.assets.filter((asset) => asset.position !== null);
+    if (!input.assets.length || input.assets.length > 6 || images.length > 5 || input.assets.length - images.length > 1 || new Set(input.assets.map((asset) => asset.id)).size !== input.assets.length
+      || new Set(images.map((asset) => asset.position)).size !== images.length
+      || images.some((asset) => !Number.isSafeInteger(asset.position) || asset.position! < 0)) throw new AppError(400, "VALIDATION_ERROR", "Invalid media attachments.");
     await this.repository.lockUser(input.userId, tx);
     await this.repository.lockMedia(input.assets.map((asset) => asset.id), tx, input.listingId);
     await this.requireActive(input.userId, tx);
@@ -80,9 +113,9 @@ export class ListingMediaService {
     for (const asset of input.assets) await this.attachAsset({ ...asset, userId: input.userId, listingId: input.listingId }, tx);
   }
   /** Validates one image after the entire batch's locks are held; a later failure rolls back all attachments. */
-  private async attachAsset(input: { id: string; userId: string; listingId: string; position: number }, tx: DatabaseTransaction): Promise<void> {
+  private async attachAsset(input: { id: string; userId: string; listingId: string; position: number | null }, tx: DatabaseTransaction): Promise<void> {
     const media = await this.repository.asset(input.id, tx);
-    if (!media || media.uploadedById !== input.userId || media.purpose !== "LISTING" || media.type !== "IMAGE") throw new AppError(404, "NOT_FOUND", "Media not found.");
+    if (!media || media.uploadedById !== input.userId || media.purpose !== "LISTING" || media.type !== (input.position === null ? "VIDEO" : "IMAGE")) throw new AppError(404, "NOT_FOUND", "Media not found.");
     const now = await this.repository.now(tx);
     if (media.status !== "TEMP" || media.listingId || media.deletedAt || !media.expiresAt || media.expiresAt <= now || await this.repository.referenced(media.id, tx)) throw new AppError(409, "MEDIA_NOT_AVAILABLE", "Upload is no longer available.");
     await this.requireReady(media.storageKey, media.sizeBytes);

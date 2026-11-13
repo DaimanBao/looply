@@ -3,7 +3,14 @@ import { AppError } from "../../shared/errors/app-error";
 /** Derives versioned server-owned renditions; legacy avatars still have one object. */
 export function mediaObjectKeys(storageKey: string): string[] {
   if (!storageKey.startsWith("listing/v1/")) return [storageKey];
+  if (/\.(mp4|webm)$/.test(storageKey)) return videoObjectKeys(storageKey);
   return listingMediaObjectKeys(storageKey);
+}
+
+/** Keeps original videos and their completion marker in one immutable cleanup unit. */
+export function videoObjectKeys(key: string): [string, string] {
+  if (!/^listing\/v1\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(mp4|webm)$/.test(key)) throw new AppError(503, "MEDIA_UNAVAILABLE", "Media is unavailable.");
+  return [key, `${key}.complete`];
 }
 
 /** Validates the canonical server UUID key and returns a complete, statically known rendition set. */

@@ -10,11 +10,12 @@ import { createTestApp } from "./test-app";
 import { getTestDatabaseUrl } from "./test-database";
 import { AppError } from "../../src/shared/errors/app-error";
 import type { GoogleIdentity } from "../../src/modules/auth/auth.types";
+import type { ObjectStore } from "../../src/modules/media";
 
 export type AuthFixture = Awaited<ReturnType<typeof createAuthFixture>>;
 
 /** Verifies real PostgreSQL/Redis targets before any fixture write; every mutation has an owned UUID or namespace. */
-export async function createAuthFixture() {
+export async function createAuthFixture(storageOverride?: ObjectStore) {
   const redisUrl = process.env.TEST_REDIS_URL;
   if (!redisUrl || !/^\/[1-9][0-9]*$/.test(new URL(redisUrl).pathname)) throw new Error("TEST_REDIS_URL must select a dedicated nonzero Redis database");
   const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: getTestDatabaseUrl(), connectionTimeoutMillis: 5000 }) });
@@ -26,7 +27,7 @@ export async function createAuthFixture() {
   const sms = new FakeMessageProvider(); const email = new FakeMessageProvider(); const googleCredentials = new Map<string, GoogleIdentity>();
   const objects = new Map<string, Buffer>(); const deletedKeys: string[] = []; const failures = { deletion: false };
   const storage = { async put(key: string, bytes: Buffer) { objects.set(key, bytes); }, async get(key: string) { const bytes = objects.get(key); if (!bytes) throw new Error("Missing fixture object"); return bytes; }, async delete(key: string) { if (failures.deletion) throw new Error("Fixture storage outage"); objects.delete(key); deletedKeys.push(key); } };
-  const module = createFeatures(db, config, { sms, email, google: { async verify(credential) { const identity = googleCredentials.get(credential); if (!identity) throw new AppError(401, "UNAUTHENTICATED", "Authentication failed."); return identity; } }, passwords: { async check(password) { if (password === "password") throw new AppError(400, "UNSAFE_PASSWORD", "Unsafe password."); } } }, storage, prefix);
+  const module = createFeatures(db, config, { sms, email, google: { async verify(credential) { const identity = googleCredentials.get(credential); if (!identity) throw new AppError(401, "UNAUTHENTICATED", "Authentication failed."); return identity; } }, passwords: { async check(password) { if (password === "password") throw new AppError(400, "UNSAFE_PASSWORD", "Unsafe password."); } } }, storageOverride ?? storage, prefix);
   const redis = module.redis; await redis.connect();
   const app = createTestApp({ featureRouters: module.routers, config: { jsonBodyLimitBytes: 11 * 1024 * 1024, corsOrigins: config.origins, corsCredentials: true } });
   const userIds = new Set<string>(); const provinceIds = new Set<string>(); const usernames = new Set<string>();

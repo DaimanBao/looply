@@ -24,9 +24,10 @@ export class MediaOrphanRecovery {
   }
   /** Canonicalizes generated variants, then rechecks metadata before committing permission to delete. */
   private async reconcile(key: string): Promise<void> {
-    const match = /^(profile|listing\/v1)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.thumbnail)?\.(?:webp|complete)$/.exec(key);
+    const match = /^(profile|listing\/v1)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\.thumbnail)?\.(webp|complete|mp4|webm)(?:\.complete)?$/.exec(key);
     if (!match) return;
-    const canonical = `${match[1]}/${match[2]}.webp`;
+    if (match[1] === "profile" && ["mp4", "webm"].includes(match[3]!)) return;
+    const canonical = `${match[1]}/${match[2]}.${match[3] === "mp4" || match[3] === "webm" ? match[3] : "webp"}`;
     const media = await this.repository.byKey(canonical);
     if (media) {
       if (media.deletedAt) await this.repository.recoverTombstone(media.id, media.uploadedById);

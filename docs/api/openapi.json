@@ -3171,7 +3171,7 @@
       "post": {
         "operationId": "uploadListingMedia",
         "summary": "Upload one validated TEMP Listing asset",
-        "description": "ACTIVE session. Raw file input IMAGE JPG/PNG/WebP <=10485760 bytes or VIDEO MP4/WebM <=104857600 bytes with real duration >0 <=180s. Server inspects actual content, optimizes image and thumbnail. 201 only after private object variants ready; TTL15 minutes from reservation, sizeBytes is stored rendition size. No Listing/version yet. Invalid duration 400; invalid content 415; over input size 413. Video unavailable until video phase returns 503 MEDIA_VIDEO_UNAVAILABLE.",
+        "description": "ACTIVE session. Raw file input IMAGE JPG/PNG/WebP <=10485760 bytes or VIDEO MP4/WebM <=104857600 bytes with real duration >0 <=180s. Server inspects actual content, optimizes image and thumbnail. 201 only after private object variants ready; TTL15 minutes from reservation, sizeBytes is stored rendition size. No Listing/version yet. Invalid duration 400; invalid content 415; over input size 413. Video is validated by bounded FFprobe/FFmpeg processes on private staging; the stored video is unchanged. Missing, incompatible or timed-out validator returns 503 MEDIA_VIDEO_UNAVAILABLE; upload capacity returns 503 MEDIA_UPLOAD_BUSY. Validator accepts one video stream and at most one audio stream, no data/attachment streams, at most 40000000 pixels/frame. MP4 major brands isom/iso2/iso3/iso4/iso5/iso6/mp41/mp42/avc1/dash; WebM requires an actual EBML webm DocType, VP8/VP9/AV1 video and Vorbis/Opus audio. Unverifiable or unsupported streams return 415.",
         "x-implementation-status": "implemented",
         "tags": [
           "ListingMedia"
@@ -3315,7 +3315,7 @@
       "get": {
         "operationId": "getListingMedia",
         "summary": "Deliver authorized current Listing media",
-        "description": "Optional auth; invalid token 401. Apply same detail visibility including owner HIDDEN; asset must be ATTACHED on this Listing and not deleted. DELETED, TEMP, wrong Listing or denied Block/state returns 404. variant thumbnail/detail for IMAGE, original for VIDEO; omitted defaults detail IMAGE/original VIDEO. Unsupported variant returns 400. Single bytes Range for VIDEO only; invalid/multiple/unsatisfiable range 416. Not a Chat snapshot endpoint; no version precondition. IMAGE delivery implemented; VIDEO/range delivery remains unavailable (503 MEDIA_VIDEO_UNAVAILABLE) until the video phase.",
+        "description": "Optional auth; invalid token 401. Apply same detail visibility including owner HIDDEN; asset must be ATTACHED on this Listing and not deleted. DELETED, TEMP, wrong Listing or denied Block/state returns 404. variant thumbnail/detail for IMAGE, original for VIDEO; omitted defaults detail IMAGE/original VIDEO. Unsupported variant returns 400. Single bytes Range for VIDEO only; invalid/multiple/unsatisfiable range 416. Not a Chat snapshot endpoint; no version precondition. IMAGE and VIDEO delivery implemented. Video supports a single byte range and If-Range without a validator falls back to the complete 200 response. Private bytes are streamed; Content-Range on 416 is bytes */size.",
         "x-implementation-status": "implemented",
         "tags": [
           "ListingMedia"
@@ -3392,6 +3392,12 @@
                     "bytes",
                     "none"
                   ]
+                }
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
                 }
               }
             },

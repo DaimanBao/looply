@@ -21,6 +21,7 @@ Job dùng Ubuntu, Node.js 24, PostgreSQL 17 và Redis 7.4 riêng cho từng lầ
 Mọi lệnh `run` có working directory là `backend/`:
 
 1. `npm ci` cài đúng dependencies từ `backend/package-lock.json`.
+   Provision FFprobe/FFmpeg bằng `node ../scripts/setup-video-tools.mjs ../.video-tools`: tải artifact Windows/Linux x64 được pin theo source build, xác minh SHA-256 trước extraction, xác minh version và xuất đường dẫn qua `GITHUB_ENV`. Unit/integration video dùng executable thật, không skip khi thiếu công cụ.
 2. Kiểm tra Prisma CLI, `@prisma/client`, `@prisma/adapter-pg` thực tế đều là `7.10.1`, rồi hiển thị `prisma --version`.
 3. `npm exec -- prisma validate --config prisma7.config.ts`.
 4. `npm exec -- prisma generate --config prisma7.config.ts` sinh client bị Git ignore, cần cho typecheck, build và Prisma integration test trên checkout mới.

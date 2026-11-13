@@ -38,11 +38,11 @@ export class ListingMediaRepository {
   /** Keeps Listing authorization at the internal attachment boundary. */
   listing(id: string, tx: DatabaseTransaction) { return tx.listing.findUnique({ where: { id } }); }
   /** Reserves server-generated metadata before the first object is written. */
-  reserve(input: { id: string; userId: string; bytes: number; expiresAt: Date }, tx: DatabaseTransaction) {
-    return tx.mediaAsset.create({ data: { id: input.id, uploadedById: input.userId, purpose: "LISTING", type: "IMAGE", status: "TEMP", storageKey: `listing/v1/${input.id}.webp`, sizeBytes: input.bytes, mimeType: "image/webp", expiresAt: input.expiresAt } });
+  reserve(input: { id: string; userId: string; bytes: number; expiresAt: Date; video?: { extension: "mp4" | "webm"; mimeType: string; durationSeconds: number } }, tx: DatabaseTransaction) {
+    return tx.mediaAsset.create({ data: { id: input.id, uploadedById: input.userId, purpose: "LISTING", type: input.video ? "VIDEO" : "IMAGE", status: "TEMP", storageKey: `listing/v1/${input.id}.${input.video?.extension ?? "webp"}`, sizeBytes: input.bytes, mimeType: input.video?.mimeType ?? "image/webp", durationSeconds: input.video?.durationSeconds ?? null, expiresAt: input.expiresAt } });
   }
   /** Conditional transition also rejects a stale attachment caller even if it bypasses a pre-read. */
-  attach(id: string, input: { userId: string; listingId: string; position: number; now: Date }, tx: DatabaseTransaction) {
+  attach(id: string, input: { userId: string; listingId: string; position: number | null; now: Date }, tx: DatabaseTransaction) {
     return tx.mediaAsset.updateMany({ where: { id, uploadedById: input.userId, purpose: "LISTING", status: "TEMP", listingId: null, deletedAt: null, expiresAt: { gt: input.now } }, data: { status: "ATTACHED", listingId: input.listingId, expiresAt: null, position: input.position } });
   }
   /** Cancellation and its retry event commit together, without a storage side effect. */

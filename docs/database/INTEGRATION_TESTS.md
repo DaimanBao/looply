@@ -1,5 +1,23 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Phase 4 — Media Video Backend — 13/11/2026
+
+Triển khai từ develop `9a74964`, sau khi người dùng duyệt FFprobe/FFmpeg CLI. Không đổi Prisma schema/migration, npm dependency hoặc Frontend. Setup Windows thực đã tải build cố định, xác minh SHA-256/version và chạy fixtures; setup Linux được ghép vào Backend CI, kết quả GitHub báo riêng trên PR.
+
+Đã xác minh kết nối thật: PostgreSQL 17.11, `current_database() = looply_test`; Redis riêng `127.0.0.1:6380/1`, PONG. Fixture cũng kiểm tra database trước ghi và chỉ cleanup graph/namespace sở hữu. Docker ban đầu chưa chạy nên lượt đầu dừng tại kết nối trước mọi fixture write; sau khởi động Docker, các nhóm sau PASS. Không chạy migration hoặc ghi dữ liệu development/production.
+
+| Kiểm chứng local đã chạy | Kết quả |
+|---|---|
+| `npm test -- --run src/modules/media src/modules/listing src/shared/http/openapi.spec.ts` với binary thật | 70/70, 11 file. |
+| `npm run test:integration -- listing-video.test.ts listing-crud.test.ts media-lifecycle.test.ts media-constraints.test.ts listing-discovery.test.ts` | 122/122, 5 file; sau đó chạy lại riêng 17/17 video khi bổ sung kiểm tra HEAD/If-Range, DocType và ảnh thiếu binary. |
+| `npm run test:api` | 23/23. |
+| Source/test typecheck, build và Prisma validate | PASS; không cần migration mới. |
+| Script setup Windows và checksum/version của cả FFprobe/FFmpeg | PASS, chạy setup thực. |
+
+Video fixtures tổng hợp MP4 H.264 (có/không AAC), WebM VP9; 180 giây/180,1 giây; size 100 MiB/+1 byte bằng valid free atom trên sparse copy. Có giả mạo, truncate/corrupt payload, invalid/nonfinite metadata, actual EBML DocType (không tìm chuỗi tùy tiện), invalid streams/codecs, missing/mismatched binary, timeout/cancel, process failure và stdout/stderr overflow. HTTP/PG/local file tests xác minh unchanged bytes/MIME/range/headers, TEMP không delivery, ownership/Block/HIDDEN/DELETED/account lifecycle, 5 ảnh+1 video, attachment rollback không attach một phần, concurrent upload/attach, capacity/retry, replacement rollback, TTL/cancel, stale cleanup, cleanup trong lúc writer chưa finalize, account/expiry thay đổi giữa write, orphan video/marker, crash-left staging và disconnect.
+
+S3 adapter có test MIME/immutability/HEAD/Range bằng SDK mock, không dùng bucket production. Ảnh/JPEG metadata regression, Avatar/account cleanup và Listing discovery được giữ qua nhóm kiểm thử liên quan; full suite local không chạy lặp, Backend CI chạy các suite theo workflow. Chưa nghiệm thu browser playback hoặc live S3; chưa có S3 bucket inventory. Staging crash recovery chạy khi có upload tiếp theo, stream authorization tại lúc mở và không giữ transaction suốt playback. Cấu hình/setup/giới hạn cụ thể thuộc [Backend README](../../backend/README.md#video-backend--phase-4).
+
 ## Final review PR #21 — 13/11/2026
 
 Đã đối chiếu diff với develop, yêu cầu/contract và code Search/Suggestions/price semantics/cursor/Feed/Follow; kiểm tra query parameter binding, DTO/private fields, User lifecycle/Block và User→Listing lock ordering với account cleanup. Không thay schema/migration/dependency/Frontend hoặc nghiệp vụ đã duyệt.

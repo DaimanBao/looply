@@ -247,11 +247,11 @@ describe("Listing CRUD HTTP with real PostgreSQL", () => {
     await expect(fixture.listings.remove(listing.id, actor.principal, 1)).rejects.toMatchObject({ status: 401 });
   });
 
-  it("rejects invalid bytes, oversized images and unavailable video without reserving metadata", async () => {
+  it("rejects invalid bytes, oversized images and malformed video without reserving metadata", async () => {
     const send = (bytes: Buffer) => request(fixture.app).post("/api/media/listing-uploads").auth(actor.token, { type: "bearer" }).set("Content-Type", "application/octet-stream").send(bytes);
     await send(Buffer.from("not a real image")).expect(415);
     await send(Buffer.alloc(10 * 1024 * 1024 + 1)).expect(413);
-    await send(Buffer.from([0, 0, 0, 20, 102, 116, 121, 112])).expect(503);
+    await send(Buffer.from([0, 0, 0, 20, 102, 116, 121, 112])).expect(415);
     await request(fixture.app).post("/api/media/listing-uploads").auth(actor.token, { type: "bearer" }).send({ storageKey: "private" }).expect(415);
     expect(await fixture.db.mediaAsset.count({ where: { uploadedById: actor.principal.userId } })).toBe(0);
   });
