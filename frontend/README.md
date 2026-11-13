@@ -95,6 +95,25 @@ node --env-file=.video-tools/video.env --require ./backend/node_modules/tsx/dist
 
 Giới hạn: chưa nghiệm thu Safari/Firefox, WebM trong browser hoặc tệp 100 MiB; delivery video vẫn tải Blob đầy đủ như Phase 5A. Chưa có consumer thông báo participant ở Backend; UI chỉ xác nhận theo contract, không tuyên bố đã gửi thông báo. Không thêm Listing Follow, Chat, Notification hoặc Admin. Checklist chức năng tổng chưa được đánh dấu hoàn tất chỉ từ phạm vi Phase 5B.
 
+## Follow Listing và tích hợp — Phase 5C
+
+- Discovery card và Detail dùng cùng Follow control/state. Guest nhận lời mời đăng nhập với `returnUrl` đến detail, không tự Follow sau đăng nhập. Tài khoản ACTIVE có thể Follow/Unfollow; khóa thao tác theo Listing trong lúc request đang chạy. Chủ bài thấy liên kết quản lý thay vì tự Follow; quyền chủ lấy một lần từ `/users/me` cho mỗi danh tính, có retry nếu đọc quyền lỗi.
+- `/account/followed-listings` được bảo vệ bằng active guard, dùng cùng card/media và cơ chế cursor 12 bài/dedup/retry của Discovery. Chỉ hiển thị ACTIVE mà server cho phép; HIDDEN giữ quan hệ nhưng không xuất hiện, có thể trở lại sau reopen. Unfollow thành công bỏ hàng khỏi UI; cursor vẫn dùng nguyên giá trị server. Có loading/empty/error/tải lại/tải thêm.
+- Header, My Listings và Detail có liên kết giữa khám phá/quản lý/theo dõi. UI không tạo Chat, Notification hoặc endpoint mới; PUT/DELETE Follow không gửi version Listing hoặc tự phát notification.
+- Cache Follow chung trong RAM được xóa khi đổi danh tính; rotation cùng phiên giữ cache và media. Mỗi GET đóng dấu thời điểm bắt đầu, không ghi đè mutation đã hoàn tất hoặc GET mới hơn. Request/payload cũ không cập nhật Follow, lỗi/quyền hoặc danh sách của tài khoản mới. Mutation chỉ cập nhật UI sau 204; retry là thao tác tường minh, dùng cùng PUT/DELETE idempotent.
+- Dữ liệu server được đọc lại khi điều hướng/tải lại; không thêm realtime hoặc tự đồng bộ giữa các tab. Listing ẩn/xóa/Block không có trong danh sách theo dõi theo contract; UI không tạo màn hình để quản lý các quan hệ đã bị ẩn dù Backend vẫn cho Unfollow bằng ID.
+
+Kiểm chứng local 13/11/2026: targeted tests cho shared Follow/identity/version, owner/guest control, HTTP decoder và followed pagination/dedup/retry; regression Discovery/search/filter/detail/token rotation/Auth guards. Chrome + API/PostgreSQL `looply_test`/Redis test thật đã PASS guest → login → Follow → danh sách → Discovery → Unfollow → đổi tài khoản → chủ quản lý, không phát thêm outbox event. Fixture chỉ tạo/xóa đúng graph của nó sau xác minh database, dùng local media/fake Auth provider tại ranh giới OTP/email. Không ghi development hoặc đổi schema/dependencies/contract.
+
+```powershell
+# Từ frontend/: kiểm thử tập trung
+npm test -- --watch=false --include="src/app/features/listing/**/*follow*.spec.ts"
+# Từ root: luồng trình duyệt nhỏ, dùng lại setup/cleanup của Listing harness
+node --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listing.cjs --follow
+```
+
+Report local Git ignore: `frontend/tmp/listing-e2e/follow-report.json`. E2E chưa đưa vào CI; chưa nghiệm thu browser ngoài Chrome hoặc đồng bộ realtime giữa thiết bị. Kết quả toàn bộ tests/typecheck/build theo CI ở commit cuối PR; không chạy full suite local.
+
 ## Session và bảo mật
 
 - Access Token chỉ trong RAM. Refresh HttpOnly Cookie do Backend quản lý: `SameSite=Strict; Path=/api/auth`, dùng `withCredentials` khi cần trao đổi cookie. Không đọc cookie bằng JS, không localStorage/sessionStorage token.

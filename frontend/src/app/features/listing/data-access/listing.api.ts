@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, InjectionToken, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, defer, map, tap } from 'rxjs';
 import { API_BASE } from '../../../core/http/api.config';
 import type { DiscoveryQuery } from '../models/discovery-query';
 import type {
@@ -10,6 +10,7 @@ import type {
   ListingSuggestion,
 } from '../models/listing.models';
 import { decodeListingDetail, decodeListingPage, decodeSuggestions } from './listing.decode';
+import { ListingFollowState } from '../state/listing-follow.state';
 
 export const LISTING_MEDIA_TIMEOUT_MS = new InjectionToken<number>('LISTING_MEDIA_TIMEOUT_MS', {
   providedIn: 'root',
@@ -21,15 +22,20 @@ export class ListingApi {
   private readonly http = inject(HttpClient);
   private readonly base = inject(API_BASE);
   private readonly mediaTimeout = inject(LISTING_MEDIA_TIMEOUT_MS);
+  private readonly follows = inject(ListingFollowState);
 
   /** Gửi lại đúng query và cursor opaque; seed toàn quốc do server quản lý trong after. */
   discover(query: DiscoveryQuery, after?: string): Observable<ListingPage> {
     let params = new HttpParams();
     for (const [key, value] of Object.entries(query)) params = params.set(key, value);
     if (after) params = params.set('after', after);
-    return this.http
-      .get<unknown>(`${this.base}/listings`, { params })
-      .pipe(map((value) => decodeListingPage(value)));
+    return defer(() => {
+      const read = this.follows.beginRead();
+      return this.http.get<unknown>(`${this.base}/listings`, { params }).pipe(
+        map((value) => decodeListingPage(value)),
+        tap((page) => this.follows.accept(page.data, read)),
+      );
+    });
   }
 
   /** Để Backend chuẩn hóa dấu tiếng Việt và lọc quyền hiển thị. */
@@ -41,9 +47,13 @@ export class ListingApi {
 
   /** Đọc chi tiết công khai hoặc của chủ có quyền bằng hệ thống Bearer tùy chọn hiện có. */
   detail(id: string): Observable<ListingDetail> {
-    return this.http
-      .get<unknown>(`${this.base}/listings/${encodeURIComponent(id)}`)
-      .pipe(map(decodeListingDetail));
+    return defer(() => {
+      const read = this.follows.beginRead();
+      return this.http.get<unknown>(`${this.base}/listings/${encodeURIComponent(id)}`).pipe(
+        map(decodeListingDetail),
+        tap((listing) => this.follows.accept([listing], read)),
+      );
+    });
   }
 
   /** Lấy byte được bảo vệ thay vì đưa credential vào URL media native. */

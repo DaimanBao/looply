@@ -19,6 +19,8 @@ Bản `schema_auth_user.prisma` cũ chỉ là **bản nháp từng giai đoạn*
 
 PostgreSQL 17 local chạy bằng Docker theo [`compose.yaml`](../../compose.yaml); cổng truy cập từ máy phát triển là `localhost:5435`, ánh xạ tới cổng `5432` trong container. Prisma ORM sử dụng phiên bản **7.10.1** và cấu hình [`backend/prisma7.config.ts`](../../backend/prisma7.config.ts).
 
+Compose dùng volume external có sẵn `looply-rebuild_postgres_data` để tiếp tục dữ liệu sau khi đổi tên workspace. Volume này phải tồn tại trước khi chạy Compose; không tự tạo volume thay thế, xóa volume hoặc khởi tạo lại dữ liệu khi không tìm thấy. Có thể kiểm tra chỉ đọc bằng `docker volume inspect looply-rebuild_postgres_data`. Thay đổi này không chạy migration hoặc đổi database.
+
 | Môi trường | Database | Biến kết nối trong Backend | Mục đích |
 | --- | --- | --- | --- |
 | Development | `looply_dev` | `DATABASE_URL` | Phát triển Backend; không dùng cho database integration tests. |

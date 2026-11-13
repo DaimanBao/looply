@@ -8,10 +8,11 @@ import { apiError } from '../../../core/http/api-error';
 import { ListingApi } from '../data-access/listing.api';
 import { ListingGallery } from '../components/listing-gallery';
 import { ListingPrice } from '../components/listing-price';
+import { ListingFollow } from '../components/listing-follow';
 import type { ListingDetail } from '../models/listing.models';
 
 @Component({
-  imports: [DatePipe, RouterLink, ListingGallery, ListingPrice],
+  imports: [DatePipe, RouterLink, ListingGallery, ListingPrice, ListingFollow],
   templateUrl: './detail.page.html',
   styleUrl: './detail.page.scss',
 })

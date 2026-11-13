@@ -1,0 +1,46 @@
+@if (!state.session.authenticated()) {
+  <a [routerLink]="['/auth/login']" [queryParams]="{ returnUrl: '/listings/' + listing().id }"
+    >Đăng nhập để theo dõi</a
+  >
+} @else if (state.session.active()) {
+  @if (state.isOwner(listing())) {
+    <a class="button secondary" [routerLink]="['/listings', listing().id, 'edit']"
+      >Quản lý bài đăng</a
+    >
+  } @else {
+    <button
+      type="button"
+      class="secondary"
+      (click)="state.toggle(listing())"
+      [disabled]="
+        !state.ownerId() ||
+        state.busy(listing().id) ||
+        (listing().status !== 'ACTIVE' && !state.followed(listing()))
+      "
+      [attr.aria-pressed]="state.followed(listing())"
+      [attr.aria-label]="
+        (state.followed(listing()) ? 'Bỏ theo dõi: ' : 'Theo dõi: ') + listing().title
+      "
+    >
+      {{
+        state.busy(listing().id)
+          ? 'Đang xử lý…'
+          : state.followed(listing())
+            ? 'Bỏ theo dõi'
+            : 'Theo dõi bài đăng'
+      }}
+    </button>
+    @if (state.ownerLoading()) {
+      <p role="status">Đang kiểm tra quyền…</p>
+    }
+    @if (state.ownerError()) {
+      <p role="alert">{{ state.ownerError() }}</p>
+      <button class="secondary" type="button" (click)="state.prepareOwner()">
+        Thử kiểm tra quyền
+      </button>
+    }
+    @if (state.error(listing().id)) {
+      <p role="alert">{{ state.error(listing().id) }}</p>
+    }
+  }
+}

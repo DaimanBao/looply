@@ -4,10 +4,11 @@ import { RouterLink } from '@angular/router';
 import type { ListingItem } from '../models/listing.models';
 import { ListingMedia } from './listing-media';
 import { ListingPrice } from './listing-price';
+import { ListingFollow } from './listing-follow';
 
 @Component({
   selector: 'app-listing-card',
-  imports: [DatePipe, RouterLink, ListingMedia, ListingPrice],
+  imports: [DatePipe, RouterLink, ListingMedia, ListingPrice, ListingFollow],
   templateUrl: './listing-card.html',
   styleUrl: './listing-card.scss',
 })

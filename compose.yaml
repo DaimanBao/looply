@@ -31,3 +31,5 @@ services:
 
 volumes:
   postgres_data:
+    external: true
+    name: looply-rebuild_postgres_data

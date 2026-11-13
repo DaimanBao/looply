@@ -1,0 +1,32 @@
+<nav aria-label="Điều hướng bài đăng">
+  <a routerLink="/">Khám phá</a> · <a routerLink="/account/listings">Bài đăng của tôi</a>
+</nav>
+<h1>Bài đăng đang theo dõi</h1>
+<p>
+  Chỉ hiển thị bài đang công khai mà bạn có quyền xem. Bài ẩn vẫn được giữ lượt theo dõi và có thể
+  xuất hiện lại khi chủ bài mở lại.
+</p>
+<button type="button" class="secondary" (click)="reload()" [disabled]="store.loading()">
+  Tải lại danh sách
+</button>
+@if (store.error()) {
+  <p role="alert">{{ store.error() }}</p>
+  <button type="button" class="secondary" (click)="store.loadMore()" [disabled]="store.loading()">
+    Thử lại
+  </button>
+}
+<div class="followed-grid">
+  @for (listing of rows(); track listing.id) {
+    <app-listing-card [listing]="listing" />
+  }
+</div>
+@if (store.loading()) {
+  <p role="status">Đang tải bài theo dõi…</p>
+} @else if (!store.error() && !rows().length) {
+  <p role="status">Chưa có bài đăng theo dõi hiển thị. Bạn có thể tìm thêm trong Khám phá.</p>
+}
+@if (store.cursor() && !store.error()) {
+  <button class="secondary" type="button" (click)="store.loadMore()" [disabled]="store.loading()">
+    Tải thêm bài theo dõi
+  </button>
+}

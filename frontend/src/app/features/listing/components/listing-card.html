@@ -15,5 +15,6 @@
     <time [attr.datetime]="listing().createdAt"
       >Đăng {{ listing().createdAt | date: 'dd/MM/yyyy HH:mm' }}</time
     >
+    <app-listing-follow [listing]="listing()" />
   </div>
 </article>
