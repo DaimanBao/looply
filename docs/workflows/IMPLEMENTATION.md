@@ -4,7 +4,7 @@
 Hiện thực thiết kế đã thống nhất thành mã nguồn chạy được, đúng yêu cầu và cấu trúc Looply — Đồ án 1.
 
 ## Đầu vào
-- Kết quả giai đoạn `DESIGN.md` đã được xác nhận.
+- Giải pháp đủ rõ từ `DESIGN.md`; chỉ cần phê duyệt riêng khi có quyết định vượt phạm vi đã được cho phép.
 - Yêu cầu module tương ứng trong `docs/requirements/`.
 - Quy định công nghệ, kiến trúc và cấu trúc trong `docs/TECH_STACK.md`, `docs/structures/` và `AGENTS.md`.
 
@@ -14,10 +14,12 @@ Hiện thực thiết kế đã thống nhất thành mã nguồn chạy đượ
 3. Tách đúng trách nhiệm (route, controller, service, repository, validation, middleware, UI component...); dùng lại phần chung khi hợp lý, tránh file quá lớn và trừu tượng hóa không cần thiết.
 4. Xử lý lỗi, kiểm tra đầu vào, phân quyền và bảo vệ dữ liệu ở các điểm liên quan; không đưa bí mật vào mã nguồn.
 5. Viết test phù hợp cho logic mới hoặc thay đổi; sử dụng mock/seed đúng mục đích, không thay thế kiểm thử tích hợp thực tế.
-6. Sau mỗi phần, chạy các kiểm tra khả thi (typecheck, lint, test, build); sửa lỗi phát sinh trước khi tiếp tục. Không tuyên bố đạt nếu chưa chạy hoặc chưa có kết quả.
+6. Chọn thời điểm và kiểm tra theo [Risk-Based Targeted Testing](TESTING.md), dùng lại kết quả PASS còn hiệu lực giữa IMPLEMENTATION và TESTING; không chạy mọi kiểm tra sau mỗi phần. Sửa lỗi phát sinh; không tuyên bố đạt khi chưa có bằng chứng.
 7. Cập nhật tài liệu liên quan khi việc triển khai làm thay đổi hợp đồng API, cấu trúc hoặc quyết định kỹ thuật đã được duyệt.
 
 ## Đầu ra
+Tổng hợp trong PR/bàn giao cuối; không cần báo cáo trung gian riêng cho giai đoạn.
+
 - Mã nguồn được triển khai theo thiết kế, có test liên quan.
 - Danh sách file đã thay đổi và tóm tắt chức năng đã làm.
 - Kết quả các lệnh kiểm tra đã chạy; nêu rõ phần chưa kiểm chứng và vấn đề còn tồn tại.
