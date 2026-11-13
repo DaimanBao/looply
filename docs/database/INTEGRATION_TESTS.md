@@ -1,5 +1,13 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Final review PR #20 — 13/11/2026
+
+Review diff so với develop, contract/DTO, visibility/lifecycle, lock ordering, atomic manifest/rollback, cleanup/reference guards và regression Auth/User/Avatar. Không đổi schema/migration, dependencies, Frontend hoặc nghiệp vụ đã duyệt.
+
+**Medium — đã sửa:** `listing-image.ts` nhận diện video từ `ftyp` tại offset 4 trước decode ảnh. JPEG hợp lệ có APP15 length/payload cùng bytes bị trả 503 MEDIA_VIDEO_UNAVAILABLE dù sharp xác nhận JPEG và decode được. Đã ưu tiên JPEG signature trước sniff BMFF; file vẫn phải qua kiểm tra format/decode/size/pixels như trước. Unit regression thất bại trước sửa (503), đạt sau sửa với WebP detail/thumbnail. HTTP/PostgreSQL regression upload JPEG đó, create/attach và delivery hai variant đạt 201/200. Bổ sung assertion ảnh vẫn trả 200 khi Listing đồng thời có VIDEO trả 503; không biến video stub thành inspector hoặc chấp nhận VIDEO TEMP.
+
+Kiểm chứng review: targeted unit/contract **13/13 PASS**; `listing-crud.test.ts` **22/22 PASS** trên actual PostgreSQL 17.11 `looply_test`, Redis test riêng `/1`; source/test typecheck và build PASS. Không chạy lại toàn bộ suite local; bằng chứng đầy đủ trước review tại mục Phase 2 bên dưới, CI được kiểm tra trên commit bản sửa và báo trong kết luận. Không chạy migration hoặc test trên development/production. Live S3, video inspector/playback/Range và browser Listing E2E vẫn chưa kiểm chứng.
+
 ## Listing Backend CRUD — Phase 2 — 13/11/2026
 
 Đã xác minh PR #19 merged và nhánh bắt đầu từ origin/develop `df9bd4f`, working tree sạch. PostgreSQL thực tế là `looply_test` 17.11 tại localhost:5435; Redis test riêng `/1` tại localhost:6380. Không chạy migration, seed, reset, truncate trên development/production; không thêm migration/schema/dependency hoặc sửa Frontend.

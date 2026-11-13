@@ -3,6 +3,18 @@ import { describe, expect, it } from "vitest";
 import { optimizeListingImage } from "./listing-image";
 
 describe("Listing image processor", () => {
+  it("does not classify a valid JPEG APP segment as an unavailable video", async () => {
+    const jpeg = await sharp({ create: { width: 8, height: 8, channels: 3, background: "red" } }).jpeg().toBuffer();
+    // APP15's length and first two payload bytes collide with BMFF's ftyp offset.
+    const app = Buffer.alloc(0x6674 + 2);
+    app[0] = 0xff; app[1] = 0xef; app.writeUInt16BE(0x6674, 2); app[4] = 0x79; app[5] = 0x70;
+    const input = Buffer.concat([jpeg.subarray(0, 2), app, jpeg.subarray(2)]);
+    expect(input.subarray(4, 8).toString("ascii")).toBe("ftyp");
+    expect((await sharp(input).metadata()).format).toBe("jpeg");
+    const output = await optimizeListingImage(input);
+    expect((await sharp(output.detail).metadata()).format).toBe("webp");
+    expect((await sharp(output.thumbnail).metadata()).format).toBe("webp");
+  });
   it("creates proportional detail and thumbnail WebP without preserving private metadata", async () => {
     const input = await sharp({ create: { width: 2400, height: 1200, channels: 3, background: "#cc8844" } }).png().withMetadata({ exif: { IFD0: { Artist: "Private fixture owner" } } }).toBuffer();
     const output = await optimizeListingImage(input);

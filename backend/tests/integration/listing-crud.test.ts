@@ -11,6 +11,7 @@ import { ListingMediaRepository } from "../../src/modules/media/listing-media.re
 import { lockResources } from "../../src/shared/database/locks";
 import type { Principal } from "../../src/modules/auth";
 import { listingContract } from "../helpers/listing-contract";
+import { jpegWithFtypAppSegment } from "../helpers/listing-image-fixture";
 
 let fixture: AuthFixture;
 let actor: { token: string; principal: Principal };
@@ -51,6 +52,15 @@ function patch(id: string, body: object, as = actor) { return request(fixture.ap
 function row(id: string) { return fixture.db.listing.findUniqueOrThrow({ where: { id }, include: { province: true, media: { orderBy: { position: "asc" } } } }); }
 
 describe("Listing CRUD HTTP with real PostgreSQL", () => {
+  it("uploads and delivers a valid JPEG even when its APP metadata contains the video sniff marker", async () => {
+    image = await jpegWithFtypAppSegment();
+    const mediaId = await upload(); const listing = await create([mediaId]);
+    for (const variant of ["detail", "thumbnail"]) {
+      const response = await request(fixture.app).get(`/api/listings/${listing.id}/media/${mediaId}`).query({ variant }).expect(200);
+      expect(response.headers["content-type"]).toMatch(/^image\/webp/);
+      expect((await sharp(response.body).metadata()).format).toBe("webp");
+    }
+  });
   it("creates exact-price SALE, RENT and EXCHANGE, with canonical title and no private data", async () => {
     for (const terms of [{ type: "SALE", price: "999999999999999", rentalUnit: null }, { type: "RENT", price: "100", rentalUnit: "DAY" }, { type: "EXCHANGE", price: null, rentalUnit: null }]) {
       const mediaId = await upload();
@@ -258,6 +268,7 @@ describe("Listing CRUD HTTP with real PostgreSQL", () => {
     await request(fixture.app).get(`/api/listings/${listing.id}/media/${ids[0]}?variant=original`).expect(400);
     await request(fixture.app).get(`/api/listings/${listing.id}/media/${ids[0]}`).set("Range", "bytes=0-1").expect(416);
     await request(fixture.app).get(`/api/listings/${listing.id}/media/${video.id}`).expect(503);
+    for (const variant of ["detail", "thumbnail"]) await request(fixture.app).get(`/api/listings/${listing.id}/media/${ids[0]}`).query({ variant }).expect(200).expect("Content-Type", /image\/webp/);
     const peer = await identity(); const conversation = await fixture.db.conversation.create({ data: { type: "LISTING", listingId: listing.id, initiatorId: peer.principal.userId, contactUserId: peer.principal.userId } });
     await fixture.db.message.create({ data: { conversationId: conversation.id, senderId: peer.principal.userId, requestId: randomUUID(), type: "TEXT", imageMediaId: ids[0], payloadHash: "fixture" } });
     const guarded = await patch(listing.id, { expectedVersion: 2, confirmConversationImpact: true, media: { imageIds: ids.slice(1), videoId: null } }).expect(409);

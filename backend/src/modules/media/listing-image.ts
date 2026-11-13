@@ -2,8 +2,11 @@ import sharp from "sharp";
 import { AppError } from "../../shared/errors/app-error";
 
 export const listingImageConfig = { maxInputBytes: 10 * 1024 * 1024, maxPixels: 40_000_000, detailEdge: 1600, thumbnailEdge: 400, quality: 85, processingSeconds: 15 };
-/** Recognizes video containers only to reject unavailable video processing without inventing trusted metadata. */
-function isVideo(input: Buffer): boolean { return input.subarray(4, 8).toString("ascii") === "ftyp" || input.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3])); }
+/** Excludes JPEG's signature before sniffing BMFF: JPEG APP length/payload bytes can also spell ftyp. */
+function isVideo(input: Buffer): boolean {
+  if (input.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return false;
+  return input.subarray(4, 8).toString("ascii") === "ftyp" || input.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
+}
 /** Decodes real pixels with bounded decompression, strips metadata and produces both immutable WebP renditions. */
 export async function optimizeListingImage(input: Buffer): Promise<{ detail: Buffer; thumbnail: Buffer }> {
   if (isVideo(input)) throw new AppError(503, "MEDIA_VIDEO_UNAVAILABLE", "Video uploads are not available yet.");
