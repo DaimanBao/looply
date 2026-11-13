@@ -4,6 +4,6 @@
     "rootDir": "..",
     "noEmit": true
   },
-  "include": ["../src/**/*.ts", "./**/*.ts"],
+  "include": ["../src/**/*.ts", "../prisma/seed.ts", "./**/*.ts"],
   "exclude": ["../node_modules", "../dist"]
 }

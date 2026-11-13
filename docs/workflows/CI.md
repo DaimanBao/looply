@@ -4,7 +4,7 @@
 
 Workflow [`backend-ci.yml`](../../.github/workflows/backend-ci.yml) chạy một job `Backend checks` khi có Pull Request nhắm vào `develop`/`main`, hoặc push lên hai nhánh này. Không lọc theo đường dẫn, không dùng matrix hoặc cache. Frontend chưa nằm trong workflow này.
 
-Job dùng Ubuntu, Node.js 24 và PostgreSQL 17 riêng cho từng lần chạy. Token chỉ có quyền `contents: read`; checkout không lưu credentials cho các bước tiếp theo. Job có timeout 15 phút.
+Job dùng Ubuntu, Node.js 24, PostgreSQL 17 và Redis 7.4 riêng cho từng lần chạy. Token chỉ có quyền `contents: read`; checkout không lưu credentials cho các bước tiếp theo. Job có timeout 15 phút.
 
 ## Database và an toàn
 
@@ -14,6 +14,7 @@ Job dùng Ubuntu, Node.js 24 và PostgreSQL 17 riêng cho từng lần chạy. T
 - Migration chỉ chạy qua `prisma migrate deploy --config prisma7.config.ts`; không reset, db push, seed hoặc truy cập dev/prod.
 - Các integration test giữ nguyên helper và fixture hiện có: xác minh database trên connection thực tế, dùng transaction và rollback. Không nới lỏng schema, migration hoặc kỳ vọng test cho CI.
 - Container CI không có volume dữ liệu lâu dài; mỗi job bắt đầu bằng database mới.
+- Auth/User integration tests dùng `TEST_REDIS_URL` trỏ Redis service riêng, database `/15`; helper xác minh database thực tế qua CLIENT INFO, mỗi fixture có namespace UUID, chỉ SCAN/DEL namespace của mình và không FLUSHDB. Không cần Google/SMS/email/S3 credentials thật trong CI; fake chỉ tại provider boundary, Google SDK vẫn có test chữ ký RSA/claims.
 
 ## Trình tự kiểm tra
 

@@ -13,6 +13,7 @@ backend/
 │   ├── app.ts                    # Khởi tạo Express, middleware, mount routes
 │   ├── server.ts                 # Khởi chạy HTTP và realtime, shutdown
 │   ├── bootstrap.ts              # Ghép app, logger, Prisma và HTTP server
+│   ├── features.ts               # Composition root ghép public services, providers, routers và cleanup
 │   ├── runtime/                  # Lifecycle startup/shutdown, không đọc environment
 │   ├── config/                   # Đọc và xác thực cấu hình môi trường
 │   ├── shared/
@@ -32,7 +33,7 @@ backend/
 │   │   ├── notification/
 │   │   └── reminder/             # Chỉ tạo backend logic nếu thực sự cần
 │   ├── realtime/                # Socket.IO setup, xác thực, kết nối
-│   ├── jobs/                    # Worker/outbox nếu triển khai
+│   ├── jobs/                    # Hạ tầng outbox claim/lease/retry và vòng poll không chồng lấn
 │   └── routes/                  # Router tổng hợp hoặc health endpoint
 ├── tests/                       # Integration/E2E và test helpers
 │   ├── api/                     # HTTP integration với dependency test, không mở database
@@ -59,6 +60,12 @@ modules/<module>/
 └── *.spec.ts                     # Unit test gần mã nguồn
 ```
 Không bắt buộc mỗi module phải có đủ mọi file. Với module phức tạp, tách tiếp theo tính năng (`sessions/`, `otp/`, `conversations/`, `messages/`, `proposals/`...), giữ cùng nguyên tắc phân lớp; **không dồn toàn bộ module vào một file lớn**.
+
+Auth hiện tách `identity/`, `sessions/`, `credentials/`, `otp/`, `redis/`, `security/`, `providers/` và `http/`; `auth.module.ts` chỉ ghép thành phần Auth. User có profile/relations, `deletion/`, avatar service và HTTP handlers; Media sở hữu tối ưu ảnh, object store và truy cập media metadata, chưa triển khai Listing/Chat media APIs đầy đủ. Public interfaces nằm ở `modules/auth/index.ts` và `modules/user/index.ts`; composition root được phép ghép repositories/providers riêng của từng module, service của module khác phải dùng public API. Username validation thuộc User, credential/OTP/session thuộc Auth. Shared chỉ có HTTP helpers, validated DTO access, middleware chung, principal shape và generic resource locking.
+
+`modules/user/username.ts` là public entry riêng cho quy tắc username, không phụ thuộc service/HTTP/Auth. Auth nhập trực tiếp entry này để tránh vòng runtime `auth.schema -> user/index -> UserService -> auth/index -> auth.schema`; các nghiệp vụ User khác dùng `user/index.ts` như trước.
+
+Cleanup coordinator thuộc `user/deletion/deletion.worker.ts`, không sửa/xóa Chat Message hoặc Chat Media; nó gọi public Auth/Media cleanup services, cùng transaction khi hoàn tất lifecycle User. Media sở hữu storage/asset cleanup; `jobs/` chỉ sở hữu hạ tầng outbox/lease/poll. Side effect storage ở ngoài transaction, ghi nhận bằng media state/outbox để retry. Runtime nhận lifecycle hook riêng cho Redis/worker, không đọc environment; `server.ts` là nơi đọc/xác thực cấu hình. Tests HTTP có database thật đặt trong `tests/integration/`; `tests/api/` tiếp tục chỉ chứa Core HTTP tests không mở database.
 
 ## Quy tắc sở hữu và phụ thuộc
 - `routes → controller → service → repository`; controller mỏng, nghiệp vụ ở service, repository không chứa quy tắc HTTP.
