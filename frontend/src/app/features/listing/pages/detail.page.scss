@@ -1,0 +1,29 @@
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 34px;
+  margin-top: 28px;
+}
+.detail-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.detail-price {
+  color: var(--green);
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+.description {
+  white-space: pre-wrap;
+}
+.detail-status {
+  margin-top: 24px;
+  padding: 30px;
+  text-align: center;
+}
+@media (max-width: 800px) {
+  .detail-layout {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}

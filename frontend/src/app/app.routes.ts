@@ -5,7 +5,13 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     canActivate: [publicGuard],
-    loadComponent: () => import('./core/layout/home.page').then((m) => m.HomePage),
+    loadComponent: () =>
+      import('./features/listing/pages/discovery.page').then((m) => m.DiscoveryPage),
+  },
+  {
+    path: 'listings/:listingId',
+    canActivate: [publicGuard],
+    loadComponent: () => import('./features/listing/pages/detail.page').then((m) => m.DetailPage),
   },
   {
     path: 'auth/login',
