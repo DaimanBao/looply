@@ -137,12 +137,19 @@ function item(value: unknown): ListingItem {
     updatedAt: date(row['updatedAt']),
   };
 }
-/** Chỉ nhận hàng ACTIVE công khai và cursor tiếp theo opaque có giới hạn. */
-export function decodeListingPage(value: unknown): ListingPage {
+/** Kiểm tra projection/cursor; danh sách riêng chỉ nhận ACTIVE/HIDDEN của đúng chủ. */
+export function decodeListingPage(value: unknown, ownerId?: string): ListingPage {
   const row = record(value);
   if (!Array.isArray(row['data']) || row['data'].length > 48) invalid();
   const data = row['data'].map(item);
-  if (data.some((listing) => listing.status !== 'ACTIVE')) invalid();
+  if (
+    data.some((listing) =>
+      ownerId
+        ? listing.owner.id !== ownerId || listing.status === 'DELETED'
+        : listing.status !== 'ACTIVE',
+    )
+  )
+    invalid();
   const nextCursor = nullableText(record(row['pagination'])['nextCursor']);
   if (nextCursor !== null && !/^[A-Za-z0-9_-]{1,2048}$/.test(nextCursor)) invalid();
   return { data, pagination: { nextCursor } };

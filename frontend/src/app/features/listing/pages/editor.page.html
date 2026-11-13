@@ -1,0 +1,212 @@
+<a routerLink="/account/listings">← Bài đăng của tôi</a>
+<h1>{{ editor.listing() ? 'Quản lý bài đăng' : 'Tạo bài đăng' }}</h1>
+@if (editor.loading()) {
+  <p role="status">Đang tải dữ liệu…</p>
+}
+@if (editor.error()) {
+  <p class="notice warning" role="alert">{{ editor.error() }}</p>
+}
+@if (editor.success()) {
+  <p class="notice" role="status">{{ editor.success() }}</p>
+}
+<button
+  type="button"
+  class="secondary"
+  (click)="reload()"
+  [disabled]="editor.busy() || editor.loading()"
+>
+  Tải lại dữ liệu
+</button>
+@if (editor.ready()) {
+  @if (editor.listing(); as listing) {
+    <section class="status-actions" aria-label="Trạng thái bài đăng">
+      <p>
+        Trạng thái: <strong>{{ listing.status === 'ACTIVE' ? 'Đang hiển thị' : 'Đã ẩn' }}</strong>
+      </p>
+      @if (listing.status === 'HIDDEN' && listing.hasAcceptedProposal) {
+        <p>Hiện lại bài đã có giao dịch được chấp nhận trước khi sửa nội dung.</p>
+      }
+      <button
+        type="button"
+        class="secondary"
+        (click)="visibility()"
+        [disabled]="editor.busy() || editor.blocked()"
+      >
+        {{ listing.status === 'ACTIVE' ? 'Ẩn bài' : 'Hiện lại bài' }}
+      </button>
+      <button
+        type="button"
+        class="secondary"
+        (click)="remove()"
+        [disabled]="editor.busy() || editor.blocked()"
+      >
+        Xóa bài đăng
+      </button>
+      <p class="muted">Các thao tác trạng thái áp dụng cho bài đã lưu.</p>
+    </section>
+  }
+  <form [formGroup]="editor.form" (ngSubmit)="save()">
+    <fieldset
+      [disabled]="
+        editor.busy() ||
+        editor.blocked() ||
+        (editor.listing()?.status === 'HIDDEN' && !!editor.listing()?.hasAcceptedProposal)
+      "
+    >
+      <legend>Nội dung bài đăng</legend>
+      <label for="listing-title">Tiêu đề (10–150 ký tự)</label>
+      <input
+        id="listing-title"
+        formControlName="title"
+        [attr.aria-invalid]="
+          editor.form.controls.title.touched && editor.form.controls.title.invalid
+        "
+      />
+      @if (editor.form.controls.title.touched && editor.form.controls.title.invalid) {
+        <p role="alert">Tiêu đề cần 10–150 ký tự sau bỏ dấu cách hai đầu.</p>
+      }
+      <label for="listing-description">Mô tả (20–5000 ký tự)</label>
+      <textarea id="listing-description" formControlName="description" rows="6"></textarea>
+      @if (editor.form.controls.description.touched && editor.form.controls.description.invalid) {
+        <p role="alert">Mô tả cần 20–5000 ký tự.</p>
+      }
+      <label for="listing-type">Loại giao dịch</label>
+      <select id="listing-type" formControlName="type">
+        <option value="SALE">Bán</option>
+        <option value="RENT">Cho thuê</option>
+        <option value="EXCHANGE">Trao đổi</option>
+      </select>
+      @if (editor.listing()?.hasConversations) {
+        <p>Không thể đổi loại giao dịch vì bài đã có hội thoại.</p>
+      }
+      @if (editor.form.controls.type.value !== 'EXCHANGE') {
+        <label for="listing-price">Giá niêm yết (VNĐ)</label>
+        <input id="listing-price" formControlName="price" inputmode="numeric" />
+        @if (editor.form.touched && editor.form.hasError('listingPrice')) {
+          <p role="alert">
+            Giá là số nguyên dương, tối đa 15 chữ số, không có dấu phân cách hoặc số 0 ở đầu.
+          </p>
+        }
+      } @else {
+        <p>Mô tả điều kiện trao đổi trong nội dung; bài trao đổi không có giá tiền.</p>
+      }
+      @if (editor.form.controls.type.value === 'RENT') {
+        <label for="listing-rental">Đơn vị thuê</label>
+        <select id="listing-rental" formControlName="rentalUnit">
+          <option value="DAY">Ngày</option>
+          <option value="MONTH">Tháng</option>
+        </select>
+      }
+      <label for="listing-province">Tỉnh/thành phố</label>
+      <select id="listing-province" formControlName="provinceCode">
+        <option value="">Chọn địa điểm</option>
+        @for (province of editor.provinces(); track province.code) {
+          <option [value]="province.code">{{ province.name }}</option>
+        }
+      </select>
+      @if (editor.form.controls.provinceCode.touched && editor.form.controls.provinceCode.invalid) {
+        <p role="alert">Chọn tỉnh/thành phố.</p>
+      }
+      <label for="listing-phone">Số điện thoại công khai (tùy chọn)</label>
+      <input
+        id="listing-phone"
+        formControlName="contactPhone"
+        type="tel"
+        placeholder="+84901234567"
+      />
+      <p class="muted">
+        Thông tin gợi ý từ hồ sơ có thể sửa độc lập; số này sẽ hiển thị trong bài đăng.
+      </p>
+      @if (editor.form.controls.contactPhone.touched && editor.form.controls.contactPhone.invalid) {
+        <p role="alert">Nhập số quốc tế, ví dụ +84901234567, hoặc để trống.</p>
+      }
+      <label for="listing-files">Ảnh và video</label>
+      <p>
+        1–5 ảnh JPEG/PNG/WebP, tối đa 10 MiB/ảnh. Tối đa 1 video MP4/WebM, 100 MiB, 180 giây. Tệp
+        được tải lên ngay khi chọn.
+      </p>
+      <input
+        id="listing-files"
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+        (change)="files($event)"
+      />
+      @if (media.error()) {
+        <p role="alert">{{ media.error() }}</p>
+      }
+      <div class="media-grid">
+        @for (asset of media.assets(); track asset.key) {
+          <article class="media-item">
+            @if (asset.url) {
+              @if (asset.type === 'IMAGE') {
+                <img [src]="asset.url" alt="Ảnh xem trước" />
+              } @else {
+                <video
+                  [src]="asset.url"
+                  controls
+                  preload="metadata"
+                  (loadedmetadata)="videoMetadata(asset.key, $event)"
+                ></video>
+              }
+            } @else if (attached(asset.id); as saved) {
+              <app-listing-media [listingId]="editor.listing()!.id" [asset]="saved" />
+            }
+            <p role="status">
+              {{ asset.type === 'IMAGE' ? 'Ảnh' : 'Video' }} ·
+              {{
+                asset.state === 'uploading'
+                  ? 'Đang tải và xử lý…'
+                  : asset.state === 'failed'
+                    ? 'Upload thất bại'
+                    : 'Sẵn sàng'
+              }}
+            </p>
+            @if (asset.type === 'IMAGE') {
+              <button
+                type="button"
+                class="secondary"
+                (click)="media.cover(asset.key)"
+                [attr.aria-pressed]="media.coverKey() === asset.key"
+              >
+                {{ media.coverKey() === asset.key ? 'Ảnh đại diện' : 'Chọn làm đại diện' }}
+              </button>
+              <button
+                type="button"
+                class="secondary"
+                (click)="media.move(asset.key, -1)"
+                [disabled]="$first"
+              >
+                ← Trước
+              </button>
+              <button
+                type="button"
+                class="secondary"
+                (click)="media.move(asset.key, 1)"
+                [disabled]="$last"
+              >
+                Sau →
+              </button>
+            }
+            @if (asset.state === 'failed' && !asset.invalidDuration) {
+              <button type="button" class="secondary" (click)="media.retry(asset.key)">
+                Thử upload lại
+              </button>
+            }
+            <button type="button" class="secondary" (click)="media.remove(asset.key)">
+              Bỏ tệp
+            </button>
+          </article>
+        } @empty {
+          <p>Chưa có ảnh. Chọn ít nhất một ảnh để đăng bài.</p>
+        }
+      </div>
+      <p class="muted">
+        Bỏ tệp chỉ thay đổi bản nháp. Media cũ được giữ nếu bạn hủy hoặc lưu thất bại.
+      </p>
+      <button class="primary" type="submit" [disabled]="media.uploading() || editor.busy()">
+        {{ editor.busy() ? 'Đang lưu…' : 'Lưu bài đăng' }}
+      </button>
+    </fieldset>
+  </form>
+}

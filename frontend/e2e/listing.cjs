@@ -88,11 +88,11 @@ async function main() {
     assert.equal(result.status, 201, 'Fixture upload failed');
     return result.body.id;
   }
-  const videoId = await upload(
-    fs.readFileSync(path.join(backend, 'tests/fixtures/video/valid.mp4')),
-  );
+  const videoId = process.argv.includes('--management')
+    ? null
+    : await upload(fs.readFileSync(path.join(backend, 'tests/fixtures/video/valid.mp4')));
   const listings = [];
-  for (let index = 0; index < 14; index++) {
+  for (let index = 0; index < (process.argv.includes('--management') ? 0 : 14); index++) {
     const imageId = await upload(image);
     const result = await request(fixture.app)
       .post('/api/listings')
@@ -142,6 +142,24 @@ async function main() {
   await ready('http://127.0.0.1:9230/json/version');
   const tabs = await (await fetch('http://127.0.0.1:9230/json')).json();
   page = await BrowserPage.connect(tabs.find((tab) => tab.type === 'page').webSocketDebuggerUrl);
+  if (process.argv.includes('--management')) {
+    await require('./listing-management.cjs')({
+      page,
+      owner,
+      province,
+      fixture,
+      artifacts,
+      directory,
+      image,
+      backend,
+      passed,
+    });
+    fs.writeFileSync(
+      path.join(artifacts, 'management-report.json'),
+      JSON.stringify({ database: 'looply_test', checks }, null, 2),
+    );
+    return;
+  }
   await page.navigate('/', `!!document.querySelector('input[type=search]')`);
   assert.equal(
     await page.evaluate(`(async()=>{

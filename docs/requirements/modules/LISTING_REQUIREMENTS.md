@@ -99,7 +99,7 @@
 - Feed toàn quốc dùng thứ tự ngẫu nhiên xác định theo seed trong lượt cuộn, cursor gắn query/filter/sort/seed; không random riêng mỗi trang hoặc lưu snapshot toàn bộ feed. Client loại trùng và bỏ response cũ. Không cam kết snapshot bất biến khi dữ liệu thay đổi giữa các trang.
 - Card Chat giữ snapshot cả văn bản và ảnh độc lập Listing hiện tại, theo [Chat requirements](CHAT_REQUIREMENTS.md#6-snapshot-lịch-sử-và-retention-ảnh--đã-phê-duyệt).
 
-Thuật toán chuẩn hóa, thứ tự khóa, cursor và trạng thái triển khai thuộc [thiết kế kỹ thuật](../../api/LISTING_MEDIA_DESIGN.md); schema HTTP thuộc [OpenAPI](../../api/openapi.json). Backend Search/Feed/Follow đã triển khai ở phase 3; Angular public discovery đã triển khai ở Phase 5A, bằng chứng/giới hạn tại [Frontend README](../../../frontend/README.md#listing-public-discovery--phase-5a), chờ Final Review riêng. Angular Listing mutations/Follow và snapshot Chat chưa triển khai. Checklist toàn chức năng không được suy ra chỉ từ Backend.
+Thuật toán chuẩn hóa, thứ tự khóa, cursor và trạng thái triển khai thuộc [thiết kế kỹ thuật](../../api/LISTING_MEDIA_DESIGN.md); schema HTTP thuộc [OpenAPI](../../api/openapi.json). Backend Search/Feed/Follow đã triển khai ở Phase 3; Angular public discovery ở Phase 5A và quản lý Listing/Media ở Phase 5B. Bằng chứng/giới hạn tại [Frontend README](../../../frontend/README.md#listing-management-và-media--phase-5b). Angular Listing Follow, snapshot Chat và consumer thông báo participant chưa triển khai; UI chỉ xác nhận tác động hội thoại theo contract hiện có. Checklist toàn chức năng không được suy ra chỉ từ Backend.
 
 ## 8. Quyền truy cập và giới hạn phạm vi
 
