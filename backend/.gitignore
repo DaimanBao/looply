@@ -1,5 +1,5 @@
 node_modules
-# Kh?ng ??a bi?n m?i tr??ng v?o qu?n l? phi?n b?n
+# Không đưa biến môi trường vào quản lý phiên bản
 .env
 
 /src/generated/prisma

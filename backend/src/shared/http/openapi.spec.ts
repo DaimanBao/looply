@@ -183,7 +183,7 @@ describe("OpenAPI and runtime route contract", () => {
     const actual: string[] = [];
     for (const file of files) {
       const text = readFileSync(resolve(root, "backend/src", file), "utf8");
-      for (const match of text.matchAll(/router\.(get|post|put|patch|delete)\("([^"]+)"/g))
+      for (const match of text.matchAll(/router\.(get|post|put|patch|delete)\(\s*"([^"]+)"/g))
         actual.push(`${match[1]} /api${match[2].replace(/:([A-Za-z][A-Za-z0-9]*)/g, "{$1}")}`);
     }
     const specified: string[] = [];
