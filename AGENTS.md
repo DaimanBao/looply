@@ -61,6 +61,8 @@ Tài liệu này áp dụng cho toàn bộ repository Looply. `AGENTS.md` quy đ
 
 ## 3. Ranh giới và quy tắc kiến trúc
 
+- **BẮT BUỘC** áp dụng quy ước Angular Frontend tại [Frontend Structure](docs/structures/FRONTEND_STRUCTURE.md) khi phát triển mới: feature-based, Standalone Components và Page có giao diện dùng HTML riêng qua `templateUrl`. Không tự refactor hàng loạt code hiện tại để áp dụng quy ước.
+
 - **BẮT BUỘC** giữ ranh giới module và tuân thủ quy ước riêng của từng framework. Express.js và Angular không cần cấu trúc thư mục giống nhau; tham khảo tài liệu cấu trúc tương ứng.
 - **BẮT BUỘC** đặt logic nghiệp vụ trong service/thành phần domain sở hữu, không đặt trong controller, route, template giao diện hoặc tiện ích dùng chung không phù hợp.
 - **BẮT BUỘC** cung cấp khả năng tái sử dụng qua giao diện công khai được thiết kế rõ ràng, không import tùy tiện phần triển khai riêng của module khác.
