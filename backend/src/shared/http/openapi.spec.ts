@@ -15,7 +15,44 @@ function visit(value: unknown, references: string[]): void {
   for (const item of Object.values(record)) visit(item, references);
 }
 
+/** Converts local OpenAPI components to JSON Schema definitions using the installed Zod converter. */
+function contractSchema(name: string): z.ZodType {
+  const components = z.object({ schemas: z.record(z.string(), z.unknown()) }).parse(document.components);
+  const schema = z.record(z.string(), z.unknown()).parse(JSON.parse(JSON.stringify({
+    $ref: `#/$defs/${name}`,
+    $defs: components.schemas,
+  }).replaceAll("#/components/schemas/", "#/$defs/")));
+  return z.fromJSONSchema(schema);
+}
+
 describe("OpenAPI and runtime route contract", () => {
+  it("rejects upload DTOs with an impossible media type, MIME or duration combination", () => {
+    const schema = contractSchema("ListingUpload");
+    const image = { id: "d2a6a3ba-22be-45f9-84cc-53c5929d33d3", status: "TEMP", type: "IMAGE", mimeType: "image/webp", sizeBytes: "1024", durationSeconds: null, expiresAt: "2026-11-13T00:15:00Z" };
+    const video = { ...image, type: "VIDEO", mimeType: "video/mp4", durationSeconds: 180 };
+    expect(schema.safeParse(image).success).toBe(true);
+    expect(schema.safeParse(video).success).toBe(true);
+    for (const invalid of [{ ...video, durationSeconds: null }, { ...video, mimeType: "image/webp" }, { ...image, durationSeconds: 1 }, { ...image, mimeType: "video/webm" }]) {
+      expect(schema.safeParse(invalid).success, JSON.stringify(invalid)).toBe(false);
+    }
+  });
+  it("allows only an IMAGE cover and a gallery with 1-5 images, at most one video and exactly one cover", () => {
+    const id = "d2a6a3ba-22be-45f9-84cc-53c5929d33d3";
+    const cover = { id, type: "IMAGE", mimeType: "image/webp", sizeBytes: "1024", durationSeconds: null, position: 0, isCover: true, deliveryPath: `/api/listings/${id}/media/${id}` };
+    const videoId = "d2a6a3ba-22be-45f9-84cc-53c5929d33d4";
+    const video = { ...cover, id: videoId, type: "VIDEO", mimeType: "video/webm", durationSeconds: 1, position: null, isCover: false, deliveryPath: `/api/listings/${id}/media/${videoId}` };
+    const item = { id, title: "Xe dap thanh pho", type: "SALE", status: "ACTIVE", price: "100", rentalUnit: null, province: { code: "79", name: "Ho Chi Minh" }, owner: { id, username: "owner", displayName: "Owner", bio: null, province: null, avatarUrl: null, followers: 0, following: 0 }, cover, isFollowed: false, createdAt: "2026-11-13T00:00:00Z", updatedAt: "2026-11-13T00:00:00Z" };
+    const itemSchema = contractSchema("ListingItem");
+    expect(itemSchema.safeParse(item).success).toBe(true);
+    expect(itemSchema.safeParse({ ...item, cover: video }).success).toBe(false);
+    expect(itemSchema.safeParse({ ...item, cover: { ...cover, isCover: false } }).success).toBe(false);
+    const detail = { ...item, description: "Xe dap thanh pho con rat tot.", contactPhone: null, media: [cover, video], version: 1, activeCycle: 1, hasConversations: false, hasAcceptedProposal: false };
+    const detailSchema = contractSchema("ListingDetail");
+    expect(detailSchema.safeParse(detail).success).toBe(true);
+    for (const media of [[video], [cover, video, video], [cover, cover], [{ ...cover, isCover: false }], [cover, ...Array.from({ length: 5 }, () => ({ ...cover, isCover: false }))]]) {
+      expect(detailSchema.safeParse({ ...detail, media }).success).toBe(false);
+    }
+  });
   it("resolves every local schema/response reference and keeps operation IDs unique", () => {
     const references: string[] = []; visit(document, references);
     for (const reference of references) {

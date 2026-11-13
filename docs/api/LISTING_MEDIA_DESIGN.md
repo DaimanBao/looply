@@ -118,3 +118,9 @@ Test unit/contract không ghi DB. Test ghi database chỉ được phép trên a
 - Structural validation theo [official OpenAPI 3.1 schema 2025-09-15](https://spec.openapis.org/oas/3.1/schema/2025-09-15): đạt sau resolve rõ dynamic anchor `#meta` về schema object definition cho Ajv; validator không kiểm tra format UUID/date-time. Đây không phải chứng cứ server thực thi API planned.
 - 49 operation: 34 implemented giữ nguyên contract Auth/User/Core về ngữ nghĩa, 15 planned; không operationId hoặc method/path chuẩn hóa trùng, đủ path params, ErrorResponse và security declarations.
 - Kiểm tra 48 local links/heading anchors và phạm vi diff đạt; `git diff --check` đạt. Không thay schema.prisma, lịch sử migration, package/lockfile hoặc application feature logic. CI PR được báo riêng khi có run thực tế; E2E chưa chạy cho Listing.
+
+### Review trước merge PR #17
+
+- Siết response schema: cover bắt buộc IMAGE/isCover=true; gallery 1–5 IMAGE, tối đa một VIDEO và đúng một cover; upload DTO phân biệt IMAGE/VIDEO theo MIME/duration. Hai regression tests mới tái hiện lỗi trước sửa và đạt sau sửa; không đổi request hoặc route Core/Auth/User.
+- Làm rõ decision clock sau khi chờ khóa và gate lease PREPARING ngay lúc publish snapshot; không phụ thuộc worker đã revoke hay chưa. Công thức retention/anti-resurrection giữ nguyên, không thêm nghiệp vụ.
+- Sửa mô tả search bị mất ký tự đ trong OpenAPI. Các số lượng kiểm chứng phía trên là bằng chứng lần thiết kế ban đầu; review mới có 42 component schemas, năm contract tests và 92 backend unit tests. Kết quả CI theo commit review được báo riêng sau run thực tế.

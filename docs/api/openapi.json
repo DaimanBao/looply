@@ -2061,7 +2061,7 @@
               "maxLength": 150,
               "default": ""
             },
-            "description": "Title only; NFD/accent fold including ?, lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing."
+            "description": "Title only; NFD/accent fold including d-stroke (U+0111/U+0110), lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing."
           },
           {
             "name": "feed",
@@ -2380,7 +2380,7 @@
               "maxLength": 150,
               "default": ""
             },
-            "description": "Title only; NFD/accent fold including ?, lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing."
+            "description": "Title only; NFD/accent fold including d-stroke (U+0111/U+0110), lowercase, whitespace collapse; literal escaped wildcards. Empty = regular listing."
           }
         ],
         "responses": {
@@ -4862,7 +4862,7 @@
             "$ref": "#/components/schemas/PublicProfile"
           },
           "cover": {
-            "$ref": "#/components/schemas/ListingMedia"
+            "$ref": "#/components/schemas/ListingCover"
           },
           "isFollowed": {
             "type": "boolean"
@@ -4939,7 +4939,7 @@
             "$ref": "#/components/schemas/PublicProfile"
           },
           "cover": {
-            "$ref": "#/components/schemas/ListingMedia"
+            "$ref": "#/components/schemas/ListingCover"
           },
           "isFollowed": {
             "type": "boolean"
@@ -4977,7 +4977,57 @@
               "$ref": "#/components/schemas/ListingMedia"
             },
             "minItems": 1,
-            "maxItems": 6
+            "maxItems": 6,
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "IMAGE"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "minContains": 1,
+                "maxContains": 5,
+                "type": "array"
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "VIDEO"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "minContains": 0,
+                "maxContains": 1,
+                "type": "array"
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "isCover": {
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "isCover"
+                  ]
+                },
+                "minContains": 1,
+                "maxContains": 1,
+                "type": "array"
+              }
+            ]
           },
           "version": {
             "$ref": "#/components/schemas/ListingVersion"
@@ -5086,61 +5136,114 @@
         ]
       },
       "ListingUpload": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "const": "TEMP"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "IMAGE",
-              "VIDEO"
+        "description": "Returned only after all private file variants are ready. 15-minute TTL from reservation server time. Never contains storage key; sizeBytes is stored rendition size; input limits apply to uploaded bytes.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "const": "TEMP"
+              },
+              "type": {
+                "const": "IMAGE"
+              },
+              "mimeType": {
+                "const": "image/webp"
+              },
+              "sizeBytes": {
+                "$ref": "#/components/schemas/MediaSizeBytes"
+              },
+              "durationSeconds": {
+                "type": "null"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "type",
+              "mimeType",
+              "sizeBytes",
+              "durationSeconds",
+              "expiresAt"
             ]
           },
-          "mimeType": {
-            "type": "string",
-            "enum": [
-              "image/webp",
-              "video/mp4",
-              "video/webm"
-            ]
-          },
-          "sizeBytes": {
-            "$ref": "#/components/schemas/MediaSizeBytes"
-          },
-          "durationSeconds": {
-            "anyOf": [
-              {
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "const": "TEMP"
+              },
+              "type": {
+                "const": "VIDEO"
+              },
+              "mimeType": {
+                "type": "string",
+                "enum": [
+                  "video/mp4",
+                  "video/webm"
+                ]
+              },
+              "sizeBytes": {
+                "$ref": "#/components/schemas/MediaSizeBytes"
+              },
+              "durationSeconds": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 180
               },
-              {
-                "type": "null"
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
               }
+            },
+            "required": [
+              "id",
+              "status",
+              "type",
+              "mimeType",
+              "sizeBytes",
+              "durationSeconds",
+              "expiresAt"
             ]
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
           }
-        },
-        "required": [
-          "id",
-          "status",
-          "type",
-          "mimeType",
-          "sizeBytes",
-          "durationSeconds",
-          "expiresAt"
-        ],
-        "description": "Returned only after all private file variants are ready. 15-minute TTL from reservation server time. Never contains storage key; sizeBytes is stored rendition size; input limits apply to uploaded bytes."
+        ]
+      },
+      "ListingCover": {
+        "description": "Exactly the IMAGE flagged as cover; never VIDEO.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListingMedia"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "IMAGE"
+              },
+              "isCover": {
+                "const": true
+              }
+            },
+            "required": [
+              "type",
+              "isCover"
+            ]
+          }
+        ]
       }
     },
     "securitySchemes": {
