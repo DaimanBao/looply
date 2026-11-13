@@ -1,0 +1,44 @@
+import { mkdir, readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
+import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { createWriteStream } from "node:fs";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+
+const version = "n8.1.3-35-gf1acb0a266";
+const release = "autobuild-2026-11-12-15-40";
+const platforms = {
+  win32: { asset: `ffmpeg-${version}-win64-gpl-8.1.zip`, sha256: "688d6d2d33ff3b91ae15eb8be5660e7ccaec7d3170fb25f091c4972dcb447d9d" },
+  linux: { asset: `ffmpeg-${version}-linux64-gpl-8.1.tar.xz`, sha256: "320c1f97653ad0740343f87abe2303656b85eb119c3f06abcb639837e9beaed3" },
+};
+/** Provisions only the reviewed release, verifying its pinned digest before extraction or execution. */
+async function main() {
+  const platform = platforms[process.platform];
+  if (!platform || process.arch !== "x64") throw new Error("Provision a reviewed FFmpeg build for this platform manually.");
+  const destination = resolve(process.argv[2] ?? ".video-tools"); await mkdir(destination, { recursive: true });
+  const temporary = await mkdtemp(join(tmpdir(), "looply-video-tools-")); const archive = join(temporary, platform.asset);
+  try {
+    const response = await fetch(`https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/${release}/${platform.asset}`, { signal: AbortSignal.timeout(300000) });
+    if (!response.ok || !response.body) throw new Error("Video tools download failed");
+    await pipeline(Readable.fromWeb(response.body), createWriteStream(archive, { flags: "wx" }));
+    const hash = createHash("sha256").update(await readFile(archive)).digest("hex");
+    if (hash !== platform.sha256) throw new Error("Video tools checksum mismatch; refusing extraction");
+    execFileSync("tar", ["-xf", archive, "-C", destination], { shell: false, windowsHide: true });
+    const name = platform.asset.replace(/\.(zip|tar\.xz)$/, ""); const suffix = process.platform === "win32" ? ".exe" : "";
+    const variables = { MEDIA_FFMPEG_PATH: join(destination, name, "bin", `ffmpeg${suffix}`), MEDIA_FFPROBE_PATH: join(destination, name, "bin", `ffprobe${suffix}`), MEDIA_VIDEO_BINARY_VERSION: version };
+    for (const binary of [variables.MEDIA_FFMPEG_PATH, variables.MEDIA_FFPROBE_PATH]) {
+      const output = execFileSync(binary, ["-version"], { encoding: "utf8", shell: false, windowsHide: true, timeout: 5000, maxBuffer: 128 * 1024 });
+      if (!output.split("\n")[0].includes(`version ${version}`)) throw new Error("Video tools version mismatch");
+    }
+    const content = Object.entries(variables).map(([key, value]) => `${key}=${value}`).join("\n") + "\n";
+    await writeFile(join(destination, "video.env"), content);
+    if (process.env.GITHUB_ENV) await writeFile(process.env.GITHUB_ENV, content, { flag: "a" });
+    console.log(`Verified FFmpeg/FFprobe ${version}; configuration: ${join(destination, "video.env")}`);
+  } finally {
+    if (!resolve(temporary).startsWith(resolve(tmpdir(), "looply-video-tools-"))) throw new Error("Unsafe temporary directory");
+    await rm(temporary, { recursive: true, force: true });
+  }
+}
+main().catch((error) => { console.error(error.message); process.exitCode = 1; });

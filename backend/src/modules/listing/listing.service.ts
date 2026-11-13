@@ -9,6 +9,8 @@ import { listingDetail, listingItem } from "./listing.dto";
 import { validTerms, type ListingCreate, type ListingPatch, type MyListingsQuery, type visibilitySchema } from "./listing.schema";
 import { normalizeListingTitle } from "./listing-search";
 import { decodeMyCursor, encodeMyCursor } from "./listing-cursor";
+import type { MediaDelivery } from "../media";
+import { Readable } from "node:stream";
 
 export class ListingService {
   /** Coordinates Listing policy with Auth and Media's public transactional boundaries. */
@@ -29,12 +31,14 @@ export class ListingService {
     return this.withVisible(id, viewer, async (row, tx) => this.detail(row, viewer?.userId, tx));
   }
   /** Preserves visibility while storage is read, then rechecks the session before returning bytes. */
-  async delivery(input: { listingId: string; mediaId: string; variant?: "detail" | "thumbnail" | "original"; range: boolean }, viewer?: Principal) {
-    return this.withVisible(input.listingId, viewer, async (row, tx) => {
-      const bytes = await this.media.read({ listingId: row.id, id: input.mediaId, ownerId: row.ownerId, variant: input.variant, range: input.range }, tx);
+  async delivery(input: { listingId: string; mediaId: string; variant?: "detail" | "thumbnail" | "original"; range?: string; ifRange?: boolean }, viewer?: Principal) {
+    let opened: MediaDelivery | undefined;
+    try { return await this.withVisible(input.listingId, viewer, async (row, tx) => {
+      const bytes = await this.media.read({ listingId: row.id, id: input.mediaId, ownerId: row.ownerId, variant: input.variant, range: input.range, ifRange: input.ifRange }, tx);
+      opened = bytes;
       if (viewer) await this.sessions.requireCurrent(viewer, tx);
       return bytes;
-    });
+    }); } catch (error) { if (opened?.body instanceof Readable) opened.body.destroy(); throw error; }
   }
   /** Maintains a stable createdAt/id boundary, binding cursor to current owner and query. */
   async mine(principal: Principal, query: MyListingsQuery) {

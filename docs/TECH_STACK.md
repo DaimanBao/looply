@@ -19,6 +19,7 @@
 | Auth / Security | `argon2`, `jose`, `google-auth-library`, `express-rate-limit`, `helmet`, `cors` |
 | Validation | `zod` |
 | Upload / xử lý ảnh | `multer`, `sharp` |
+| Xác thực video | FFprobe/FFmpeg CLI, build `n8.1.3-35-gf1acb0a266`, cùng release/source commit Windows/Linux x64; pin SHA-256 trong `scripts/setup-video-tools.mjs`, đã được duyệt Phase 4. Không npm wrapper hoặc transcoding. Setup/vận hành thuộc Backend README. |
 | Realtime chat / notification | `socket.io` |
 | Logging / config | `pino`, `pino-http`, `dotenv` |
 | API contract / tài liệu | OpenAPI 3.1, `@scalar/express-api-reference` |

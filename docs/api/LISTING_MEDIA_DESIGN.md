@@ -1,6 +1,6 @@
 # Thiết kế Listing và Media
 
-> Trạng thái: đã triển khai Media/database phase 1, Listing Backend CRUD/ảnh phase 2 và Search/Feed/Follow phase 3 (mục 9–11). Video, Angular Listing và Chat chưa triển khai. Nghiệp vụ thuộc [Listing](../requirements/modules/LISTING_REQUIREMENTS.md), [Media](../requirements/modules/MEDIA_REQUIREMENTS.md), [User](../requirements/modules/USER_REQUIREMENTS.md). Hợp đồng HTTP thuộc [OpenAPI](openapi.json); snapshot Chat thuộc [thiết kế database](../database/CHAT_SNAPSHOT_DESIGN.md).
+> Trạng thái: đã triển khai Media/database phase 1, Listing Backend CRUD/ảnh phase 2, Search/Feed/Follow phase 3 và Backend Video phase 4. Angular Listing và Chat chưa triển khai. Nghiệp vụ thuộc [Listing](../requirements/modules/LISTING_REQUIREMENTS.md), [Media](../requirements/modules/MEDIA_REQUIREMENTS.md), [User](../requirements/modules/USER_REQUIREMENTS.md). Hợp đồng HTTP thuộc [OpenAPI](openapi.json); snapshot Chat thuộc [thiết kế database](../database/CHAT_SNAPSHOT_DESIGN.md).
 
 ## 1. Ranh giới và thay đổi dự kiến
 
@@ -41,7 +41,7 @@ Readiness không suy ra từ TEMP hoặc việc client biết UUID. Với schema
 
 TEMP có TTL kỹ thuật **15 phút từ reservation server**, tái sử dụng thời hạn upload avatar hiện tại, trả `expiresAt`; không gia hạn bằng preview/read. `expiresAt <= now` không attach. Thời gian lấy từ clock server injectable; nhiều instance dùng thời gian database tại transaction quyết định. Không tạo read URL public hoặc storage key trong DTO.
 
-Một asset có key gốc do server sinh UUID và các variant có suffix cố định; namespace/private prefix và manifest variant do server quyết định. Không dùng filename client. ObjectStore hiện chỉ Buffer và cố định image/webp ở S3: phải mở rộng API MIME, bounded stream/file, range khi triển khai video; không gán MIME WebP cho video. File gốc/variant thuộc cùng asset, chỉ đánh dấu deletedAt sau khi xóa hết variant. Không cần Prisma field variant nếu derivation deterministic/versioned và lưu rendition version trong key server.
+Một asset có key gốc do server sinh UUID và các variant có suffix cố định; namespace/private prefix và manifest variant do server quyết định. Không dùng filename client. ObjectStore hỗ trợ Buffer cho ảnh và file/stream cùng MIME/metadata/range cho video; S3 không gán MIME WebP cho video. File gốc/variant thuộc cùng asset, chỉ đánh dấu deletedAt sau khi xóa hết variant. Không cần Prisma field variant nếu derivation deterministic/versioned và lưu rendition version trong key server.
 
 ### Luồng và kiểm chứng bắt buộc
 
@@ -92,13 +92,24 @@ PUT follow idempotent trên unique(userId,listingId), ACTIVE viewer khác owner;
 
 Mọi API dùng AppError envelope hiện tại, DTO tường minh, price/sizeBytes là decimal string, request ID, no-store. 400 validation; 401 token; 403 account gate/self interaction; 404 absent/other owner/invisible; 409 version/confirmation/type lock/media state; 413 quá byte limit; 415 nội dung không đúng format; 429/503 và default safe Error. Không trả constraint/query/storage key. Field schemas và endpoint cụ thể nằm trong OpenAPI; không thêm endpoint snapshot Chat khi chưa thiết kế Chat API.
 
-## 6. Video inspector — đề xuất, chưa cài đặt
+## 6. Video inspector — được duyệt và triển khai Phase 4
 
-Đề xuất executable **ffprobe** bằng `spawn`/`execFile` argument array, không shell và không npm wrapper tự download binary. [Tài liệu ffprobe](https://www.ffmpeg.org/ffprobe.html) mô tả JSON output và show_entries để lấy format/duration/streams; [trang download FFmpeg](https://www.ffmpeg.org/download.html) dẫn tới các Windows builds. Windows development dùng đường dẫn executable cấu hình; CI Linux dùng binary cùng version được pin/checksum ở image/setup tương lai. Đây là dependency runtime mới **cần duyệt trước cài đặt**, chưa chọn version/build/provider.
+Người dùng đã duyệt FFprobe/FFmpeg CLI và setup Windows/Linux CI/runtime ngày 13/11/2026. Dùng `spawn` argument array, không shell hoặc npm wrapper. FFprobe đọc JSON container/streams/duration; FFmpeg decode audio/video vào null output, không tạo rendition/transcoding. [Tài liệu ffprobe](https://www.ffmpeg.org/ffprobe.html), [FFmpeg](https://www.ffmpeg.org/ffmpeg.html) và [download](https://www.ffmpeg.org/download.html). Release/build/checksum và hướng dẫn vận hành thuộc [Backend README](../../backend/README.md#video-backend--phase-4).
 
 Chỉ đọc file staging do server sinh, disable network protocols, giới hạn runtime/process concurrency/output buffer/disk và cleanup khi timeout/cancel. Probe container/streams/video thực, xác minh MP4 brands thay vì nhận toàn bộ họ MOV, WebM DocType thay vì nhận mọi Matroska; có video stream và duration hữu hạn >0≤180; không tin MIME metadata. Đối chiếu duration format/streams, nếu thiếu/mâu thuẫn hoặc file hỏng thì reject an toàn; probe metadata không chứng minh toàn bộ stream decode được, cần bounded decode validation khi nghiệm thu. Không yêu cầu transcoding; codec/browser playback phải được kiểm thử thực với fixtures MP4/WebM trước tuyên bố hỗ trợ video. Phương án pure JS parser giảm executable nhưng phân tích đủ hai container/codec/duration và file hỏng phức tạp hơn, không ưu tiên tự viết parser bảo mật.
 
 ## 7. Kế hoạch triển khai và điều kiện qua từng giai đoạn
+
+### Phase 4 — phương án đã duyệt và triển khai
+
+Ngày 13/11/2026, triển khai từ `develop` tại `9a74964` trên nhánh `feat/media-video-backend`, sau khi người dùng duyệt công cụ runtime. Không thêm npm dependency, Prisma migration hoặc Frontend. Bằng chứng kiểm thử thuộc [INTEGRATION_TESTS](../database/INTEGRATION_TESTS.md).
+
+- Dùng **ffprobe và ffmpeg CLI**: ffprobe đọc container/stream/duration dạng JSON; ffmpeg decode toàn bộ stream audio/video vào null output để phát hiện lỗi payload mà probe metadata không phát hiện. Không ghi video chuyển mã hoặc triển khai transcoding. Không thêm npm wrapper/dependency.
+- Cấu hình executable cho Windows/Linux; script setup pin cùng build/source commit và SHA-256 theo platform, kiểm tra version trước khi sử dụng. Không tải binary lúc ứng dụng khởi động; CI chạy executable thật. Runtime thiếu/sai version/timeout trả 503 cho video, không ảnh hưởng ảnh.
+- Staging private bằng tên ngẫu nhiên server, giới hạn 100 MiB/file, nhận request bằng bounded stream; không có static route. Process chỉ protocol file, giới hạn thread/concurrency/deadline/output; cleanup khi lỗi/ngắt kết nối/timeout. Mỗi upload quét tối đa 100 entry staging, chỉ xóa thư mục server quá một giờ để khôi phục sau crash. Probe/decode chạy ngoài transaction.
+- Mở rộng ObjectStore với MIME đúng, file/stream upload, metadata và bounded range read cho local/S3; giữ hành vi avatar/ảnh. Video có key/marker deterministic riêng, readiness dùng marker và metadata thay vì tải toàn bộ video vào transaction. Tái sử dụng TEMP TTL 15 phút, User→Listing→Media locks, manifest nguyên tử, outbox và reference guard; mở rộng key inventory/cleanup để bao gồm video. Không dự kiến đổi Prisma/migration.
+- Delivery giữ route/visibility hiện tại, mở private stream sau authorization; video hỗ trợ single byte range, suffix/open-ended range, 200/206/416 và Content-Length/Content-Range/Accept-Ranges; đóng stream khi client ngắt. Authorization được quyết định khi mở stream; request tiếp theo kiểm tra trạng thái/quyền lại, không giữ transaction suốt playback. If-Range không có validator tương ứng trả full 200. Ảnh giữ semantics hiện có. OpenAPI cập nhật trước triển khai transport mới.
+- Kiểm chứng bằng fixture MP4/WebM deterministic với executable thật: metadata/signature giả, corruption/truncation, byte/duration boundaries, timeout/crash; PostgreSQL/Redis test đã xác minh cho attachment rollback/races/expiry/cleanup/authorization; HTTP range và regression ảnh. Không tuyên bố browser playback hoặc live S3 đã nghiệm thu nếu chưa chạy.
 
 | Giai đoạn | Phụ thuộc/thay đổi | Điều kiện kiểm thử trước bước sau |
 |---|---|---|
@@ -128,6 +139,8 @@ Test unit/contract không ghi DB. Test ghi database chỉ được phép trên a
 - Sửa mô tả search bị mất ký tự đ trong OpenAPI. Các số lượng kiểm chứng phía trên là bằng chứng lần thiết kế ban đầu; review mới có 42 component schemas, năm contract tests và 92 backend unit tests. Kết quả CI theo commit review được báo riêng sau run thực tế.
 
 ## 9. Media & Database Preparation — 13/11/2026
+
+Cleanup completion dùng token `xmin` của row sau committed claim, rồi khóa lại User→Media và so phiên bản trước ghi `deletedAt`. Theo [PostgreSQL 17 system columns](https://www.postgresql.org/docs/17/ddl-system-columns.html), mỗi UPDATE tạo row version mới; vì vậy `abandon` của writer hoàn tất muộn vô hiệu hóa completion cũ kể cả `deletedAt` trước/sau đều null. Completion stale phải ném lỗi để outbox giữ retry/backoff, không acknowledge thành công rồi bỏ sót file S3. Duplicate claim không UPDATE lại một DELETING đã chuẩn hóa; tombstone đã commit được coi thành công idempotent. Token chỉ sống trong một lần storage cleanup hữu hạn, không lưu làm version lâu dài hoặc đưa vào DTO; không đổi schema/migration và không giữ transaction trong storage I/O.
 
 Phạm vi lần triển khai này theo yêu cầu phase 1: chuẩn bị database, cleanup và primitive nội bộ; không mở API Listing/Media mới. OpenAPI vẫn đánh dấu các operation Listing/Media là planned. Không coi upload ảnh/video hoặc Listing CRUD đã hoàn thành.
 

@@ -4,6 +4,9 @@ import { principal } from "../auth";
 import { body } from "../../shared/http/validated-body";
 import { createListingSchema, patchListingSchema, visibilitySchema, deleteListingSchema, listingId, myListingsInput } from "./listing.schema";
 import { z } from "zod";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { AppError } from "../../shared/errors/app-error";
 
 /** Maps validated HTTP inputs to domain operations; all policy remains in the service. */
 export function createListingController(service: ListingService) {
@@ -22,8 +25,18 @@ export function createListingController(service: ListingService) {
   /** Sends private bytes only after service authorization has completed. */
   const delivery: RequestHandler = async (request, response) => {
     const input = z.object({ params: z.object({ listingId, mediaId: listingId }), query: z.object({ variant: z.enum(["detail", "thumbnail", "original"]).optional() }) }).parse(response.locals.validated);
-    const bytes = await service.delivery({ ...input.params, variant: input.query.variant, range: request.headers.range !== undefined }, response.locals.principal);
-    response.set("Accept-Ranges", "none").type("image/webp").send(bytes);
+    const result = await service.delivery({ ...input.params, variant: input.query.variant, range: request.method === "HEAD" ? undefined : request.headers.range, ifRange: request.headers["if-range"] !== undefined }, response.locals.principal);
+    if (result.body instanceof Readable && (result.body.destroyed || result.body.errored)) throw new AppError(503, "MEDIA_UNAVAILABLE", "Media is temporarily unavailable.");
+    response.set("Accept-Ranges", result.acceptRanges);
+    if (result.contentRange) response.set("Content-Range", result.contentRange);
+    if (result.status === 416) throw new AppError(416, "INVALID_RANGE", "Choose a satisfiable single byte range.");
+    response.status(result.status).type(result.mimeType).set("Content-Length", String(result.length));
+    if (request.method === "HEAD") { if (result.body instanceof Readable) result.body.destroy(); response.end(); return; }
+    if (result.body instanceof Readable) {
+      // No database lock is retained during playback; immutable storage preserves the opened byte stream.
+      const timer = setTimeout(() => { if (result.body instanceof Readable) result.body.destroy(); response.destroy(); }, 120000);
+      try { await pipeline(result.body, response); } catch { response.destroy(); } finally { clearTimeout(timer); }
+    } else response.send(result.body);
   };
   return { create, get, mine, update, visibility, remove, delivery };
 }

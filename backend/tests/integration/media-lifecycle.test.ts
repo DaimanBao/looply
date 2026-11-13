@@ -100,6 +100,19 @@ describe("Listing Media lifecycle and committed cleanup", () => {
     await cleanup.detached(data.asset.id, data.owner.id);
     expect(fixture.objects.size).toBe(0);
   });
+  it("fences image cleanup completion after abandon even when deletedAt stays null", async () => {
+    const data = await setup(); await listingMedia.cancel(data.asset.id, data.owner.id);
+    const claim = await repository.claim(data.asset.id, data.owner.id); expect(claim).not.toBeNull();
+    if (!claim) throw new Error("Expected a committed cleanup claim");
+    const uploads = new ListingMediaRepository(fixture.db);
+    await fixture.db.$transaction(async (tx) => {
+      await uploads.lockUser(data.owner.id, tx); await uploads.lockMedia([data.asset.id], tx);
+      await uploads.abandon(data.asset.id, data.owner.id, tx);
+    });
+    expect(await repository.deleted(data.asset.id, data.owner.id, claim.cleanupVersion)).toEqual({ count: 0 });
+    expect((await fixture.db.mediaAsset.findUniqueOrThrow({ where: { id: data.asset.id } })).deletedAt).toBeNull();
+    await cleanup.detached(data.asset.id, data.owner.id); expect(fixture.objects.size).toBe(0);
+  });
   it("keeps an attachment when cleanup waits for its commit, and rolls back a partial batch", async () => {
     const data = await setup();
     let release!: () => void; let entered!: () => void;
