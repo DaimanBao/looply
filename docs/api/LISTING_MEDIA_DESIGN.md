@@ -1,6 +1,6 @@
 # Thiết kế Listing và Media
 
-> Trạng thái: thiết kế kỹ thuật để review, **chưa triển khai**. Nghiệp vụ đã duyệt thuộc [Listing](../requirements/modules/LISTING_REQUIREMENTS.md), [Media](../requirements/modules/MEDIA_REQUIREMENTS.md), [User](../requirements/modules/USER_REQUIREMENTS.md). Hợp đồng HTTP thuộc [OpenAPI](openapi.json); snapshot Chat thuộc [thiết kế database](../database/CHAT_SNAPSHOT_DESIGN.md). Không xác nhận hoàn thành Listing/Chat từ tài liệu này.
+> Trạng thái: đã triển khai nền tảng Media/database phase 1, chi tiết tại mục 9. Listing CRUD, API upload/cancel/delivery và Chat vẫn chưa triển khai. Nghiệp vụ thuộc [Listing](../requirements/modules/LISTING_REQUIREMENTS.md), [Media](../requirements/modules/MEDIA_REQUIREMENTS.md), [User](../requirements/modules/USER_REQUIREMENTS.md). Hợp đồng HTTP thuộc [OpenAPI](openapi.json); snapshot Chat thuộc [thiết kế database](../database/CHAT_SNAPSHOT_DESIGN.md).
 
 ## 1. Ranh giới và thay đổi dự kiến
 
@@ -8,7 +8,7 @@
 - `modules/media`: upload service/repository, image processor, video inspector, delivery và cleanup. Cung cấp public interface nhận transaction; không để Listing truy cập storage trực tiếp. Không sao chép logic avatar hoặc import nội bộ User/Chat.
 - Tái sử dụng Auth `authenticate`/session recheck, public User visibility/interaction gates, Province catalog, advisory locks, Decimal serializer, AppError, outbox/lease/retry. Listing không tạo hệ thống session, Block, Province hoặc worker thứ hai.
 - Angular `features/listing`: pages discovery/detail/editor/my/followed; components card/filter/gallery/editor; data-access DTO/client; state Signals + RxJS. Media editor quản lý local preview, tiến trình upload và manifest; không tự quyết định authorization. Tái sử dụng Auth/interceptor, User public API Province và SCSS tokens. Upload override timeout 15 giây hiện tại; chọn transport thực sự có upload progress, không giả tiến trình. Revoke Blob URL khi thay/xóa/destroy, bỏ response theo query generation và auth identity.
-- Chưa sửa Prisma, migration, Backend/Angular feature hay dependency trong giai đoạn thiết kế. SQL cần chuẩn bị ghi ở [SCHEMA_REVIEW](../database/SCHEMA_REVIEW.md#chuẩn-bị-listingmedia--chưa-tạo-migration).
+- Giai đoạn thiết kế không sửa Prisma, migration, Backend/Angular feature hay dependency. Migration phase 1 sau thiết kế thuộc [SCHEMA_REVIEW](../database/SCHEMA_REVIEW.md#chuẩn-bị-listingmedia); Prisma shape và Frontend giữ nguyên.
 
 ## 2. Listing, authorization và concurrency
 
@@ -124,3 +124,17 @@ Test unit/contract không ghi DB. Test ghi database chỉ được phép trên a
 - Siết response schema: cover bắt buộc IMAGE/isCover=true; gallery 1–5 IMAGE, tối đa một VIDEO và đúng một cover; upload DTO phân biệt IMAGE/VIDEO theo MIME/duration. Hai regression tests mới tái hiện lỗi trước sửa và đạt sau sửa; không đổi request hoặc route Core/Auth/User.
 - Làm rõ decision clock sau khi chờ khóa và gate lease PREPARING ngay lúc publish snapshot; không phụ thuộc worker đã revoke hay chưa. Công thức retention/anti-resurrection giữ nguyên, không thêm nghiệp vụ.
 - Sửa mô tả search bị mất ký tự đ trong OpenAPI. Các số lượng kiểm chứng phía trên là bằng chứng lần thiết kế ban đầu; review mới có 42 component schemas, năm contract tests và 92 backend unit tests. Kết quả CI theo commit review được báo riêng sau run thực tế.
+
+## 9. Media & Database Preparation — 13/11/2026
+
+Phạm vi lần triển khai này theo yêu cầu phase 1: chuẩn bị database, cleanup và primitive nội bộ; không mở API Listing/Media mới. OpenAPI vẫn đánh dấu các operation Listing/Media là planned. Không coi upload ảnh/video hoặc Listing CRUD đã hoàn thành.
+
+- `ListingMediaService` là public boundary nội bộ: reserve ảnh đã xử lý với TTL 15 phút, write detail/thumbnail rồi marker server-only, attach theo batch trong transaction do Listing caller sở hữu, cancel idempotent. Caller truyền output tin cậy của image processor, không nhận storage key từ client. Chưa có HTTP upload/image processor cho Listing; pipeline đó cần hoàn thiện ở bước tích hợp Listing.
+- Attach khóa User→Listing→toàn bộ Media sorted, đọc lại ACTIVE/owner/status/expiry/reference, kiểm tra marker và bytes của các rendition, kiểm tra clock database sau I/O và conditional TEMP→ATTACHED. Caller phải khóa toàn bộ User/Listing/Media liên quan trước lần gọi nếu transaction còn sửa media đã có; chịu trách nhiệm final gallery/cover/version/confirmation. Lỗi bất kỳ rollback cả batch, không xóa object.
+- Cleanup thường từ chối mọi listingId còn liên kết, avatar pointer, Message reference và CHAT. Historical PROFILE ATTACHED không còn pointer được claim; LISTING ATTACHED luôn bị từ chối. TEMP chỉ được claim khi hết hạn; DELETING là terminal và không attach lại. Claim commit rồi mới xóa đủ detail/thumbnail/marker; chỉ sau đó ghi deletedAt. Duplicate delivery không gây mất dữ liệu vì key bất biến và xóa idempotent, không tuyên bố physical delete exactly-once.
+- Reconciliation quét tối đa 20 metadata/lượt, gồm DELETING không có expiresAt; enqueue `media.cleanup` dùng chung helper với cancel/avatar. Pending/failed/processing job được loại khỏi lượt chọn để không chặn các asset sau. Outbox hiện có cung cấp SKIP LOCKED, lease 2 phút, attempts fencing và backoff; crash trước/sau storage delete đều retry được.
+- Account coordinator giữ User lock, gỡ avatar, gọi Media preparation khóa Listing rồi Media, chuyển private assets sang DELETING và clear listingId/position/cover trước commit. Physical delete đi qua cùng claim guard, không chạy trực tiếp từ danh sách đã đọc. CHAT và Message reference được giữ.
+- Local inventory stream cursor tối đa 20 object/lượt, chỉ tên UUID trong namespace `profile/` và `listing/v1/`; bỏ file mới hơn 17 phút (TTL 15 phút + ba I/O deadline 30 giây + biên an toàn). Recheck metadata dưới Media lock trước xóa object không metadata. Object thuộc tombstone được mở lại trạng thái cần cleanup dưới User/Media lock; không hồi sinh quyền đọc hoặc attachment. Late writer đã settle nhưng finalize thất bại cũng durably queue cleanup, kể cả cleanup trước đó đã hoàn tất.
+- Thêm reference kind tương lai phải cập nhật đồng thời claim, discovery/reconciliation, tombstone recovery, account preparation và attachment; mọi writer theo cùng thứ tự khóa và từ chối DELETING. Không có giả định `purpose != CHAT` đủ để xóa. Snapshot có object độc lập; chưa thêm schema/service/retention worker.
+
+Bằng chứng kiểm thử và giới hạn ở [INTEGRATION_TESTS](../database/INTEGRATION_TESTS.md#media--database-preparation--13112026). Vận hành local storage và retry ở [Backend README](../../backend/README.md#media-preparation-nội-bộ).

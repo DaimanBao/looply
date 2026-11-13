@@ -1,6 +1,6 @@
 # Required review before integration
 
-> Auth/User `0004_auth_user_preparation` đã áp dụng trên looply_test và development theo [README](README.md#triển-khai-authuser-và-catalog); không suy ra trạng thái production. Bằng chứng kiểm thử thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Thiết kế Listing/Media và snapshot mới dưới đây chưa triển khai hoặc tạo migration.
+> Auth/User `0004_auth_user_preparation` đã áp dụng trên looply_test và development theo [README](README.md#triển-khai-authuser-và-catalog). Media preparation `0005` chỉ áp dụng trên looply_test; không suy ra trạng thái development/production. Bằng chứng thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Listing CRUD và snapshot chưa triển khai.
 
 ## Cross-table invariants (cannot be fully expressed by ordinary Prisma relations)
 1. User.avatarMediaId must point to ATTACHED PROFILE IMAGE uploaded by the same User. UNIQUE prevents two current avatars pointing at the same MediaAsset; historical unused PROFILE media is allowed. Changing avatar must be atomic with the pointer change. `User.avatarMediaId` creates an FK cycle in the schema, so create User first and avatar later.
@@ -19,18 +19,18 @@
 14. `DECIMAL(15,0)` maps to Prisma Decimal; serialize as string for JSON/API and compare using decimal-safe operations, not JS floating point. All three price fields (`Listing.price`, `TransactionProposal.proposedPrice`, `TransactionProposal.listedPriceSnapshot`) reject NaN after `0003_reject_nan_prices`. Snapshot nullability and all previous price/type/unit/status rules are preserved; fixed precision already rejects positive/negative Infinity.
 15. Unique indexes and CHECK constraints in companion SQL are illustrative; confirm enum SQL literals, case, generated DDL, and historical data before applying. Avoid duplicate Prisma and SQL unique indexes.
 
-## Chuẩn bị Listing/Media — chưa tạo migration
+## Chuẩn bị Listing/Media
 
-Migration SQL mới sau 0004 chỉ thay `ck_media_purpose`; không đổi Prisma shape, enum hoặc migration lịch sử. Trong transaction, preflight constraint hiện tại/dữ liệu, DROP rồi ADD lại CHECK với nguyên hai nhánh PROFILE/CHAT và nhánh LISTING thay chính xác:
+Migration [0005_listing_media_preparation](../../backend/prisma/migrations/0005_listing_media_preparation/migration.sql) chỉ thay `ck_media_purpose`; không đổi Prisma shape, enum hoặc migration 0001–0004. Trong transaction, khóa bảng, preflight constraint hiện tại/dữ liệu, DROP rồi ADD lại CHECK với nguyên hai nhánh PROFILE/CHAT và nhánh LISTING thay chính xác:
 
 ```sql
 purpose = 'LISTING'
 AND (status IN ('TEMP', 'DELETING') OR "listingId" IS NOT NULL)
 ```
 
-Giữ nguyên `ck_media_attached`, `ck_media_cover`, size/duration, FK RESTRICT và partial unique cover/video. Đây là đoạn thiết kế, không phải migration executable. Cần xem lock/validation chi phí trên dữ liệu thật trước deploy; không tự backfill/update/delete dữ liệu cũ. Test hiện tại `rejects deleting listing asset without listing` phải đổi thành chấp nhận đúng trường hợp đã duyệt; vẫn reject ATTACHED null, sai purpose/type/cover. Test tất cả nhánh cũ và checksum migration lịch sử.
+Giữ nguyên `ck_media_attached`, `ck_media_cover`, size/duration, FK RESTRICT và partial unique cover/video. Đã áp dụng trên looply_test; chưa áp dụng development/production. ACCESS EXCLUSIVE lock chặn truy cập trong lúc validation, cần chọn thời điểm phù hợp trước deploy trên dữ liệu thật. Không backfill/update/delete Media. Test hồi quy đã chấp nhận DELETING null; vẫn reject ATTACHED null, sai purpose/type/cover và kiểm tra checksum toàn bộ lịch sử.
 
-Detach service đồng thời clear listingId/position/cover và chuyển DELETING; giải phóng unique video slot ngay trong tx. Không chờ physical delete rồi mới thay video. Count 1–5 ảnh/exact cover, ownership và attachment readiness là service invariants, không được coi migration CHECK giải quyết hết. Cleanup hiện chưa guard live Listing attachment; phải sửa claim, account preparation và reconciliation theo [lifecycle](../api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle) trước mở Listing upload.
+Account preparation đã clear listingId/position/cover và chuyển DELETING trong transaction trước physical delete. Claim chặn mọi Listing link, current avatar và Message reference; reconciliation dùng outbox lease/retry. Primitive attach ảnh nội bộ kiểm tra owner, ACTIVE, TTL/readiness dưới khóa User→Listing→Media. Final gallery/cover, detach khi sửa Listing và video replacement thuộc Listing phase sau; không coi migration CHECK giải quyết các invariant này. Chi tiết tại [lifecycle](../api/LISTING_MEDIA_DESIGN.md#3-media-lifecycle).
 
 Listing.version/activeCycle/Follow/Province/searchTitle/pg_trgm đã có, không thêm field/index cho các chức năng này. Đo query plan trước đề xuất index mới. Snapshot card hiện thiếu text/ảnh lịch sử độc lập; [đề xuất model và migration Chat riêng](CHAT_SNAPSHOT_DESIGN.md) không chặn image CRUD, nhưng bắt buộc trước Chat integration. Không sửa hai bản schema.prisma hoặc SQL tham khảo trong nhiệm vụ thiết kế.
 
@@ -46,4 +46,4 @@ Admin, payments, orders, shipping, rental calendar, ratings, group chat, voice/v
 ## Đồng bộ bổ sung từ yêu cầu module
 - `Message.imageMediaId` / `MediaPurpose.CHAT` phục vụ ảnh trong tin nhắn; phải bảo đảm chỉ một ảnh/tin nhắn và file hợp lệ, không tái sử dụng sai chủ sở hữu.
 - `TransactionProposal.listedPriceSnapshot` lưu giá tại thời điểm gửi; kiểm tra giá và đơn vị RENT bằng logic nghiệp vụ/transaction.
-- Trạng thái thực thi: `looply_test` đã có bốn migration từ `0001_init` đến `0004_auth_user_preparation`; checksum kiểm tra cả biến thể LF/CRLF, ba migration cũ giữ nguyên. `migration_lock.toml` khóa provider PostgreSQL. SQL trong `postgres_constraints.reference.sql` vẫn chỉ là tài liệu tham khảo chưa đồng bộ đầy đủ, không dùng thay lịch sử migration thực thi. Không suy ra trạng thái dev/prod từ kết quả test.
+- Trạng thái thực thi: `looply_test` đã có năm migration từ `0001_init` đến `0005_listing_media_preparation`; checksum kiểm tra cả biến thể LF/CRLF, migration 0001–0004 giữ nguyên. `migration_lock.toml` khóa provider PostgreSQL. SQL tham khảo không thay thế migration. Không suy ra trạng thái dev/prod từ kết quả test.

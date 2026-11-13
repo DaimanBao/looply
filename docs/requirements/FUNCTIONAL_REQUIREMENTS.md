@@ -190,3 +190,7 @@ Chi tiết: [`REMINDER_REQUIREMENTS.md`](modules/REMINDER_REQUIREMENTS.md)
 Ngày 13/11/2026: Backend đã triển khai API Auth/User, OTP Redis, phiên PostgreSQL, avatar, Follow/Block và worker xóa tài khoản theo contract tại [OpenAPI](../api/openapi.json). Bằng chứng kiểm thử và giới hạn vận hành nằm tại [INTEGRATION_TESTS.md](../database/INTEGRATION_TESTS.md).
 
 Checklist phía trên theo dõi chức năng toàn sản phẩm; chưa đánh dấu hoàn thành Angular hoặc tích hợp dịch vụ production. Backend được kiểm chứng riêng bằng PostgreSQL/Redis thật, crypto/ảnh thật và fake tại ranh giới provider. SMS/email thật, Google client của dự án, S3 thật và quy trình backup/restore vận hành chưa được nghiệm thu.
+
+## Trạng thái Media preparation
+
+Ngày 13/11/2026: đã chuẩn bị migration `0005`, cleanup có reference guard/outbox retry/local orphan recovery, primitive reserve/write/attach-batch/cancel nội bộ và account-deletion preparation. Chưa mở API Listing/Media hoặc triển khai Listing CRUD/Frontend; các mã MEDIA chưa được đánh dấu hoàn thành. Chi tiết triển khai tại [thiết kế Listing/Media](../api/LISTING_MEDIA_DESIGN.md#9-media--database-preparation--13112026), bằng chứng tại [kiểm thử](../database/INTEGRATION_TESTS.md#media--database-preparation--13112026).

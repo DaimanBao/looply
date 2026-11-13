@@ -123,6 +123,16 @@ Contract và danh sách endpoint đầy đủ thuộc [OpenAPI](../docs/api/open
 
 Worker poll 5 giây, tối đa 10 event/lượt, claim bằng SKIP LOCKED, lease 2 phút và retry backoff tối đa 1 giờ. Request xóa giữ nguyên Listing/Media suốt 30 ngày. Sau đó chuyển DELETING không đảo ngược, dọn private media bằng thao tác storage idempotent, xóa credential/profile/Follow/Block/Notification và scrub payload kỹ thuật thuộc tài nguyên đã xóa trước DELETED. Giữ User UUID, Message/Conversation/participant/proposal và Chat Media; không quét PII trong nội dung Chat. Detached avatar/TEMP hết hạn cũng được cleanup, không xóa object trước khi pointer được gỡ.
 
+### Media preparation nội bộ
+
+Migration `0005_listing_media_preparation` cho phép LISTING DELETING không có listingId, giữ nguyên các invariant còn lại. Chỉ đã áp dụng lên `looply_test`; không tự migrate development/production. Trước áp dụng ở môi trường khác phải preflight và đánh giá table lock theo [database review](../docs/database/SCHEMA_REVIEW.md#chuẩn-bị-listingmedia).
+
+`ListingMediaService` cung cấp reserve/write/attach-batch/cancel cho caller Backend tương lai; chưa mount endpoint Listing/Media và chưa có pipeline upload Listing qua HTTP. Primitive nhận bytes đã xử lý tin cậy, không thay thế kiểm tra MIME/dung lượng file đầu vào. Quy ước transaction, readiness và trách nhiệm caller thuộc [thiết kế](../docs/api/LISTING_MEDIA_DESIGN.md#9-media--database-preparation--13112026).
+
+Khi worker không có job đến hạn, reconciliation enqueue tối đa 20 TEMP hết hạn/DELETING chưa xóa, tránh trùng pending/failed/processing event. File chỉ bị xóa sau committed claim; sau lỗi I/O hoặc lỗi DB completion, outbox retry với key bất biến. Account preparation detach private assets trước xóa qua cùng guard. File thiếu được coi xóa thành công.
+
+Local storage từ chối traversal, empty/dot segment, Windows separators và symlink trong media path; tạo directory mode 0700/file mode 0600 trên hệ điều hành hỗ trợ, quyền Windows theo ACL thư mục private. Read/write file có deadline 30 giây. Giữ private root dưới quyền tài khoản chạy app; không mount bằng static server. Mỗi database/môi trường phải dùng `MEDIA_LOCAL_DIRECTORY` riêng; đặc biệt test/E2E không dùng chung root với development vì inventory đối chiếu metadata của database hiện tại. Local inventory stream theo lô 20 file, chỉ UUID generated namespace, safe-age 17 phút và recheck database trước xóa. Không quét namespace CHAT; adapter S3 hiện có không được bổ sung inventory trong nhiệm vụ này.
+
 `UserService.requireInteraction(tx, from, to)` là public gate cho Chat/Listing tương lai: caller phải xác thực phiên và giữ transaction/khóa cho đến khi ghi tương tác. Public User visibility/projection thuộc `modules/user/index.ts`; không import private repositories. Không tuyên bố Chat/Listing đầy đủ đã được tích hợp khi các module đó chưa triển khai.
 
 Backup/restore, mã hóa backup, tự dọn retention và nguồn trạng thái xóa độc lập **chưa có hạ tầng**. Chính sách 30 ngày và quy trình fail-closed thuộc [User requirements](../docs/requirements/modules/USER_REQUIREMENTS.md#backup-và-khôi-phục); outbox/receipt trong cùng database không phải nguồn độc lập với backup. Chỉ mở dịch vụ sau khi đối soát trạng thái xóa từ nguồn độc lập và chạy lại cleanup thành công. Không xây hệ thống backup mới trong nhiệm vụ này.
