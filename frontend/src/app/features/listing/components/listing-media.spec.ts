@@ -1,20 +1,59 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { ListingGallery } from './listing-gallery';
 import { listingFixture } from '../testing/listing.fixture';
 import type { ListingVideo } from '../models/listing.models';
+import { authInterceptor } from '../../../core/auth/auth.interceptor';
+import { SessionService } from '../../../core/auth/session.service';
+import { ListingMedia } from './listing-media';
 
 describe('Listing gallery and native media', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()],
     });
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-listing');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
   });
   afterEach(() => vi.restoreAllMocks());
+  it('preserves the video source across token rotation but clears it across logout', async () => {
+    const session = TestBed.inject(SessionService);
+    session.accept({ accessToken: 'before-rotation', expiresIn: 900, status: 'ACTIVE' });
+    const listing = listingFixture();
+    const video: ListingVideo = {
+      id: '00000000-0000-4000-8000-000000000020', type: 'VIDEO', mimeType: 'video/mp4',
+      sizeBytes: '1000', durationSeconds: 1, position: null, isCover: false,
+      deliveryPath: `/api/listings/${listing.id}/media/00000000-0000-4000-8000-000000000020`,
+    };
+    const fixture = TestBed.createComponent(ListingMedia);
+    fixture.componentRef.setInput('listingId', listing.id);
+    fixture.componentRef.setInput('asset', video);
+    await fixture.whenStable();
+    const http = TestBed.inject(HttpTestingController);
+    const delivery = http.expectOne(`${video.deliveryPath}?variant=original`);
+    expect(delivery.request.headers.get('Authorization')).toBe('Bearer before-rotation');
+    delivery.flush(new Blob(['video'], { type: 'video/mp4' }));
+    await fixture.whenStable();
+    const element: HTMLElement = fixture.nativeElement;
+    const player = element.querySelector('video');
+    session.refresh().subscribe();
+    http.expectOne('/api/auth/refresh').flush({ accessToken: 'after-rotation', expiresIn: 900, status: 'ACTIVE' });
+    await fixture.whenStable();
+    http.expectNone(`${video.deliveryPath}?variant=original`);
+    expect(element.querySelector('video')).toBe(player);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    session.clear();
+    await fixture.whenStable();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-listing');
+    expect(element.querySelector('video')).toBeNull();
+    const guestDelivery = http.expectOne(`${video.deliveryPath}?variant=original`);
+    expect(guestDelivery.request.headers.has('Authorization')).toBe(false);
+    fixture.destroy();
+    expect(guestDelivery.cancelled).toBe(true);
+    http.verify();
+  });
   it('switches from cover to protected video with controls, reports native errors, retries and releases URLs', async () => {
     const listing = listingFixture();
     const video: ListingVideo = {

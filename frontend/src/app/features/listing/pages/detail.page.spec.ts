@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -7,13 +7,35 @@ import { routes } from '../../../app.routes';
 import { SessionService } from '../../../core/auth/session.service';
 import { listingFixture } from '../testing/listing.fixture';
 import { DetailPage } from './detail.page';
+import { authInterceptor } from '../../../core/auth/auth.interceptor';
 
 describe('Public listing routes', () => {
   beforeEach(() =>
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideRouter(routes), provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting()],
     }),
   );
+  it('keeps loaded detail and its gallery while the same session rotates its token', async () => {
+    const session = TestBed.inject(SessionService);
+    session.accept({ accessToken: 'before-rotation', expiresIn: 900, status: 'ACTIVE' });
+    const harness = await RouterTestingHarness.create();
+    const http = TestBed.inject(HttpTestingController);
+    const listing = listingFixture();
+    await harness.navigateByUrl(`/listings/${listing.id}`, DetailPage);
+    http.expectOne(`/api/listings/${listing.id}`).flush(listing);
+    await harness.fixture.whenStable();
+    http.expectOne(`${listing.cover.deliveryPath}?variant=detail`).flush(new Blob(['image'], { type: 'image/webp' }));
+    await harness.fixture.whenStable();
+    const image = harness.routeNativeElement?.querySelector('img');
+    session.refresh().subscribe();
+    http.expectOne('/api/auth/refresh').flush({ accessToken: 'after-rotation', expiresIn: 900, status: 'ACTIVE' });
+    await harness.fixture.whenStable();
+    http.expectNone(`/api/listings/${listing.id}`);
+    http.expectNone(`${listing.cover.deliveryPath}?variant=detail`);
+    expect(harness.routeNativeElement?.textContent).toContain(listing.title);
+    expect(harness.routeNativeElement?.querySelector('img')).toBe(image);
+    http.verify();
+  });
   it('allows guests, cancels reused detail routes and shows unavailable for 404', async () => {
     const harness = await RouterTestingHarness.create();
     const http = TestBed.inject(HttpTestingController);

@@ -44,7 +44,8 @@ export class DetailPage {
         this.loading.set(true);
       });
       if (!id) return;
-      const request = untracked(() => this.api.detail(id)).subscribe({
+      // Interceptors read the rotating token during subscription, not during Observable creation.
+      const request = untracked(() => this.api.detail(id).subscribe({
         next: (listing) => {
           if (identity !== this.session.identityVersion()) return;
           this.listing.set(listing);
@@ -58,7 +59,7 @@ export class DetailPage {
           this.error.set(apiError(error));
           this.loading.set(false);
         },
-      });
+      }));
       onCleanup(() => request.unsubscribe());
     });
   }

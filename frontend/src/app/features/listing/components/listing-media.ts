@@ -50,24 +50,25 @@ export class ListingMedia {
       });
       if (!this.browser) return;
       let url = '';
+      // Subscription runs interceptors synchronously; keep their token reads outside this effect.
       const request = untracked(() =>
         this.api.media(
           id,
           asset,
           asset.type === 'VIDEO' ? 'original' : thumbnail ? 'thumbnail' : 'detail',
-        ),
-      ).subscribe({
-        next: (blob) => {
-          if (identity !== this.session.identityVersion()) return;
-          if (blob.type !== asset.mimeType) {
-            this.mediaError();
-            return;
-          }
-          url = URL.createObjectURL(blob);
-          this.source.set(url);
-        },
-        error: () => this.mediaError(),
-      });
+        ).subscribe({
+          next: (blob) => {
+            if (identity !== this.session.identityVersion()) return;
+            if (blob.type !== asset.mimeType) {
+              this.mediaError();
+              return;
+            }
+            url = URL.createObjectURL(blob);
+            this.source.set(url);
+          },
+          error: () => this.mediaError(),
+        }),
+      );
       onCleanup(() => {
         request.unsubscribe();
         if (url) URL.revokeObjectURL(url);
