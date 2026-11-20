@@ -24,7 +24,13 @@ beforeEach(async () => {
     userIds.push(user.id);
   }
   http = createServer(fixture.app);
-  realtime = attachChatRealtime(http, fixture.chat, fixture.sessions, fixture.config.origins);
+  realtime = attachChatRealtime(
+    http,
+    fixture.chat,
+    fixture.sessions,
+    fixture.config.origins,
+    fixture.notifications,
+  );
   await new Promise<void>((resolve) => http.listen(0, "127.0.0.1", resolve));
   const bound = http.address();
   if (!bound || typeof bound === "string") throw new Error("Missing test port");
@@ -64,6 +70,74 @@ async function emit(socket: Socket, event: string, payload: unknown) {
 }
 
 describe("Chat real Socket.IO transport", () => {
+  it("authorizes visible-conversation heartbeats and suppresses only MESSAGE while viewing", async () => {
+    const sender = await fixture.sessions.authenticate(tokens[0]);
+    const recipient = await fixture.sessions.authenticate(tokens[1]);
+    const row = await fixture.chat.conversations.create(sender, {
+      type: "DIRECT",
+      userId: userIds[1],
+    });
+    const [viewer, other] = await Promise.all([connect(tokens[1]), connect(tokens[2])]);
+    expect(
+      (await emit(other, "conversation.view", { conversationId: row.id, viewing: true })).error
+        ?.code,
+    ).toBe("NOT_FOUND");
+    expect(
+      (await emit(viewer, "conversation.view", { conversationId: row.id, viewing: true })).ok,
+    ).toBe(true);
+    await fixture.chat.messages.send(sender, row.id, {
+      requestId: randomUUID(),
+      content: "Đang xem",
+    });
+    await fixture.notifications.worker.runOnce();
+    expect(await fixture.notifications.service.count(recipient)).toEqual({ count: 0 });
+    await emit(viewer, "conversation.view", { conversationId: row.id, viewing: false });
+    await fixture.chat.messages.send(sender, row.id, {
+      requestId: randomUUID(),
+      content: "Đã rời",
+    });
+    await fixture.notifications.worker.runOnce();
+    expect(await fixture.notifications.service.count(recipient)).toEqual({ count: 1 });
+    await emit(viewer, "conversation.view", { conversationId: row.id, viewing: true });
+    await fixture.sessions.revoke(recipient, recipient.sessionId);
+    expect(await fixture.notifications.presence.isViewing(recipient.userId, row.id)).toBe(false);
+  });
+
+  it("delivers notification invalidations only to current recipient sessions and resyncs after reconnect", async () => {
+    const sender = await fixture.sessions.authenticate(tokens[0]);
+    const recipient = await fixture.sessions.authenticate(tokens[1]);
+    const row = await fixture.chat.conversations.create(sender, {
+      type: "DIRECT",
+      userId: userIds[1],
+    });
+    const [first, tab, unrelated] = await Promise.all([
+      connect(tokens[1]),
+      connect(tokens[1]),
+      connect(tokens[2]),
+    ]);
+    const forbidden: unknown[] = [];
+    unrelated.on("notification.changed", (value: unknown) => forbidden.push(value));
+    const one = new Promise<unknown>((resolve) => first.once("notification.changed", resolve));
+    const two = new Promise<unknown>((resolve) => tab.once("notification.changed", resolve));
+    await fixture.chat.messages.send(sender, row.id, {
+      requestId: randomUUID(),
+      content: "Không phát preview",
+    });
+    await fixture.notifications.worker.runOnce();
+    const events = await Promise.all([one, two]);
+    const item = (await fixture.notifications.service.list(recipient, { limit: 30 })).data[0];
+    expect(events).toEqual([{ notificationId: item.id }, { notificationId: item.id }]);
+    expect(forbidden).toEqual([]);
+    first.disconnect();
+    await connect(tokens[1]);
+    expect(await fixture.notifications.service.count(recipient)).toEqual({ count: 1 });
+    const read = new Promise<unknown>((resolve) => tab.once("notification.changed", resolve));
+    await fixture.notifications.service.read(recipient, item.id, item.lastEventId);
+    expect(await read).toEqual({ notificationId: null });
+    await fixture.sessions.revoke(recipient, recipient.sessionId);
+    await expect(connect(tokens[1])).rejects.toThrow("UNAUTHENTICATED");
+    expect(forbidden).toEqual([]);
+  });
   it("rejects invalid handshake credentials", async () => {
     await expect(connect("invalid")).rejects.toThrow("UNAUTHENTICATED");
   });

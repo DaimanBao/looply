@@ -27,8 +27,10 @@ export function createBackend(config: AppConfig, authConfig: AuthConfig) {
     features.chat,
     features.sessions,
     authConfig.origins,
+    features.notifications,
   );
   const chatCleanup = new CleanupLoop(features.chat.retention, logger);
+  const notificationWorker = new CleanupLoop(features.notifications.worker, logger);
   const runtime = createServerRuntime({
     server,
     database,
@@ -44,11 +46,13 @@ export function createBackend(config: AppConfig, authConfig: AuthConfig) {
         await features.redis.connect();
         cleanup.start();
         chatCleanup.start();
+        notificationWorker.start();
       },
       /** Chờ worker hoàn tất thao tác storage/database trước khi ngắt Redis và Prisma. */
       async stop() {
         await cleanup.stop();
         await chatCleanup.stop();
+        await notificationWorker.stop();
         await features.redis.close();
       },
     },

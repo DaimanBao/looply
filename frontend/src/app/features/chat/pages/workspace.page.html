@@ -1,0 +1,28 @@
+<div class="chat-workspace" [class.has-selection]="selectedId()">
+  <aside class="inbox-panel"><app-inbox [selectedId]="selectedId()" /></aside>
+  <section class="conversation-panel" aria-label="Cuộc trò chuyện">
+    <router-outlet />
+    @if (!selectedId()) {
+      <div class="welcome">
+        <span class="welcome-mark" aria-hidden="true">↻</span
+        ><span class="eyebrow">MỖI CUỘC TRÒ CHUYỆN, MỘT KẾT NỐI</span>
+        <h2>Tiếp nối câu chuyện.<br />Trao thêm giá trị.</h2>
+        <p>Chọn một hội thoại để trao đổi về món đồ<br />và tìm thấy điều phù hợp với bạn.</p>
+        <span class="welcome-note">Tin nhắn và giao dịch, cùng một nơi.</span>
+      </div>
+    }
+  </section>
+</div>
+<dialog #hideDialog aria-labelledby="hide-title" (cancel)="state.confirm.set(null)">
+  <h2 id="hide-title">Ẩn hội thoại?</h2>
+  <p>Hội thoại sẽ rời Inbox của bạn và xuất hiện lại khi có tin nhắn mới. Lịch sử vẫn được giữ.</p>
+  @if (state.error()) {
+    <p role="alert">{{ state.error() }}</p>
+  }
+  <div class="dialog-actions">
+    <button type="button" (click)="state.confirm.set(null)" [disabled]="state.busy()">Hủy</button
+    ><button class="primary" type="button" (click)="hide()" [disabled]="state.busy()">
+      Xác nhận ẩn
+    </button>
+  </div>
+</dialog>

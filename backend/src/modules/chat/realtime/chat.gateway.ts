@@ -5,17 +5,22 @@ import type { SessionService } from "../../auth";
 import { AppError } from "../../../shared/errors/app-error";
 import type { createChatModule } from "../chat.module";
 import { chatId, messageInput } from "../chat.schema";
+import type { createNotificationModule } from "../../notification";
 
 type Ack = (
   result: { ok: true; data: unknown } | { ok: false; error: { code: string; message: string } },
 ) => void;
 type ClientEvents = {
+  "conversation.view": (input: unknown, ack: Ack) => void;
   "conversation.join": (input: unknown, ack: Ack) => void;
   "message.send": (input: unknown, ack: Ack) => void;
   "conversation.read": (input: unknown, ack: Ack) => void;
   "conversation.delivered": (input: unknown, ack: Ack) => void;
 };
-type ServerEvents = { "chat.changed": (input: { conversationId: string }) => void };
+type ServerEvents = {
+  "chat.changed": (input: { conversationId: string }) => void;
+  "notification.changed": (input: { notificationId: string | null }) => void;
+};
 type SocketData = { token: string };
 const joinInput = z.strictObject({ conversationId: chatId });
 const socketMessage = z.strictObject({ conversationId: chatId, message: messageInput });
@@ -27,6 +32,7 @@ export function attachChatRealtime(
   chat: ReturnType<typeof createChatModule>,
   sessions: SessionService,
   origins: string[],
+  notifications?: ReturnType<typeof createNotificationModule>,
 ) {
   const io = new Server<ClientEvents, ServerEvents, Record<string, never>, SocketData>(server, {
     maxHttpBufferSize: 64 * 1024,
@@ -49,6 +55,7 @@ export function attachChatRealtime(
     }
   });
   namespace.on("connection", (socket) => {
+    socket.on("disconnect", () => notifications?.presence.leave(socket.id));
     let windowAt = Date.now();
     let count = 0;
     let running = 0;
@@ -96,6 +103,30 @@ export function attachChatRealtime(
         return { conversationId: value.conversationId };
       });
     });
+    socket.on("conversation.view", (input, ack) => {
+      void execute(
+        z.strictObject({ conversationId: chatId, viewing: z.boolean() }),
+        input,
+        ack,
+        async (value, principal) => {
+          await chat.conversations.get(principal, value.conversationId);
+          notifications?.presence.view(
+            socket.id,
+            principal.userId,
+            value.conversationId,
+            value.viewing,
+            async () => {
+              const current = await sessions.authenticate(socket.data.token);
+              return (
+                socket.connected &&
+                current.userId === principal.userId &&
+                current.status === "ACTIVE"
+              );
+            },
+          );
+        },
+      );
+    });
     socket.on("message.send", (input, ack) => {
       void execute(socketMessage, input, ack, (value, principal) =>
         chat.messages.send(principal, value.conversationId, value.message),
@@ -111,6 +142,20 @@ export function attachChatRealtime(
         chat.messages.receipt(principal, value.conversationId, value.messageId, false),
       );
     });
+  });
+  const unsubscribeNotifications = notifications?.events.subscribe(async (change) => {
+    await Promise.allSettled(
+      [...namespace.sockets.values()].map(async (socket) => {
+        try {
+          const principal = await sessions.authenticate(socket.data.token);
+          if (principal.userId === change.recipientId && socket.connected)
+            socket.emit("notification.changed", { notificationId: change.notificationId });
+        } catch {
+          notifications.presence.leave(socket.id);
+          socket.disconnect(true);
+        }
+      }),
+    );
   });
   const unsubscribe = chat.events.subscribe(async (conversationId) => {
     // Không broadcast qua room đã cache quyền: kiểm tra phiên và participant từng client ngay trước emit.
@@ -131,6 +176,7 @@ export function attachChatRealtime(
     /** Dừng socket trước close HTTP; không đóng HTTP server hai lần qua io.close(). */
     stop(): void {
       unsubscribe();
+      unsubscribeNotifications?.();
       namespace.disconnectSockets(true);
       io.engine.close();
     },

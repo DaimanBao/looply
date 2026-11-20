@@ -19,10 +19,10 @@
 | USER | 17 | 13 |
 | LISTING | 19 | 15 |
 | MEDIA | 10 | 1 |
-| CHAT | 17 | 16 |
-| NOTIFICATION | 10 | 0 |
+| CHAT | 17 | 17 |
+| NOTIFICATION | 10 | 10 |
 | REMINDER | 7 | 0 |
-| **Tổng** | **96** | **52** |
+| **Tổng** | **96** | **63** |
 
 > Cập nhật cột tổng quan đồng thời với các ô checklist bên dưới; không tự đánh dấu hoàn thành khi chưa có bằng chứng.
 
@@ -148,9 +148,9 @@ Chi tiết: [`CHAT_REQUIREMENTS.md`](modules/CHAT_REQUIREMENTS.md)
 | [x] | `CHAT-014` | Lịch sử đề xuất |
 | [x] | `CHAT-015` | Phân nhóm Inbox |
 | [x] | `CHAT-016` | Card thông tin Listing |
-| [ ] | `CHAT-017` | Thông báo tin nhắn |
+| [x] | `CHAT-017` | Thông báo tin nhắn |
 
-Đối chiếu Chat 20/11/2026 trên `feat/chat-module`: REST/Socket.IO, Angular Inbox/Conversation, ảnh và proposal/snapshot đã kiểm chứng bằng targeted tests + Chrome hai tài khoản. [Bằng chứng và giới hạn](../database/INTEGRATION_TESTS.md#chat-module--20112026), [contract](../api/CHAT_DESIGN.md). `CHAT-017` mới có outbox identifiers; consumer, biểu tượng và danh sách thông báo thuộc Notification, chưa triển khai theo phạm vi nhiệm vụ. Không suy kết quả này thành nghiệm thu live S3, nhiều Backend process hoặc NFR p95.
+Đối chiếu Chat 20/11/2026: REST/Socket.IO, Angular Inbox/Conversation, ảnh và proposal/snapshot đã kiểm chứng bằng targeted tests + Chrome hai tài khoản. [Bằng chứng Chat](../database/INTEGRATION_TESTS.md#chat-module--20112026), [contract](../api/CHAT_DESIGN.md). `CHAT-017` hoàn tất trong nhiệm vụ Notification với grouping, presence, badge/toast và danh sách riêng; [bằng chứng Notification](../database/INTEGRATION_TESTS.md#notification-module--20112026). Không suy kết quả này thành nghiệm thu live S3, nhiều Backend process hoặc NFR p95.
 
 
 ## NOTIFICATION — 10 chức năng
@@ -159,16 +159,20 @@ Chi tiết: [`NOTIFICATION_REQUIREMENTS.md`](modules/NOTIFICATION_REQUIREMENTS.m
 
 | Xong | Mã | Chức năng |
 |---|---|---|
-| [ ] | `NOTI-001` | Thông báo tin nhắn mới |
-| [ ] | `NOTI-002` | Thông báo chỉnh sửa Listing |
-| [ ] | `NOTI-003` | Thông báo giao dịch |
-| [ ] | `NOTI-004` | Danh sách thông báo |
-| [ ] | `NOTI-005` | Số lượng chưa đọc |
-| [ ] | `NOTI-006` | Thông báo nổi (toast) |
-| [ ] | `NOTI-007` | Điều hướng |
-| [ ] | `NOTI-008` | Đánh dấu đã đọc |
-| [ ] | `NOTI-009` | Đánh dấu tất cả đã đọc |
-| [ ] | `NOTI-010` | Xóa thông báo |
+| [x] | `NOTI-001` | Thông báo tin nhắn mới |
+| [x] | `NOTI-002` | Thông báo chỉnh sửa Listing |
+| [x] | `NOTI-003` | Thông báo giao dịch |
+| [x] | `NOTI-004` | Danh sách thông báo |
+| [x] | `NOTI-005` | Số lượng chưa đọc |
+| [x] | `NOTI-006` | Thông báo nổi (toast) |
+| [x] | `NOTI-007` | Điều hướng |
+| [x] | `NOTI-008` | Đánh dấu đã đọc |
+| [x] | `NOTI-009` | Đánh dấu tất cả đã đọc |
+| [x] | `NOTI-010` | Xóa thông báo |
+
+Đối chiếu 20/11/2026 trên `feat/notification-module`: 14 integration Notification, 5 realtime,
+22 Angular Notification/Chat/App tests và 6 nhóm Chrome PASS; [kết quả/review](../database/INTEGRATION_TESTS.md#notification-module--20112026).
+Một Backend process, không preview/Web Push/email/SMS; Reminder chưa triển khai. Chưa có CI cho thay đổi chưa commit.
 
 
 ## REMINDER — 7 chức năng
@@ -198,8 +202,9 @@ Chi tiết: [`REMINDER_REQUIREMENTS.md`](modules/REMINDER_REQUIREMENTS.md)
 | Phạm vi | Bằng chứng hiện có | Giới hạn còn lại |
 |---|---|---|
 | Auth/User | [Frontend README](../../frontend/README.md#bằng-chứng-local-13112026): Chrome E2E 26 bước, unit/component, typecheck/build và review; [Backend integration](../database/INTEGRATION_TESTS.md) kiểm tra PostgreSQL/Redis, phiên, quyền sở hữu, concurrency và xóa tài khoản. Chat kiểm tra phiên và Block hai chiều khi tạo nội dung mới. | SMS/email thật, Google UI/client thật chưa nghiệm thu; Profile chưa có danh sách Listing. Backup/restore, retention và nguồn trạng thái xóa độc lập chưa triển khai. |
-| Listing/Media Backend | [Integration tests](../database/INTEGRATION_TESTS.md): CRUD, atomic manifest, upload/delivery ảnh/video, Search/Feed/Follow, quyền hiển thị/Block, rollback/race và cleanup; Chat accept đã tích hợp nguyên tử với Listing/activeCycle. API theo [OpenAPI](../api/openapi.json). | Consumer Notification chỉnh sửa Listing và S3 thật chưa nghiệm thu. Outbox event không thay thế notification delivery. |
-| Listing/Media Frontend | [Phase 5A](../../frontend/README.md#listing-public-discovery--phase-5a), [Phase 5B](../../frontend/README.md#listing-management-và-media--phase-5b) đã có discovery/management/media editor; [Phase 5C](../../frontend/README.md#follow-listing-và-tích-hợp--phase-5c) kiểm chứng Follow/Unfollow/danh sách, đổi tài khoản và quyền chủ bằng targeted tests + Chrome/API thật. Chat tích hợp ở mục bên dưới. | Notification participant chưa triển khai. Browser E2E đã kiểm chứng MP4, chưa nghiệm thu WebM/Safari/Firefox hoặc video lớn; video tải trọn tệp trước phát. |
+| Listing/Media Backend | [Integration tests](../database/INTEGRATION_TESTS.md): CRUD, atomic manifest, upload/delivery ảnh/video, Search/Feed/Follow, quyền hiển thị/Block, rollback/race và cleanup; Chat accept nguyên tử với Listing/activeCycle; Notification consumer cho edit đã kiểm chứng. API theo [OpenAPI](../api/openapi.json). | S3 thật chưa nghiệm thu. |
+| Listing/Media Frontend | [Phase 5A](../../frontend/README.md#listing-public-discovery--phase-5a), [Phase 5B](../../frontend/README.md#listing-management-và-media--phase-5b) đã có discovery/management/media editor; [Phase 5C](../../frontend/README.md#follow-listing-và-tích-hợp--phase-5c) kiểm chứng Follow/Unfollow/danh sách, đổi tài khoản và quyền chủ bằng targeted tests + Chrome/API thật. Notification participant đã nối với Conversation. | Browser E2E đã kiểm chứng MP4, chưa nghiệm thu WebM/Safari/Firefox hoặc video lớn; video tải trọn tệp trước phát. |
 | CI của lần đối chiếu ban đầu | Commit `36596d0`: [Backend CI PASS](https://github.com/DaimanBao/looply-rebuild/actions/runs/43420523096) và [Frontend CI PASS](https://github.com/DaimanBao/looply-rebuild/actions/runs/43420523089); được merge qua PR #25 vào `8477d6c`, không đổi code ứng dụng so với commit đã kiểm tra. | Đây là bằng chứng lịch sử; CI của Phase 5B/5C theo commit cuối tại PR tương ứng. Browser E2E là bằng chứng local trong README, không chạy trên GitHub Actions. |
-| Chat | [Backend integration](../database/INTEGRATION_TESTS.md#chat-module--20112026), [Frontend](../../frontend/README.md#chat-module): Conversation, Message, realtime, ảnh, proposal/snapshot và Inbox đã triển khai/kiểm chứng/review. | `CHAT-017` chờ Notification; chưa nghiệm thu live S3, browser ngoài Chrome hoặc p95. |
-| Notification, Reminder | Chưa có runtime/UI; Chat chỉ chuẩn bị event identifiers để tích hợp sau. | Các mã NOTI/REM tiếp tục `[ ]`; các thông báo lỗi UI thông thường không thay thế các module này. |
+| Chat | [Backend integration](../database/INTEGRATION_TESTS.md#chat-module--20112026), [Frontend](../../frontend/README.md#chat-module): Conversation, Message, realtime, ảnh, proposal/snapshot, Inbox và Notification đã triển khai/kiểm chứng/review. | Chưa nghiệm thu live S3, browser ngoài Chrome hoặc p95. |
+| Notification | [Backend](../database/INTEGRATION_TESTS.md#notification-module--20112026), [Frontend](../../frontend/README.md#notification-module): runtime/consumer/API/UI, read/delete, badge/toast, grouping/presence, recipient, retry/rollback và state synchronization. | Một Backend process; chưa đo p95 hoặc chạy browser ngoài Chrome. CI chưa chạy. |
+| Reminder | Chưa triển khai runtime/UI. | Các mã REM tiếp tục `[ ]`. |

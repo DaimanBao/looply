@@ -1,6 +1,6 @@
 # Looply Backend
 
-Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, Search/Feed/Follow, upload/delivery ảnh/video, Chat/Proposal và worker cleanup. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Notification/Reminder chưa triển khai. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
+Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, Search/Feed/Follow, upload/delivery ảnh/video, Chat/Proposal, Notification và worker cleanup/outbox. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Reminder chưa triển khai. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
 
 ## Cấu hình và chạy
 
@@ -135,7 +135,7 @@ Contract nguồn tại [OpenAPI](../docs/api/openapi.json): POST `/api/listings`
 
 Client upload trước, sau 201 dùng ID TEMP trong manifest, TTL 15 phút; không gửi storage key. Create và PATCH media là transaction nguyên tử. PATCH không có media giữ nguyên; có media thay toàn bộ membership/order, `videoId:null` bỏ video, cover giữ ảnh cũ nếu còn hoặc fallback ảnh đầu. Ảnh bị gỡ chuyển DELETING và queue cleanup cùng transaction; không xóa file trước commit. Video metadata ATTACHED hợp lệ có sẵn có thể giữ/bỏ, không coi fixture metadata là bằng chứng upload/playback video thật.
 
-PATCH nội dung/visibility và DELETE bắt buộc `expectedVersion`: thiếu/sai 400, stale 409 `LISTING_VERSION_CONFLICT`. Version tăng đúng một lần; visibility cùng trạng thái không tăng, reopen tăng activeCycle; DELETED terminal và retry DELETE chỉ thành công với version tombstone hiện tại. Owner/session được kiểm tra lại dưới User→Listing→Media locks; public read và ảnh áp owner ACTIVE/Block hai chiều, owner đọc HIDDEN, DELETED trả 404. Tiền giữ chuỗi Decimal, không serialize key/email/phone riêng tư. `listing.updated` chỉ lưu identifier/version vào outbox cùng content update; consumer Chat/Notification chưa có, không phát thông báo giả.
+PATCH nội dung/visibility và DELETE bắt buộc `expectedVersion`: thiếu/sai 400, stale 409 `LISTING_VERSION_CONFLICT`. Version tăng đúng một lần; visibility cùng trạng thái không tăng, reopen tăng activeCycle; DELETED terminal và retry DELETE chỉ thành công với version tombstone hiện tại. Owner/session được kiểm tra lại dưới User→Listing→Media locks; public read và ảnh áp owner ACTIVE/Block hai chiều, owner đọc HIDDEN, DELETED trả 404. Tiền giữ chuỗi Decimal, không serialize key/email/phone riêng tư. `listing.updated` lưu identifier/version và Conversation IDs vào outbox cùng content update; consumer Notification chỉ thông báo contact liên quan, không gửi follower/owner.
 
 Khi worker không có job đến hạn, reconciliation enqueue tối đa 20 TEMP hết hạn/DELETING chưa xóa, tránh trùng pending/failed/processing event. File chỉ bị xóa sau committed claim; sau lỗi I/O hoặc lỗi DB completion, outbox retry với key bất biến. Account preparation detach private assets trước xóa qua cùng guard. File thiếu được coi xóa thành công.
 
@@ -219,10 +219,11 @@ Fixtures MP4 H.264/WebM VP9 tổng hợp nằm tại `tests/fixtures/video/`, c�
 REST/OpenAPI, ack/events và phân quyền: [Chat design](../docs/api/CHAT_DESIGN.md).
 Snapshot/retention: [thiết kế database](../docs/database/CHAT_SNAPSHOT_DESIGN.md).
 
+
 - Cài theo lockfile, giữ Node 24/Prisma 7.10.1; có thêm Socket.IO 4.8.1 theo tech stack đã chọn.
 - Trước khi chạy server với Chat, database phải có `0006_chat_module` và `0007_chat_reservation_version`; server không tự migrate. Nhiệm vụ chỉ migrate `looply_test` sau URL + actual database guard. Development/production chưa áp dụng trong nhiệm vụ này; không dùng test migration URL cho server development.
 - API `/api/conversations`, namespace `/chat`, Bearer/handshake token dùng session gate Auth; không dùng refresh cookie thay Bearer, không nhận senderId/room tùy ý.
-- Realtime một process; khi reconnect tải dữ liệu bền vững qua REST. `chat.changed` không chứa preview. Outbox `chat.message.created` chứa conversationId/messageId/senderId/recipientId, `chat.proposal.resolved` chứa conversationId/proposalId/status; chỉ chuẩn bị contract, không gửi Notification.
+- Realtime một process; khi reconnect tải dữ liệu bền vững qua REST. `chat.changed` không chứa preview. Outbox `chat.message.created` chứa conversationId/messageId/senderId/recipientId và cờ suppressNotification từ presence, `chat.proposal.resolved` chứa conversationId/proposalId/status; consumer Notification xử lý độc lập sau commit.
 - Worker chạy batch theo vòng hiện có; snapshot REVOKED là retry bền vững, object delete sau commit. xmin fence ngăn completion cũ đánh dấu thế hệ cleanup mới. Inventory local đối soát ghi muộn sau crash; S3 adapter hiện chưa có bucket inventory, chưa nghiệm thu provider thật.
 
 Targeted kiểm thử (từ `backend/`, cần PostgreSQL `looply_test` và Redis test nonzero theo hướng dẫn hiện có):
@@ -238,3 +239,24 @@ npm run build
 
 Chat không cần FFmpeg để gửi ảnh; chạy regression video vẫn cần binary/env theo mục Media.
 Kết quả và giới hạn kiểm chứng thuộc [Database Integration Tests](../docs/database/INTEGRATION_TESTS.md).
+
+## Notification Module
+
+Contract/API, grouping, presence, biên read-all và kiến trúc consumer:
+[Notification design](../docs/api/NOTIFICATION_DESIGN.md). Runtime khởi động worker cùng Redis/Chat,
+poll 5 giây, tối đa 10 event/lần, dừng và chờ worker trước disconnect Prisma. Realtime dùng chung
+Socket.IO `/chat`, chỉ invalidation cho recipient có phiên hiện hành. Không có email/SMS/Web Push.
+
+Không thêm dependency, database model hoặc migration; dùng schema đã có đến `0007`.
+TEST_DATABASE_URL phải là `looply_test`, TEST_REDIS_URL chọn DB nonzero; helper xác minh database thật
+trước ghi. Chuẩn bị theo [hướng dẫn test local](../docs/testing/LOCAL_TEST_GUIDE.md).
+
+```powershell
+# Tại backend/, sau khi chuẩn bị PostgreSQL/Redis test.
+node --env-file=.env --env-file=../.video-tools/video.env node_modules/vitest/vitest.mjs run src/modules/notification/notification.spec.ts src/shared/http/openapi.spec.ts src/runtime/server-runtime.spec.ts
+node --env-file=.env --env-file=../.video-tools/video.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/integration/notification-module.test.ts tests/integration/listing-crud.test.ts tests/integration/chat-realtime.test.ts
+```
+
+Chạy từng lệnh integration/browser tuần tự khi cùng dùng một database test; consumer claim outbox
+chung, không chạy hai harness độc lập đồng thời. Kết quả/review và giới hạn:
+[integration tests](../docs/database/INTEGRATION_TESTS.md#notification-module--20112026).

@@ -13,6 +13,8 @@ const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'looply-listing-e2e-'));
 const artifacts = path.join(root, 'frontend/tmp/listing-e2e');
 fs.mkdirSync(artifacts, { recursive: true });
 const children = [];
+const apiPort = Number(process.env.LOOPLY_E2E_API_PORT || '3000');
+const uiPort = Number(process.env.LOOPLY_E2E_UI_PORT || '4200');
 const checks = [];
 let fixture;
 let listener;
@@ -46,6 +48,9 @@ function passed(name) {
 
 /** Kiểm tra khám phá Angular công khai và giải mã trình duyệt với adapter API/database/media thật. */
 async function main() {
+  assert.ok(
+    [apiPort, uiPort].every((port) => Number.isInteger(port) && port >= 1024 && port <= 65535),
+  );
   const target = new URL(process.env.TEST_DATABASE_URL);
   assert.equal(target.pathname, '/looply_test');
   assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(target.hostname));
@@ -55,7 +60,7 @@ async function main() {
   assert.match(redis.pathname, /^\/[1-9][0-9]*$/);
   process.env.TEST_REDIS_URL = redis.href;
   process.env.MEDIA_STAGING_DIRECTORY = path.join(directory, 'staging');
-  for (const port of [3000, 4200, 9230, ...(process.argv.includes('--chat') ? [9231] : [])]) {
+  for (const port of [apiPort, uiPort, 9230, ...(process.argv.includes('--chat') ? [9231] : [])]) {
     await new Promise((resolve, reject) => {
       const server = require('node:net').createServer();
       server.once('error', () => reject(new Error(`Test port ${port} is in use`)));
@@ -67,6 +72,7 @@ async function main() {
   const { LocalObjectStore } = require(path.join(backend, 'src/modules/media/object-store.ts'));
   // Fixture chung xác minh SELECT current_database() trước mọi ghi và sở hữu mọi ID cleanup.
   fixture = await createAuthFixture(new LocalObjectStore(path.join(directory, 'objects')));
+  fixture.config.origins.push(`http://localhost:${uiPort}`);
   const request = require(path.join(backend, 'node_modules/supertest'));
   const sharp = require(path.join(backend, 'node_modules/sharp'));
   const owner = await fixture.user();
@@ -122,7 +128,7 @@ async function main() {
     assert.equal(result.status, 201, 'Fixture listing failed');
     listings.push(result.body);
   }
-  listener = fixture.app.listen(3000, '127.0.0.1');
+  listener = fixture.app.listen(apiPort, '127.0.0.1');
   if (process.argv.includes('--chat')) {
     const { attachChatRealtime } = require(path.join(backend, 'src/modules/chat/index.ts'));
     chatRealtime = attachChatRealtime(
@@ -130,8 +136,13 @@ async function main() {
       fixture.chat,
       fixture.sessions,
       fixture.config.origins,
+      fixture.notifications,
     );
   }
+  const proxyPath = path.join(directory, 'proxy.json');
+  const proxy = JSON.parse(fs.readFileSync(path.join(root, 'frontend/proxy.conf.json'), 'utf8'));
+  for (const value of Object.values(proxy)) value.target = `http://127.0.0.1:${apiPort}`;
+  fs.writeFileSync(proxyPath, JSON.stringify(proxy));
   start(
     process.execPath,
     [
@@ -140,11 +151,13 @@ async function main() {
       '--host',
       'localhost',
       '--port',
-      '4200',
+      String(uiPort),
+      '--proxy-config',
+      proxyPath,
     ],
     { cwd: path.join(root, 'frontend'), env: process.env },
   );
-  await ready('http://localhost:4200');
+  await ready(`http://localhost:${uiPort}`);
   const browser =
     process.env.CHROMIUM_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
   assert.ok(fs.existsSync(browser), 'CHROMIUM_PATH must reference installed Chrome');
@@ -165,7 +178,7 @@ async function main() {
   const tabs = await (await fetch('http://127.0.0.1:9230/json')).json();
   page = await BrowserPage.connect(tabs.find((tab) => tab.type === 'page').webSocketDebuggerUrl);
   if (process.argv.includes('--chat')) {
-    await require('./chat.cjs')({
+    await require(process.argv.includes('--notifications') ? './notification.cjs' : './chat.cjs')({
       page,
       fixture,
       owner,
@@ -177,9 +190,13 @@ async function main() {
       artifacts,
       browser,
       image,
+      chatRealtime,
     });
     fs.writeFileSync(
-      path.join(artifacts, 'chat-report.json'),
+      path.join(
+        artifacts,
+        process.argv.includes('--notifications') ? 'notification-report.json' : 'chat-report.json',
+      ),
       JSON.stringify({ database: 'looply_test', checks }, null, 2),
     );
     return;

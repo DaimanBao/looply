@@ -1,0 +1,62 @@
+<section #viewport class="messages" aria-label="Lịch sử tin nhắn" tabindex="0" (scroll)="scroll()">
+  <div #historyContent class="history-content">
+    @if (hasOlder()) {
+      <button class="older-button" type="button" (click)="loadOlder()" [disabled]="loadingOlder()">
+        {{ loadingOlder() ? 'Đang tải…' : 'Tải tin nhắn cũ hơn' }}
+      </button>
+    }
+    @for (row of rows(); track row.message.id) {
+      @if (row.separator) {
+        <div class="date-separator">
+          <span>{{ row.separator }}</span>
+        </div>
+      }
+      <article
+        class="message"
+        [id]="'message-' + row.message.id"
+        [class.mine]="row.message.senderId === userId()"
+        [class.grouped]="row.grouped"
+        [class.notification-target]="target() === row.message.id"
+        [class.has-card]="row.message.proposal"
+      >
+        <div class="bubble">
+          @if (row.message.content) {
+            <p class="message-text">{{ row.message.content }}</p>
+          }
+          @if (row.message.imagePath; as path) {
+            <app-chat-image [path]="path" />
+          }
+          @if (row.message.proposal) {
+            <app-transaction-card
+              [message]="row.message"
+              [canResolve]="canResolve()"
+              [busy]="busy()"
+              (decision)="decision.emit($event)"
+            />
+          }
+        </div>
+        @if (row.endGroup) {
+          <small class="message-meta"
+            ><time
+              [attr.datetime]="row.message.createdAt"
+              [title]="row.message.createdAt | date: 'dd/MM/yyyy HH:mm'"
+              >{{ row.message.createdAt | date: 'HH:mm' }}</time
+            >
+            @if (row.message.senderId === userId()) {
+              · {{ states[row.message.state] }}
+            }
+          </small>
+        }
+      </article>
+    } @empty {
+      <div class="empty-conversation">
+        <span aria-hidden="true">↗</span>
+        <p>Câu chuyện bắt đầu từ một lời chào.</p>
+        <p>Gửi tin nhắn đầu tiên để kết nối.</p>
+      </div>
+    }
+  </div>
+</section>
+@if (newMessages()) {
+  <button class="new-messages" type="button" (click)="latest()">↓ Tin nhắn mới</button>
+}

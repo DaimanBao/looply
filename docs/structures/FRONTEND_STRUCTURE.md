@@ -127,6 +127,12 @@ Các quy ước này không yêu cầu refactor hàng loạt Auth/User hiện t�
 
 ## Quy tắc
 
+Notification có API/decoder/models, store singleton theo identity, center (chuông/toast) và page
+`/account/notifications` với TS/HTML/SCSS riêng. Store dùng ChatRealtime qua public API để chia sẻ
+socket; reconnect/focus resync REST, response cũ và pagination bị vô hiệu hóa theo revision/identity.
+Chat page hỗ trợ heartbeat visibility và điều hướng đến Message/card cũ qua history keyset hiện có.
+
+
 Phase 5C thêm `listing-follow` dùng chung ở card/detail, `data-access/listing-follow.api.ts` và state singleton theo danh tính. GET Discovery/Detail và danh sách theo dõi có dấu revision để response cũ không ghi đè mutation. `/account/followed-listings` dùng lại `DiscoveryStore` với nguồn trang riêng, giữ cursor/dedup/retry và hủy request của tài khoản cũ. Quyền chủ lấy từ User public API `/users/me`; không giải mã JWT ở UI. Bằng chứng/giới hạn thuộc [Frontend README](../../frontend/README.md#follow-listing-và-tích-hợp--phase-5c).
 - **Page** điều phối hiển thị; **component** tập trung UI; **data-access** gọi API; **state** quản lý trạng thái; không nhúng gọi HTTP và nghiệp vụ phức tạp trực tiếp trong template/component.
 - Dùng Angular Signals cho trạng thái UI phù hợp, RxJS cho luồng bất đồng bộ; không tạo nhiều nguồn sự thật cho cùng một session/dữ liệu.
@@ -135,3 +141,12 @@ Phase 5C thêm `listing-follow` dùng chung ở card/detail, `data-access/listin
 - Route có thể lazy-load; guard hỗ trợ trải nghiệm nhưng **backend luôn quyết định quyền truy cập**.
 - Không chứa secrets trong frontend; dữ liệu từ API phải được xử lý lỗi, loading, empty state; hỗ trợ SSR an toàn khi dự án bật SSR.
 - Viết unit/component tests và E2E cho luồng quan trọng; chỉ cập nhật checklist chức năng sau khi kết quả được xác minh.
+## Chat workspace và presentation
+
+`features/chat/pages/workspace.page.*` sở hữu khung hai panel và confirmation dialog native;
+Inbox page là sidebar, Conversation page là child route. `InboxState` cấp workspace giữ filter,
+search local, keyset và identity; `ConversationState` tiếp tục sở hữu API/mutation/retry của hội thoại.
+`components/message-history.*` sở hữu render/group/scroll/anchor, `chat-composer.*` sở hữu textarea
+và keyboard, `transaction-card.*` chỉ hiển thị snapshot và phát intent xử lý. Hàm ngày/nhóm thuần
+ở `models/message-presentation.ts`. Không chuyển HTTP hoặc quy tắc Proposal vào presentation.
+API limits và bằng chứng thuộc [Frontend README](../../frontend/README.md#chat--inbox-ui-redesign--20112026).

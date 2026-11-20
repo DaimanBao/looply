@@ -9,13 +9,15 @@ import { SessionService } from '../../../core/auth/session.service';
     } @else {
       <span class="muted">{{ failed() ? 'Ảnh không còn khả dụng' : 'Đang tải ảnh…' }}</span>
     }`,
-  styles: 'img { max-width: 100%; max-height: 320px; border-radius: 12px; object-fit: contain; }',
+  styleUrl: './chat-image.scss',
+  host: { '[class.compact]': 'compact()' },
 })
 export class ChatImage {
   private readonly api = inject(ChatApi);
   private readonly session = inject(SessionService);
   readonly path = input.required<string>();
   readonly alt = input('Ảnh trong hội thoại');
+  readonly compact = input(false);
   readonly url = signal('');
   readonly failed = signal(false);
 

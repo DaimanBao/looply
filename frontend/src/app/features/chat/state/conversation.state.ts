@@ -47,7 +47,7 @@ export class ConversationState {
       const [conversation, page, me] = await Promise.all([
         this.api.get(id),
         this.api.history(id),
-        this.users.me(),
+        this.userId() ? Promise.resolve({ id: this.userId() }) : this.users.me(),
       ]);
       if (!this.current(id, identity) || revision !== this.revision) return;
       this.conversation.set(conversation);

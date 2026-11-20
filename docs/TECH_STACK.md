@@ -31,7 +31,7 @@
 
 ## Frontend
 
-Chat MVP khóa `socket.io` và `socket.io-client` ở **4.8.1**, namespace `/chat`, một Backend process; không thêm Redis adapter/fanout phân tán. Notification delivery chưa triển khai.
+Chat/Notification MVP khóa `socket.io` và `socket.io-client` ở **4.8.1**, dùng chung server/namespace `/chat`, một Backend process; không thêm Redis adapter/fanout phân tán. Notification dùng PostgreSQL outbox và presence heartbeat trong process; [contract](api/NOTIFICATION_DESIGN.md).
 
 | Chức năng | Công nghệ |
 |---|---|

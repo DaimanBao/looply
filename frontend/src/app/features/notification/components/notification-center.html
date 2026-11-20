@@ -1,0 +1,12 @@
+<a
+  routerLink="/account/notifications"
+  [attr.aria-label]="'Thông báo: ' + state.count() + ' chưa đọc'"
+  >🔔 Thông báo <span class="badge">{{ state.count() }}</span></a
+>
+@if (state.toast()) {
+  <aside class="notification-toast" role="status" aria-live="polite">
+    <p>Bạn có hoạt động mới trên Looply.</p>
+    <a routerLink="/account/notifications" (click)="state.dismissToast()">Xem thông báo</a>
+    <button (click)="state.dismissToast()" aria-label="Đóng thông báo nổi">Đóng</button>
+  </aside>
+}

@@ -136,14 +136,18 @@ export class ListingRepository {
     });
   }
 
-  /** Phát một sự kiện bền vững nguyên tử khi sửa nội dung thành công; chưa triển khai consumer Notification. */
-  event(listingId: string, version: number, tx: DatabaseTransaction) {
+  /** Chụp Conversation dưới Listing lock để worker trễ không gửi cho contact mới xuất hiện sau edit. */
+  async event(listingId: string, version: number, tx: DatabaseTransaction) {
+    const conversations = await tx.conversation.findMany({
+      where: { listingId },
+      select: { id: true },
+    });
     return tx.outboxEvent.create({
       data: {
         aggregateType: "Listing",
         aggregateId: listingId,
         eventType: "listing.updated",
-        payload: { listingId, version },
+        payload: { listingId, version, conversationIds: conversations.map((row) => row.id) },
       },
     });
   }

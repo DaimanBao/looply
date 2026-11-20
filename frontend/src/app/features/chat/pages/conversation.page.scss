@@ -1,63 +1,245 @@
 :host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.header-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #e7eddf;
+  color: var(--green);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.header-identity {
+  flex: 1;
+  min-width: 0;
+}
+.header-identity h2 {
+  font-size: 1rem;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header-identity > span {
   display: block;
-  max-width: 900px;
-  margin-inline: auto;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.header-menu {
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--muted);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.2rem;
+}
+.back-button {
+  display: none;
+  text-decoration: none;
+  font-size: 1.5rem;
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
 }
 .chat-context {
-  margin-block: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+  min-height: 76px;
+  flex-shrink: 0;
 }
-.chat-context app-chat-image {
-  display: block;
-  max-width: 120px;
-}
-.messages {
-  max-height: 65vh;
-  overflow-y: auto;
-  padding: 1rem;
-  border: 1px solid #dce7de;
-  border-radius: 16px;
-  background: #f7faf7;
-}
-.message {
-  width: fit-content;
-  max-width: 85%;
-  margin-block: 1rem;
-  padding: 0.8rem 1rem;
-  border-radius: 14px;
-  background: white;
-  overflow-wrap: anywhere;
-}
-.message.mine {
-  margin-left: auto;
-  background: #e2f3e9;
-}
-.message-text {
-  white-space: pre-wrap;
-}
-.message small {
-  display: block;
-  margin-top: 0.5rem;
-  color: #4c6357;
-}
-.transaction-card {
+.listing-thumbnail {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #edf1e9;
   display: grid;
-  gap: 0.5rem;
+  place-items: center;
 }
-.composer,
+.listing-thumbnail app-chat-image {
+  width: 100%;
+  height: 100%;
+}
+.listing-copy {
+  flex: 1;
+  min-width: 0;
+}
+.listing-copy > a,
+.listing-copy > strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+  text-decoration: none;
+}
+.listing-copy > a:hover {
+  text-decoration: underline;
+}
+.listing-copy p {
+  font-size: 0.73rem;
+  color: var(--muted);
+  margin: 3px 0 0;
+}
+.listing-copy p strong {
+  color: var(--green);
+}
+.proposal-toggle {
+  padding: 8px 11px;
+  background: #edf4eb;
+  color: var(--green);
+  font-size: 0.73rem;
+  flex-shrink: 0;
+}
+.context-note,
+.chat-feedback {
+  margin: 0;
+  padding: 8px 24px;
+  background: #fcf7eb;
+  font-size: 0.76rem;
+  color: #755119;
+}
+.chat-feedback button {
+  padding: 2px 6px;
+  font-size: inherit;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+}
+.error-feedback {
+  background: #fff1f0;
+  color: #96303a;
+}
 .proposal-form {
-  display: grid;
-  gap: 0.7rem;
-  margin-top: 1rem;
+  padding: 12px 24px;
+  background: #f0f5ed;
+  border-bottom: 1px solid var(--line);
+  max-height: 190px;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
-.preview {
-  max-width: 100%;
+.proposal-form button {
+  font-size: 0.76rem;
+  padding: 8px 12px;
+}
+.proposal-form > button {
+  background: #fff;
+  color: var(--green);
+  border-color: var(--line);
+}
+.proposal-form label {
+  font-size: 0.74rem;
+  margin: 8px 0 4px;
+}
+.negotiation {
+  display: flex;
+  gap: 8px;
+}
+.negotiation input {
+  min-width: 0;
+  flex: 1;
+  width: 100%;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+}
+.confirmation {
+  background: #fcf7eb;
+  padding: 12px 24px;
+  font-size: 0.8rem;
+  border-top: 1px solid #e9ddbd;
   max-height: 200px;
+  overflow: auto;
 }
-@media (max-width: 600px) {
-  .message {
-    max-width: 95%;
+.confirmation p {
+  margin: 0 0 8px;
+}
+.confirmation > div {
+  display: flex;
+  gap: 8px;
+}
+.confirmation button {
+  font-size: 0.8rem;
+  padding: 7px 12px;
+}
+.conversation-loading,
+.unavailable {
+  margin: auto;
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.loading-mark {
+  display: block;
+  color: var(--green);
+  font-size: 2.5rem;
+}
+@media (max-width: 720px) {
+  .back-button {
+    display: block;
   }
-  .messages {
-    padding: 0.5rem;
+  .chat-header {
+    padding: 12px;
+    gap: 8px;
+  }
+  .chat-context {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .proposal-toggle {
+    font-size: 0.67rem;
+    padding: 8px;
+    max-width: 104px;
+  }
+  .listing-state {
+    display: block;
+  }
+  .header-identity > span {
+    font-size: 0.64rem;
+  }
+  .proposal-form,
+  .confirmation {
+    padding: 10px 14px;
+  }
+}
+@media (max-width: 720px) {
+  .back-button,
+  .header-menu {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .back-button {
+    display: grid;
+    place-items: center;
+  }
+  .proposal-toggle,
+  .proposal-form button {
+    min-height: 44px;
   }
 }

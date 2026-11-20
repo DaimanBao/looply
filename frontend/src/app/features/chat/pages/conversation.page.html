@@ -1,144 +1,73 @@
-<a routerLink="/chat">← Hộp thư</a>
-<p class="muted">{{ realtime.connected() ? 'Đã kết nối Chat' : 'Chưa kết nối realtime' }}</p>
-@if (realtime.error()) {
-  <p role="status">
-    {{ realtime.error() }} <button type="button" (click)="refreshVisible()">Tải lại</button>
-  </p>
-}
-@if (state.loading()) {
-  <p role="status">Đang tải hội thoại…</p>
-}
-@if (state.error()) {
-  <p role="alert" class="notice warning">
-    {{ state.error() }} <button type="button" (click)="refreshVisible()">Tải lại</button>
-  </p>
-}
-@if (state.success()) {
-  <p role="status">{{ state.success() }}</p>
-}
-@if (state.conversation(); as conversation) {
-  <header class="card chat-context">
-    @for (participant of conversation.participants; track participant.userId) {
-      @if (participant.userId !== state.userId()) {
-        <h1>{{ participant.displayName }}</h1>
-      }
-    }
-    @if (conversation.listing; as listing) {
-      @if (listing.coverPath) {
-        <app-chat-image [path]="listing.coverPath" alt="Ảnh đại diện bài đăng" />
-      }
-      <h2>
-        <a [routerLink]="['/listings', listing.id]">{{ listing.title }}</a>
-      </h2>
-      <p>
-        {{ listing.type }} · {{ listing.status }}
-        @if (listing.price) {
-          · {{ listing.price }} ₫
-          @if (listing.rentalUnit) {
-            / {{ listing.rentalUnit === 'DAY' ? 'ngày' : 'tháng' }}
-          }
-        }
-      </p>
-      @if (listing.status !== 'ACTIVE') {
-        <p class="notice">
-          Bài đăng không còn hiển thị. Hai bên vẫn có thể nhắn tin; card đang chờ được tạm dừng.
-        </p>
-      }
-    } @else {
-      <p>Hội thoại tự do</p>
-    }
-  </header>
-  @if (state.nextCursor()) {
-    <button type="button" (click)="state.older()" [disabled]="state.loadingOlder()">
-      {{ state.loadingOlder() ? 'Đang tải…' : 'Tải tin nhắn cũ hơn' }}
+<header class="chat-header">
+  <a class="back-button" routerLink="/chat" aria-label="Quay lại hộp thư" title="Quay lại hộp thư"
+    >←</a
+  >
+  <span class="header-avatar" aria-hidden="true">{{ peerInitial() }}</span>
+  <div class="header-identity">
+    <h2>{{ peer()?.displayName || 'Cuộc trò chuyện' }}</h2>
+    <span
+      >{{ state.conversation()?.type === 'LISTING' ? 'Theo bài đăng' : 'Hội thoại tự do' }} ·
+      {{ realtime.connected() ? 'Đã kết nối Chat' : 'Đang kết nối lại…' }}</span
+    >
+  </div>
+  @if (state.conversation(); as conversation) {
+    <button
+      class="header-menu"
+      type="button"
+      (click)="inbox.confirm.set(conversation.id)"
+      aria-label="Ẩn hội thoại"
+      title="Ẩn hội thoại"
+    >
+      ⋯
     </button>
   }
-  <section
-    class="messages"
-    aria-label="Lịch sử tin nhắn"
-    (scroll)="olderOnScroll($event)"
-    tabindex="0"
-  >
-    @for (message of state.messages(); track message.id) {
-      <article class="message" [class.mine]="message.senderId === state.userId()">
-        @if (message.content) {
-          <p class="message-text">{{ message.content }}</p>
+</header>
+@if (state.conversation(); as conversation) {
+  @if (conversation.listing; as listing) {
+    <div class="chat-context">
+      <div class="listing-thumbnail">
+        @if (listing.coverPath) {
+          <app-chat-image [path]="listing.coverPath" [compact]="true" alt="Ảnh đại diện bài đăng" />
+        } @else {
+          <span aria-hidden="true">▧</span>
         }
-        @if (message.imagePath) {
-          <app-chat-image [path]="message.imagePath" />
+      </div>
+      <div class="listing-copy">
+        @if (listing.status === 'ACTIVE' || (listing.status === 'HIDDEN' && isOwner())) {
+          <a [routerLink]="['/listings', listing.id]">{{ listing.title }}</a>
+        } @else {
+          <strong>{{ listing.title }}</strong>
         }
-        @if (message.proposal; as proposal) {
-          <div class="transaction-card">
-            <strong>{{ message.snapshot?.title || 'Thông tin lịch sử không khả dụng' }}</strong>
-            @if (message.snapshot?.imagePath; as imagePath) {
-              <app-chat-image [path]="imagePath" alt="Ảnh bài đăng tại lúc gửi card" />
-            } @else {
-              <p class="muted">Ảnh lịch sử không còn khả dụng</p>
+        <p>
+          {{ types[listing.type] }}
+          @if (listing.price) {
+            · <strong>{{ listing.price }} ₫</strong>
+            @if (listing.rentalUnit) {
+              / {{ listing.rentalUnit === 'DAY' ? 'ngày' : 'tháng' }}
             }
-            <p>
-              {{ proposal.type }} ·
-              {{ proposal.kind === 'NEGOTIATED_PRICE' ? 'Giá đề xuất' : 'Liên hệ theo bài đăng' }}
-            </p>
-            @if (proposal.listedPrice) {
-              <p>Giá niêm yết lúc gửi: {{ proposal.listedPrice }} ₫</p>
-            }
-            @if (proposal.proposedPrice) {
-              <p>
-                Giá giao dịch: {{ proposal.proposedPrice }} ₫
-                @if (proposal.rentalUnit) {
-                  / {{ proposal.rentalUnit === 'DAY' ? 'ngày' : 'tháng' }}
-                }
-              </p>
-            }
-            <strong>{{
-              proposal.status === 'PENDING'
-                ? 'Đang chờ'
-                : proposal.status === 'ACCEPTED'
-                  ? 'Đã chấp nhận'
-                  : 'Đã từ chối'
-            }}</strong>
-            @if (
-              proposal.status === 'PENDING' &&
-              isOwner() &&
-              conversation.listing?.status === 'ACTIVE'
-            ) {
-              <div class="actions">
-                <button
-                  type="button"
-                  (click)="resolveConfirm.set({ id: proposal.id, status: 'ACCEPTED' })"
-                  [disabled]="state.busy()"
-                >
-                  Chấp nhận
-                </button>
-                @if (proposal.kind === 'NEGOTIATED_PRICE') {
-                  <button
-                    type="button"
-                    (click)="resolveConfirm.set({ id: proposal.id, status: 'REJECTED' })"
-                    [disabled]="state.busy()"
-                  >
-                    Không chấp nhận
-                  </button>
-                }
-              </div>
-            }
-          </div>
-        }
-        <small
-          ><time [attr.datetime]="message.createdAt">{{
-            message.createdAt | date: 'dd/MM HH:mm'
-          }}</time>
-          @if (message.senderId === state.userId()) {
-            · {{ states[message.state] }}
           }
-        </small>
-      </article>
-    } @empty {
-      <p>Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện.</p>
+          <span class="listing-state">· {{ listingStates[listing.status] }}</span>
+        </p>
+      </div>
+      @if (canPropose()) {
+        <button
+          class="proposal-toggle"
+          type="button"
+          (click)="proposalOpen.set(!proposalOpen())"
+          [attr.aria-expanded]="proposalOpen()"
+        >
+          Đề xuất giao dịch <span aria-hidden="true">↗</span>
+        </button>
+      }
+    </div>
+    @if (listing.status !== 'ACTIVE') {
+      <p class="context-note">
+        Bài đăng không còn hiển thị. Bạn vẫn có thể nhắn tin; đề xuất đang chờ được tạm dừng.
+      </p>
     }
-  </section>
-  @if (canPropose()) {
-    <section class="card proposal-form">
-      <h2>Liên hệ giao dịch</h2>
+  }
+  @if (canPropose() && proposalOpen()) {
+    <section class="proposal-form" aria-label="Tạo đề xuất giao dịch">
       <button type="button" (click)="prepareProposal(false)" [disabled]="state.busy()">
         {{
           conversation.listing?.type === 'EXCHANGE'
@@ -153,26 +82,73 @@
             / {{ conversation.listing?.rentalUnit === 'DAY' ? 'ngày' : 'tháng' }}
           }
         </label>
-        <input id="proposed-price" inputmode="numeric" [formControl]="proposedPrice" />
-        <button type="button" (click)="prepareProposal(true)" [disabled]="state.busy()">
-          Đề xuất giá mới
-        </button>
+        <div class="negotiation">
+          <input
+            id="proposed-price"
+            inputmode="numeric"
+            [formControl]="proposedPrice"
+            placeholder="Nhập giá đề xuất"
+          /><button
+            class="primary"
+            type="button"
+            (click)="prepareProposal(true)"
+            [disabled]="state.busy()"
+          >
+            Đề xuất giá mới
+          </button>
+        </div>
       }
     </section>
   }
+}
+@if (realtime.error()) {
+  <p class="chat-feedback" role="status">
+    {{ realtime.error() }}
+    <button type="button" (click)="refreshVisible()">Tải lại hội thoại</button>
+  </p>
+}
+@if (state.error()) {
+  <p class="chat-feedback error-feedback" role="alert">
+    {{ state.error() }} <button type="button" (click)="refreshVisible()">Thử lại</button>
+  </p>
+}
+@if (targetError()) {
+  <p class="chat-feedback" role="status">{{ targetError() }}</p>
+}
+@if (state.loading() && !state.conversation()) {
+  <div class="conversation-loading" role="status">
+    <span class="loading-mark">↻</span>Đang tải hội thoại…
+  </div>
+}
+@if (state.conversation(); as conversation) {
+  <app-message-history
+    [messages]="state.messages()"
+    [userId]="state.userId()"
+    [scope]="state.userId() + ':' + conversation.id"
+    [target]="targetMessage()"
+    [hasOlder]="!!state.nextCursor()"
+    [loadingOlder]="state.loadingOlder()"
+    [busy]="state.busy()"
+    [canResolve]="isOwner() && conversation.listing?.status === 'ACTIVE'"
+    (older)="state.older()"
+    (decision)="resolveConfirm.set($event)"
+  />
   @if (confirm()) {
-    <section class="notice" role="region" aria-label="Xác nhận gửi card">
+    <section class="confirmation" role="region" aria-label="Xác nhận gửi card">
       <p>
         Xác nhận gửi card
         {{ confirm()?.price ? 'giá ' + confirm()?.price + ' ₫' : 'liên hệ theo bài đăng' }}? Card
         lưu thông tin tại thời điểm gửi.
       </p>
-      <button type="button" (click)="propose()" [disabled]="state.busy()">Xác nhận gửi</button>
-      <button type="button" (click)="confirm.set(null)" [disabled]="state.busy()">Hủy</button>
+      <div>
+        <button class="primary" type="button" (click)="propose()" [disabled]="state.busy()">
+          Xác nhận gửi</button
+        ><button type="button" (click)="confirm.set(null)" [disabled]="state.busy()">Hủy</button>
+      </div>
     </section>
   }
   @if (resolveConfirm()) {
-    <section class="notice" role="region" aria-label="Xác nhận xử lý card">
+    <section class="confirmation" role="region" aria-label="Xác nhận xử lý card">
       <p>
         {{
           resolveConfirm()?.status === 'ACCEPTED'
@@ -180,43 +156,28 @@
             : 'Từ chối giá đề xuất này?'
         }}
       </p>
-      <button type="button" (click)="resolve()" [disabled]="state.busy()">Xác nhận</button>
-      <button type="button" (click)="resolveConfirm.set(null)" [disabled]="state.busy()">
-        Hủy
-      </button>
+      <div>
+        <button class="primary" type="button" (click)="resolve()" [disabled]="state.busy()">
+          Xác nhận</button
+        ><button type="button" (click)="resolveConfirm.set(null)" [disabled]="state.busy()">
+          Hủy
+        </button>
+      </div>
     </section>
   }
-  <form class="card composer" [formGroup]="form" (ngSubmit)="send()">
-    <label for="chat-content">Tin nhắn</label>
-    <textarea
-      id="chat-content"
-      formControlName="content"
-      rows="3"
-      placeholder="Nhập tin nhắn hoặc emoji…"
-      [readOnly]="state.busy()"
-    ></textarea>
-    <label for="chat-image">Một ảnh, tối đa 10 MiB (JPG/PNG/WebP)</label>
-    <input
-      id="chat-image"
-      type="file"
-      accept="image/jpeg,image/png,image/webp"
-      (change)="chooseFile($event)"
-      [disabled]="state.busy()"
-    />
-    @if (preview()) {
-      <img class="preview" [src]="preview()" alt="Xem trước ảnh sắp gửi" /><button
-        type="button"
-        (click)="clearFile()"
-        [disabled]="state.busy()"
-      >
-        Bỏ ảnh
-      </button>
-    }
-    @if (fileError()) {
-      <p role="alert">{{ fileError() }}</p>
-    }
-    <button class="primary" type="submit" [disabled]="state.busy()">
-      {{ state.busy() ? 'Đang xử lý…' : 'Gửi tin nhắn' }}
-    </button>
-  </form>
+  <app-chat-composer
+    [content]="form.controls.content"
+    [busy]="state.busy()"
+    [preview]="preview()"
+    [error]="fileError()"
+    (sent)="send()"
+    (chosen)="chooseFile($event)"
+    (removed)="clearFile()"
+  />
+} @else if (!state.loading() && state.error()) {
+  <div class="unavailable">
+    <h2>Không thể mở hội thoại</h2>
+    <p>Kiểm tra quyền truy cập hoặc chọn một hội thoại khác trong hộp thư.</p>
+    <a routerLink="/chat">Về hộp thư</a>
+  </div>
 }

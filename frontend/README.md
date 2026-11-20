@@ -93,7 +93,7 @@ node --env-file=.video-tools/video.env --require ./backend/node_modules/tsx/dist
 
 `video.env` phải trỏ đúng executable đã provision trong workspace hiện tại; có thể override `MEDIA_FFPROBE_PATH`/`MEDIA_FFMPEG_PATH` trong process nếu workspace đã chuyển vị trí. Report/screenshot trong `frontend/tmp/listing-e2e/management-*` (Git ignore); harness dọn đúng graph/namespace fixture, không migrate/reset hoặc ghi development. E2E này chưa đưa vào CI.
 
-Giới hạn: chưa nghiệm thu Safari/Firefox, WebM trong browser hoặc tệp 100 MiB; delivery video vẫn tải Blob đầy đủ như Phase 5A. Chưa có consumer thông báo participant ở Backend; UI chỉ xác nhận theo contract, không tuyên bố đã gửi thông báo. Không thêm Listing Follow, Chat, Notification hoặc Admin. Checklist chức năng tổng chưa được đánh dấu hoàn tất chỉ từ phạm vi Phase 5B.
+Giới hạn Phase 5B: chưa nghiệm thu Safari/Firefox, WebM trong browser hoặc tệp 100 MiB; delivery video vẫn tải Blob đầy đủ như Phase 5A. Tại Phase 5B chưa có consumer thông báo participant; phần này đã được bổ sung trong [Notification Module](#notification-module). Phase 5B không bao gồm Follow, Chat hoặc Admin; checklist tổng không được đánh dấu hoàn tất chỉ từ phạm vi Phase 5B.
 
 ## Follow Listing và tích hợp — Phase 5C
 
@@ -202,3 +202,98 @@ node --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listin
 ```
 
 Harness dùng hai Chrome profile, cổng 3000/4200/9230/9231 phải trống. Dữ liệu/media tổng hợp thuộc fixture `looply_test`; Auth login/session/HTTP/Socket.IO/database/local storage thật, SMS/email vẫn fake ở ranh giới provider. Report `frontend/tmp/listing-e2e/chat-report.json`, ảnh `chat-1440.png`/`chat-390.png` là artifact local Git ignore. Chưa chạy browser này trong CI, chưa nghiệm thu Safari/Firefox/live S3 hoặc p95.
+## Notification Module
+
+Trang `/account/notifications`, chuông/badge và toast dùng cùng Auth/HTTP/Socket.IO hiện có.
+Không hiển thị nội dung tin nhắn xem trước. Read/delete không sửa Chat unread; toast tự đóng sau
+6 giây hoặc đóng thủ công đều không đánh dấu đọc. List có loading/empty/error, keyset, đọc riêng,
+đọc tất cả theo biên server và xác nhận xóa mềm. Đích không khả dụng báo lỗi tại trang thông báo.
+Conversation/card cũ tải thêm trang history và highlight đúng Message; heartbeat chỉ khi tab visible.
+State loại phản hồi/pagination cũ khi đổi tài khoản và resync khi reconnect/focus.
+
+Tại `frontend/`:
+
+```powershell
+npm test -- --watch=false --include="src/app/features/notification/**/*.spec.ts" --include="src/app/features/chat/**/*.spec.ts" --include="src/app/app.spec.ts"
+npx tsc --project tsconfig.spec.json --noEmit
+npm run build
+```
+
+Chrome smoke, từ root, sau khi chuẩn bị PostgreSQL/Redis `looply_test` theo
+[hướng dẫn test](../docs/testing/LOCAL_TEST_GUIDE.md); dừng các test/harness khác dùng chung test DB:
+
+```powershell
+node --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listing.cjs --chat --notifications
+```
+
+Harness giữ port 3000/4200/9230/9231 riêng, không dừng dev server của người dùng; cần port trống.
+Dùng hai browser profile tạm và form login thật, chỉ fake provider SMS/email tại fixture boundary.
+Artifact không chứa credential: `tmp/listing-e2e/notification-report.json`,
+`notification-1440.png`, `notification-390.png` (ignored).
+Ngày 20/11/2026: 22 unit/regression tests PASS; Chrome 6 nhóm PASS (realtime/grouping/no-preview,
+presence/target/read, read-all/delete, proposal accept, card cũ hơn 30 tin, reload/responsive/đổi account).
+Chưa nghiệm thu Safari/Firefox, p95 hoặc nhiều Backend process.
+Contract: [Notification design](../docs/api/NOTIFICATION_DESIGN.md).
+## Chat & Inbox UI redesign — 20/11/2026
+
+Nhánh `feat/chat-ui-redesign` tạo từ HEAD `261db04` có Chat, giữ nguyên toàn bộ thay đổi
+Notification chưa commit từ nhiệm vụ trước. Nhiệm vụ này chỉ chỉnh Frontend, harness và tài liệu;
+không sửa Backend, Prisma, API contract, dependencies, dữ liệu development hoặc lịch sử Git.
+
+- `/chat` là workspace hai panel; `/chat/:conversationId` là child route cùng workspace,
+  có `activeGuard` cho cả parent/child. Desktop/tablet giữ sidebar, mobile <=720px chuyển màn
+  Inbox/Conversation và có nút quay lại. Chiều cao theo `100dvh`, cuộn riêng danh sách/lịch sử,
+  header/context/composer nằm trong khung; CSS shell chỉ áp khi có Chat workspace.
+- `InboxState` cấp workspace quản lý nhóm Listing→contact và DIRECT, search trong dữ liệu đã tải,
+  pagination, refresh không xóa trắng list, hide/confirmation và ranh giới identity/revision.
+  Deep link tự chọn đúng nhóm. API chưa có avatar/last-message preview/search toàn Inbox:
+  hiển thị chữ cái từ display name, thời gian và unread thật; không tạo preview hoặc gọi history từng row.
+- Message history có bubbles xanh/trung tính, nhóm sender/ngày và date separator theo timezone
+  địa phương. Mở vào tin gần nhất, giữ cuối qua resize/ảnh tải muộn; khi đọc tin cũ không bị kéo xuống,
+  có nút tin mới; prepend giữ anchor DOM. Card Notification cũ vẫn được seek/highlight.
+- Composer gọn, textarea 44–112px, Enter gửi, Shift+Enter xuống dòng, không gửi giữa IME;
+  validation 5000 Unicode code points/ảnh 10 MiB, preview/bỏ ảnh, giữ draft/retry khi lỗi.
+  Proposal nằm trong tray thu gọn; card snapshot, accept/reject và các xác nhận giữ nguyên service.
+- Chat realtime chỉ refresh Conversation đang liên quan hoặc khi reconnect, mỗi lần tải trang mới
+  nhất chứ không tải toàn lịch sử. User ID được dùng lại trong cùng state/danh tính.
+
+### Kiểm chứng và review
+
+- 34 ca Angular khác nhau PASS qua targeted runs: 32 ban đầu; 8 ca Inbox/composer sau fix có
+  7 ca trùng; 1 regression scroll/resize mới. Bao gồm Chat, Notification và App; không cộng thành 41.
+- Typecheck test sources (`tsc --project tsconfig.spec.json --noEmit`) và production build PASS.
+- Chrome hai profile, PostgreSQL/Redis `looply_test` và API/storage thật: Chat/UI 11 nhóm PASS;
+  Notification regression 6 nhóm PASS. Không full suite Backend hoặc frontend; không có lint script.
+- UI Review đã xem screenshot 1440/900/390px: alignment, overflow, independent scroll, composer
+  trong viewport, menu/back và các touch target chính. Final Review kiểm tra state/account race,
+  child-route guard, mutation retry, pagination, presence và phạm vi diff. Đã sửa loader chiếm
+  thêm khoảng trống khi history sẵn sàng, scrollbar textarea rỗng, hide response cũ điều hướng nhầm
+  tài khoản và scroll do geometry thay đổi. Mỗi lỗi state/scroll có targeted regression.
+
+Chạy tại `frontend/`:
+
+```powershell
+npm test -- --watch=false --include="src/app/features/chat/**/*.spec.ts" --include="src/app/features/notification/**/*.spec.ts" --include="src/app/app.spec.ts"
+npx tsc --project tsconfig.spec.json --noEmit
+npm run build
+```
+
+Từ root, sau khi chuẩn bị test DB/Redis theo [hướng dẫn](../docs/testing/LOCAL_TEST_GUIDE.md),
+dùng cổng riêng nếu dev server đang chạy. Chạy hai harness tuần tự vì cùng test DB/outbox:
+
+```powershell
+$env:LOOPLY_E2E_API_PORT='3001'
+$env:LOOPLY_E2E_UI_PORT='4201'
+node --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listing.cjs --chat --chat-ui
+node --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listing.cjs --chat --notifications
+```
+
+Harness tạo proxy test riêng trong OS temp, chỉ thêm origin vào config fixture; không đổi `.env`,
+proxy production/dev, không dừng server dev. Browser dùng cổng 9230/9231 và profile tạm.
+Artifacts ignored: `tmp/listing-e2e/chat-report.json`, `chat-ui-conversation-{1440,900,390}.png`,
+`chat-ui-direct-390.png`, `chat-ui-inbox-390.png`. Screenshot failure là bằng chứng debug cũ,
+không thay thế report của lượt PASS cuối.
+
+Giới hạn: chưa nghiệm thu Safari/Firefox hoặc bàn phím trên thiết bị mobile thật. Không bổ sung
+last-message preview/avatar API, trạng thái online/typing hay mở ảnh lớn. CI chưa chạy vì nhiệm vụ
+cấm commit/push/PR; kết quả local không phải CI. Không còn blocker đã biết trong phạm vi redesign.

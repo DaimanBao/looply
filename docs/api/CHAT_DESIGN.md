@@ -2,7 +2,8 @@
 
 Nguồn nghiệp vụ: [Chat requirements](../requirements/modules/CHAT_REQUIREMENTS.md).
 REST và Socket.IO dùng chung application services, transaction PostgreSQL và xác thực phiên Auth.
-Không triển khai consumer Notification/Reminder. Chat chỉ ghi outbox chứa định danh, không chứa nội dung.
+Chat ghi outbox chứa định danh, không chứa nội dung. Consumer Notification và presence dùng
+[Notification design](NOTIFICATION_DESIGN.md); Reminder chưa triển khai.
 
 ## HTTP contract
 
@@ -74,4 +75,4 @@ Chưa nghiệm thu p95, browser ngoài Chrome, live S3 hoặc fanout nhiều Bac
 | CHAT-005 | Participant.hiddenAt, MessageService.restore | Hide riêng một phía, replay không restore, tin mới restore |
 | CHAT-006/007/008/009 | MessageService, ChatMediaService, gateway, Angular state | HTTP/Socket.IO, ảnh, cursor 30, delivered/read, Block/IDOR và stale responses |
 | CHAT-010/011/012/013/014/016 | ProposalService, Listing adapter, snapshot/retention | SALE/RENT/EXCHANGE, pending slot, snapshot bất biến, atomic accept/cycle, lỗi copy/rollback/expiry/cleanup |
-| CHAT-017 | ChatEvents/outbox identifiers | Chỉ contract phát sinh sự kiện; delivery/UI thuộc Notification, nằm ngoài nhiệm vụ |
+| CHAT-017 | Outbox + Notification consumer/UI | Grouping, presence, badge/toast và điều hướng theo [Notification design](NOTIFICATION_DESIGN.md) |

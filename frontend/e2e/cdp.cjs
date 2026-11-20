@@ -78,13 +78,15 @@ class BrowserPage {
   /** Bấm nút có nhãn duy nhất thay vì dựa vào tọa độ hiển thị. */
   async click(text) {
     const result = await this.evaluate(
-      `(()=>{const e=[...document.querySelectorAll('button')].find(e=>e.textContent.trim().replace(/\\s*→$/,'').trim()===${JSON.stringify(text)});if(!e||e.disabled)return false;e.click();return true})()`,
+      `(()=>{const e=[...document.querySelectorAll('button')].find(e=>(e.getAttribute('aria-label')||e.textContent.trim().replace(/\\s*→$/,'').trim())===${JSON.stringify(text)});if(!e||e.disabled)return false;e.click();return true})()`,
     );
     assert.equal(result, true, `Missing or disabled button: ${text}`);
   }
   /** Điều hướng bằng location trình duyệt thật và chờ form hoặc trang Angular. */
   async navigate(path, ready) {
-    await this.send('Page.navigate', { url: `http://localhost:4200${path}` });
+    await this.send('Page.navigate', {
+      url: `http://localhost:${process.env.LOOPLY_E2E_UI_PORT || '4200'}${path}`,
+    });
     await this.wait(ready, path);
   }
   /** Đóng kết nối giao thức sau khi tiến trình trình duyệt dừng. */
