@@ -1,0 +1,46 @@
+@if (state.items().length) {
+  <aside class="reminder" aria-labelledby="reminder-heading">
+    <div class="heading">
+      <h2 id="reminder-heading">Hoàn thiện hồ sơ khi bạn sẵn sàng</h2>
+      <button
+        type="button"
+        class="text-button"
+        aria-label="Đóng lời nhắc"
+        (click)="state.dismiss()"
+      >
+        ×
+      </button>
+    </div>
+    <p>Bạn có thể bổ sung các thông tin sau và tiếp tục sử dụng Looply bình thường.</p>
+    <ul>
+      @for (field of state.items(); track field) {
+        <li>
+          <a
+            [routerLink]="actions[field].path"
+            [queryParams]="actions[field].query"
+            [fragment]="actions[field].fragment"
+            (click)="state.dismiss()"
+            >{{ actions[field].label }}</a
+          >
+        </li>
+      }
+    </ul>
+    <button type="button" class="text-button" (click)="state.dismiss()">Để sau</button>
+  </aside>
+}
+@if (state.loading()) {
+  <p class="status" role="status">Đang kiểm tra thông tin hồ sơ…</p>
+}
+@if (state.error()) {
+  <div class="status" role="status">
+    Chưa kiểm tra được thông tin hồ sơ. {{ state.error() }}
+    @if (state.items().length) {
+      <button type="button" (click)="state.recalculate()" [disabled]="state.loading()">
+        Thử lại
+      </button>
+    } @else {
+      <button type="button" (click)="state.present()" [disabled]="state.loading()">Thử lại</button>
+    }
+    <button type="button" class="text-button" (click)="state.dismiss()">Để sau</button>
+  </div>
+}

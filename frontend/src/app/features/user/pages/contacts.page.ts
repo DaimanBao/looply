@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { OtpProof, SensitiveOperation } from '../../../core/http/api.models';
 import { OtpInput } from '../../auth/public-api';
 import { ReauthInput } from '../../auth/public-api';
@@ -28,6 +29,16 @@ export class ContactsPage implements OnInit {
     nonNullable: true,
     validators: [Validators.required, Validators.email, Validators.maxLength(254)],
   });
+
+  /** Mở đúng loại liên hệ từ lời nhắc, giữ luồng OTP và re-auth hiện có. */
+  constructor() {
+    inject(ActivatedRoute)
+      .queryParamMap.pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        const kind = params.get('kind');
+        if (kind === 'phone' || kind === 'email') this.choose(kind);
+      });
+  }
 
   /** Nạp lại metadata xác minh liên hệ của chủ sở hữu. */
   ngOnInit(): void {

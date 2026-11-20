@@ -37,6 +37,7 @@ import { createListingDiscoveryController } from "./modules/listing/listing-disc
 import { createListingDiscoveryRouter } from "./modules/listing/listing-discovery.routes";
 import { createChatModule } from "./modules/chat";
 import { createNotificationModule } from "./modules/notification";
+import { createReminderModule } from "./modules/reminder";
 
 /** Lắp ghép storage local riêng cho development hoặc adapter S3-compatible đã cấu hình cho production. */
 export function createStorage(config: AuthConfig): ObjectStore {
@@ -77,6 +78,7 @@ export function createFeatures(
   );
   const repository = new UserRepository(db);
   const users = new UserService(repository, auth.sessions);
+  const reminders = createReminderModule(users, auth.sessions, auth.redis, namespace);
   const avatars = new AvatarService(
     users,
     repository,
@@ -133,10 +135,12 @@ export function createFeatures(
     listingFollows,
     chat,
     notifications,
+    reminders,
     routers: [
       ...auth.routers,
       chat.router,
       notifications.router,
+      reminders.router,
       createUserRouter(createUserController(users, auth.credentials), auth.sessions),
       createAvatarRouter(createAvatarController(avatars), auth.sessions),
       createDeletionRouter(

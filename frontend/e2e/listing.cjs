@@ -178,7 +178,13 @@ async function main() {
   const tabs = await (await fetch('http://127.0.0.1:9230/json')).json();
   page = await BrowserPage.connect(tabs.find((tab) => tab.type === 'page').webSocketDebuggerUrl);
   if (process.argv.includes('--chat')) {
-    await require(process.argv.includes('--notifications') ? './notification.cjs' : './chat.cjs')({
+    await require(
+      process.argv.includes('--reminders')
+        ? './reminder.cjs'
+        : process.argv.includes('--notifications')
+          ? './notification.cjs'
+          : './chat.cjs',
+    )({
       page,
       fixture,
       owner,
@@ -195,7 +201,11 @@ async function main() {
     fs.writeFileSync(
       path.join(
         artifacts,
-        process.argv.includes('--notifications') ? 'notification-report.json' : 'chat-report.json',
+        process.argv.includes('--reminders')
+          ? 'reminder-report.json'
+          : process.argv.includes('--notifications')
+            ? 'notification-report.json'
+            : 'chat-report.json',
       ),
       JSON.stringify({ database: 'looply_test', checks }, null, 2),
     );

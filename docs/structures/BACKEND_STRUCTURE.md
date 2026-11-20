@@ -84,6 +84,12 @@ Listing có `listing.routes/controller/validation/schema.ts` cho CRUD/management
 `development/` không được mount vào Express app hoặc Auth/User routes. `server.ts` chỉ tạo listener loopback khi config Development opt-in hợp lệ; reader chỉ đọc Redis và đối chiếu fake delivery, không sửa OTP flow. Config/listener từ chối Production; CLI không được sao chép vào `dist`. Chi tiết và hướng dẫn thuộc [OTP inspector](../../backend/src/development/README.md).
 
 ## Quy tắc sở hữu và phụ thuộc
+
+`modules/reminder/` gồm policy ba trường hồ sơ, service đánh giá/cấp lượt, Redis presentation
+store, schema/controller/routes và composition public `index.ts`. Module đọc qua `UserService.me`,
+dùng public Auth middleware và thời hạn phiên; không đọc repository User trực tiếp, không tạo
+Notification hoặc bảng riêng. [Lifecycle và API](../api/REMINDER_DESIGN.md).
+
 - `routes → controller → service → repository`; controller mỏng, nghiệp vụ ở service, repository không chứa quy tắc HTTP.
 - Module sở hữu dữ liệu và nghiệp vụ của mình; tương tác module khác qua public service/interface, không truy cập tùy tiện repository nội bộ.
 - Auth sở hữu OTP/credential/session; User sở hữu hồ sơ/follow/block; Listing sở hữu bài đăng/trạng thái; Chat sở hữu hội thoại/tin nhắn/đề xuất; Media sở hữu xử lý tệp; Notification sở hữu thông báo.

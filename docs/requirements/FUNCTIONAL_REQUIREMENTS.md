@@ -21,8 +21,8 @@
 | MEDIA | 10 | 1 |
 | CHAT | 17 | 17 |
 | NOTIFICATION | 10 | 10 |
-| REMINDER | 7 | 0 |
-| **Tổng** | **96** | **63** |
+| REMINDER | 7 | 7 |
+| **Tổng** | **96** | **70** |
 
 > Cập nhật cột tổng quan đồng thời với các ô checklist bên dưới; không tự đánh dấu hoàn thành khi chưa có bằng chứng.
 
@@ -172,7 +172,8 @@ Chi tiết: [`NOTIFICATION_REQUIREMENTS.md`](modules/NOTIFICATION_REQUIREMENTS.m
 
 Đối chiếu 20/11/2026 trên `feat/notification-module`: 14 integration Notification, 5 realtime,
 22 Angular Notification/Chat/App tests và 6 nhóm Chrome PASS; [kết quả/review](../database/INTEGRATION_TESTS.md#notification-module--20112026).
-Một Backend process, không preview/Web Push/email/SMS; Reminder chưa triển khai. Chưa có CI cho thay đổi chưa commit.
+Một Backend process, không preview/Web Push/email/SMS. Notification và Chat UI đã merge qua PR #29;
+CI PASS trên commit `6753e08`. Reminder được đối chiếu riêng bên dưới.
 
 
 ## REMINDER — 7 chức năng
@@ -181,13 +182,18 @@ Chi tiết: [`REMINDER_REQUIREMENTS.md`](modules/REMINDER_REQUIREMENTS.md)
 
 | Xong | Mã | Chức năng |
 |---|---|---|
-| [ ] | `REM-001` | Kiểm tra hồ sơ |
-| [ ] | `REM-002` | Nhắc số điện thoại |
-| [ ] | `REM-003` | Nhắc email |
-| [ ] | `REM-004` | Nhắc địa điểm |
-| [ ] | `REM-005` | Hiển thị nhắc nhở |
-| [ ] | `REM-006` | Bỏ qua |
-| [ ] | `REM-007` | Điều hướng bổ sung |
+| [x] | `REM-001` | Kiểm tra hồ sơ |
+| [x] | `REM-002` | Nhắc số điện thoại |
+| [x] | `REM-003` | Nhắc email |
+| [x] | `REM-004` | Nhắc địa điểm |
+| [x] | `REM-005` | Hiển thị nhắc nhở |
+| [x] | `REM-006` | Bỏ qua |
+| [x] | `REM-007` | Điều hướng bổ sung |
+
+Đối chiếu 20/11/2026 trên `feat/reminder-module`: policy, HTTP/PostgreSQL/Redis,
+Angular và sáu nhóm Chrome PASS; [thiết kế/lifecycle](../api/REMINDER_DESIGN.md),
+[bằng chứng Backend](../database/INTEGRATION_TESTS.md#reminder-module--20112026),
+[Frontend](../../frontend/README.md#reminder-module). Không có migration, Notification hoặc job mới.
 
 ## Ranh giới phạm vi
 
@@ -207,4 +213,4 @@ Chi tiết: [`REMINDER_REQUIREMENTS.md`](modules/REMINDER_REQUIREMENTS.md)
 | CI của lần đối chiếu ban đầu | Commit `36596d0`: [Backend CI PASS](https://github.com/DaimanBao/looply-rebuild/actions/runs/43420523096) và [Frontend CI PASS](https://github.com/DaimanBao/looply-rebuild/actions/runs/43420523089); được merge qua PR #25 vào `8477d6c`, không đổi code ứng dụng so với commit đã kiểm tra. | Đây là bằng chứng lịch sử; CI của Phase 5B/5C theo commit cuối tại PR tương ứng. Browser E2E là bằng chứng local trong README, không chạy trên GitHub Actions. |
 | Chat | [Backend integration](../database/INTEGRATION_TESTS.md#chat-module--20112026), [Frontend](../../frontend/README.md#chat-module): Conversation, Message, realtime, ảnh, proposal/snapshot, Inbox và Notification đã triển khai/kiểm chứng/review. | Chưa nghiệm thu live S3, browser ngoài Chrome hoặc p95. |
 | Notification | [Backend](../database/INTEGRATION_TESTS.md#notification-module--20112026), [Frontend](../../frontend/README.md#notification-module): runtime/consumer/API/UI, read/delete, badge/toast, grouping/presence, recipient, retry/rollback và state synchronization. | Một Backend process; chưa đo p95 hoặc chạy browser ngoài Chrome. CI chưa chạy. |
-| Reminder | Chưa triển khai runtime/UI. | Các mã REM tiếp tục `[ ]`. |
+| Reminder | API đánh giá/cấp lượt theo AuthSession, Redis nguyên tử, card Angular và điều hướng OTP/địa điểm đã kiểm chứng/review. | Redis mất dữ liệu có thể nhắc lại; response cấp lượt bị mất không được phát lại. CI nhiệm vụ này chưa chạy. |

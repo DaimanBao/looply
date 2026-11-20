@@ -1,4 +1,4 @@
-export { SessionService } from "./sessions/session.service";
+export { SessionService, authSessionLifetimeSeconds } from "./sessions/session.service";
 export { CredentialService } from "./credentials/credential.service";
 export { IdentityService } from "./identity/identity.service";
 export type { Principal } from "./auth.types";
@@ -7,3 +7,4 @@ export { principal } from "./http/auth.middleware";
 export { reauthProofSchema, changeContactSchema, changePasswordSchema } from "./auth.schema";
 export { clearRefresh } from "./http/auth.cookies";
 export { conflict, forbidden } from "./auth.errors";
+export type { ScriptStore } from "./redis/redis-store";

@@ -5,9 +5,10 @@ import { SessionService } from './core/auth/session.service';
 import { ActionState } from './shared/ui/action-state';
 import { Feedback } from './shared/ui/feedback';
 import { NotificationCenter } from './features/notification/public-api';
+import { ReminderCard } from './features/reminder/public-api';
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Feedback, NotificationCenter],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Feedback, NotificationCenter, ReminderCard],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

@@ -4995,6 +4995,92 @@
         ],
         "description": "ACTIVE current session and ownership required. Cache-Control: no-store. No message preview. See docs/api/NOTIFICATION_DESIGN.md for event boundaries and concurrency."
       }
+    },
+    "/api/reminders": {
+      "get": {
+        "x-implementation-status": "implemented",
+        "operationId": "getReminders",
+        "summary": "Evaluate missing verified contact and province fields",
+        "tags": [
+          "Reminder"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current missing fields; presentation returns an empty list once reserved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/reminders/presentation": {
+      "post": {
+        "x-implementation-status": "implemented",
+        "operationId": "presentReminders",
+        "summary": "Reserve at most one reminder card per authenticated session",
+        "tags": [
+          "Reminder"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current missing fields; presentation returns an empty list once reserved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7560,6 +7646,28 @@
             "type": "string",
             "format": "date-time",
             "description": "Opaque monotonic event boundary returned as asOf by GET notifications; preserve the value unchanged."
+          }
+        }
+      },
+      "ReminderResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "enum": [
+                "PHONE",
+                "EMAIL",
+                "PROVINCE"
+              ]
+            }
           }
         }
       }

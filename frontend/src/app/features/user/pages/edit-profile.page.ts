@@ -1,4 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, afterRenderEffect, inject, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import type { Province } from '../../../core/http/api.models';
@@ -14,6 +16,21 @@ import { Avatar } from '../components/avatar';
   templateUrl: './edit-profile.page.html',
 })
 export class EditProfilePage implements OnInit {
+  /** Sau khi form bất đồng bộ xuất hiện, đưa focus vào phần địa điểm được lời nhắc chọn. */
+  constructor() {
+    const document = inject(DOCUMENT);
+    const route = inject(ActivatedRoute);
+    let focused = false;
+    afterRenderEffect(() => {
+      if (!focused && this.ready() && route.snapshot.fragment === 'province') {
+        const province = document.getElementById('province');
+        if (province) {
+          province.focus();
+          focused = true;
+        }
+      }
+    });
+  }
   private readonly api = inject(UserApi);
   readonly store = inject(ProfileStore);
   readonly state = new ActionState();

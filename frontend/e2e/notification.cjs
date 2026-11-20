@@ -219,6 +219,11 @@ module.exports = async function notification({
       '/account/notifications',
       `!!document.querySelector('.notifications')`,
     );
+    // Container xuất hiện trước REST response; chỉ thao tác khi đúng thẻ đã tải và có thể bấm.
+    await recipient.wait(
+      `Array.from(document.querySelectorAll('.notification-link')).some(element=>element.textContent.includes('giao dịch') && !element.disabled)`,
+      'loaded transaction notification',
+    );
     await recipient.evaluate(
       `Array.from(document.querySelectorAll('.notification-link')).find(element=>element.textContent.includes('giao dịch')).click()`,
     );
