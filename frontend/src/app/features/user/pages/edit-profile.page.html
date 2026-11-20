@@ -36,7 +36,7 @@
       ><label>Giới thiệu<textarea formControlName="bio" rows="4"></textarea></label
       ><small>Tối đa 300 ký tự Unicode.</small
       ><label
-        >Tỉnh / thành phố<select formControlName="provinceCode">
+        >Tỉnh / thành phố<select id="province" formControlName="provinceCode">
           <option value="">Chọn tỉnh / thành phố</option>
           @for (province of provinces(); track province.code) {
             <option [value]="province.code">{{ province.name }}</option>

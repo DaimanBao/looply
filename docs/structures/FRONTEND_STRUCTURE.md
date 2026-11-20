@@ -1,6 +1,11 @@
 # FRONTEND STRUCTURE — Looply (Đồ án 1)
 
 ## Mục tiêu
+
+Reminder trong `features/reminder/` gồm API client/decoder, state theo identity và card
+trong shell. Tái sử dụng public `ProfileStore` để tính lại sau cập nhật hồ sơ; User tiếp tục
+sở hữu các form liên hệ/địa điểm. [Chi tiết](../api/REMINDER_DESIGN.md).
+
 Tổ chức Angular 21 + TypeScript theo **feature-first**, tách giao diện, trạng thái, gọi API và quy tắc hiển thị. Chỉ tạo các file/thư mục thực sự cần.
 
 ```text

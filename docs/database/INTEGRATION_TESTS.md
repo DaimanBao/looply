@@ -1,6 +1,40 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Reminder Module — 20/11/2026
+
+Không thay schema/migration. Fixture xác minh URL, `SELECT current_database() = 'looply_test'`
+và Redis database riêng khác 0 trước khi ghi; chỉ cleanup UUID/namespace thuộc fixture.
+Không ghi/migrate/reset `looply_dev` hoặc production.
+
+- Reminder: 2 policy tests và 5 OpenAPI contract tests PASS; 7 HTTP/PostgreSQL/Redis tests PASS.
+- Regression có mục tiêu: Auth security, User profile constraints, Chat realtime,
+  Notification và Listing CRUD/media PASS. Không chạy full suite local.
+- Integration bao phủ cấp lượt 12 request đồng thời, module được tạo lại vẫn không nhắc,
+  guest/pending/revoked/identity injection, login/refresh/logout/phiên mới, cập nhật province
+  và email qua re-auth/OTP thật với adapter gửi test, lỗi Redis và không tạo Notification.
+- Angular và Chrome: [Frontend README](../../frontend/README.md#reminder-module).
+- Backend source/test typecheck và build, Prisma validate PASS. Không cần generate vì schema giữ nguyên.
+
+```powershell
+# Trong backend, sau các bước chuẩn bị test trong LOCAL_TEST_GUIDE.md.
+node --env-file=.env node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts tests/integration/reminder-module.test.ts
+npm test -- src/modules/reminder/reminder.spec.ts src/shared/http/openapi.spec.ts
+npm run typecheck
+npm exec -- tsc --project tests/tsconfig.json
+npm run build
+```
+
+Review: dùng chung thời hạn AuthSession thay vì lặp hằng số; chặn response cũ bằng identity
+và revision, đóng card thắng response đang chờ; bỏ fragment rỗng khỏi link liên hệ.
+Sửa race trong browser harness khi nhận DOM cũ sau reload cùng URL và khi bấm thông báo
+trước khi REST tải xong. Reminder và Notification/Chat đều PASS sáu nhóm Chrome sau sửa harness.
+Không còn finding Critical/High/Medium chưa xử lý trong phạm vi Reminder.
+[Thiết kế/lifecycle](../api/REMINDER_DESIGN.md) nêu rõ mất Redis có thể nhắc lại và
+response cấp lượt bị mất không được phát lại. CI NOT RUN theo yêu cầu giữ thay đổi local.
+Không tìm thấy tài liệu SRS/NFR riêng; đối chiếu yêu cầu module và tài liệu thực có.
+
 ## Notification Module — 20/11/2026
+
 
 Nhánh `feat/notification-module` từ `develop` `261db04` (PR #28 Chat đã merge), working tree
 ban đầu sạch. Không fetch/pull/rebase/merge/commit/push/PR. Docker PostgreSQL 17 và Redis đã chạy;

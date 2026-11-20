@@ -2,7 +2,37 @@
 
 Angular 21, TypeScript strict, SCSS, standalone components, Signals, Reactive Forms và HttpClient. Kết nối API thật, Socket.IO client cho Chat; giữ UI framework hiện có. Project client-rendered, không bật SSR.
 
+## Reminder Module
+
+Card trong shell nhắc phone/email chưa xác minh và tỉnh/thành phố, không nhắc avatar.
+Đóng/“Để sau” hoặc chọn cập nhật không nhắc lại trong cùng AuthSession, kể cả reload/tab mới;
+refresh token giữ lượt cũ. Phiên mới kiểm tra lại hồ sơ. Tài khoản khác không nhận response cũ.
+Các liên kết chọn đúng form phone/email và focus tỉnh/thành phố; vẫn dùng re-auth/OTP hiện có.
+[Thiết kế và giới hạn](../docs/api/REMINDER_DESIGN.md).
+
+Kiểm chứng local 20/11/2026: 10 trường hợp Reminder Angular riêng biệt PASS qua các lượt targeted;
+Auth session/App và ProfileStore/Notification regression PASS; Angular test typecheck/build PASS.
+Chrome trên `looply_test` + Redis test PASS sáu nhóm: guest/login, đa tab, reload/điều hướng,
+phiên mới và lưu tỉnh, email OTP/re-auth và “Để sau”, đổi tài khoản đã đủ hồ sơ.
+Ảnh tại `tmp/listing-e2e/reminder-{1440,390}.png`, report `reminder-report.json` (không commit).
+
+```powershell
+# Trong frontend, dùng các dependency đã cài theo hướng dẫn setup.
+npm test -- --watch=false --include='src/app/features/reminder/**/*.spec.ts'
+# Từ repository root; chọn port trống để giữ nguyên Backend/Angular development đang chạy.
+$env:LOOPLY_E2E_API_PORT='3001'
+$env:LOOPLY_E2E_UI_PORT='4201'
+node --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listing.cjs --chat --reminders
+```
+
+Harness xác minh `looply_test` và Redis test riêng, cleanup fixture UUID/namespace.
+Sau tích hợp shell, chạy lại `--chat --notifications`: cả sáu nhóm Chrome Notification/Chat PASS,
+gồm badge/toast, presence, proposal, tìm card cũ qua cursor, responsive và đổi tài khoản.
+Harden harness để chờ đúng nút thông báo có dữ liệu thay vì chỉ chờ container rỗng.
+Chưa chạy Safari/Firefox, bàn phím thiết bị thật hoặc CI của thay đổi chưa commit này.
+
 ## Phân tích và thiết kế
+
 
 Phạm vi là tài khoản nội bộ theo [Auth](../docs/requirements/modules/AUTH_REQUIREMENTS.md), [User](../docs/requirements/modules/USER_REQUIREMENTS.md) và [OpenAPI](../docs/api/openapi.json). Không thay schema/migration hoặc Backend business logic. Backend chỉ bổ sung công cụ Development xem fake OTP đã được phê duyệt riêng và timer hết hạn bộ nhớ fake.
 

@@ -1,8 +1,16 @@
 # Looply Backend
 
-Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, Search/Feed/Follow, upload/delivery ảnh/video, Chat/Proposal, Notification và worker cleanup/outbox. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Reminder chưa triển khai. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
+Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, Search/Feed/Follow, upload/delivery ảnh/video, Chat/Proposal, Notification và worker cleanup/outbox. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Reminder: xem thiết kế và hướng dẫn bên dưới. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
 
 ## Cấu hình và chạy
+
+Reminder đã có API Bearer ACTIVE `GET /api/reminders` (tính lại) và
+`POST /api/reminders/presentation` với body `{}` (cấp tối đa một lượt mỗi AuthSession).
+Không thêm cấu hình, dependency hoặc migration. Tái sử dụng kết nối Redis hiện có;
+khóa presentation có TTL bằng thời hạn phiên Auth. Không tạo Notification hoặc worker mới.
+[Thiết kế/giới hạn](../docs/api/REMINDER_DESIGN.md),
+[kiểm chứng và lệnh test](../docs/database/INTEGRATION_TESTS.md#reminder-module--20112026).
+
 
 Các lệnh dưới đây chạy từ `backend/`. Tạo `.env` cục bộ từ `.env.example`, tự điền cấu hình phù hợp; không commit hoặc in credentials. Tách biệt Development/Testing theo [`docs/database/README.md`](../docs/database/README.md). Server **không tự migrate hoặc seed** khi khởi động.
 

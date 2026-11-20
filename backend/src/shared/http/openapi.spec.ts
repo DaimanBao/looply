@@ -181,6 +181,7 @@ describe("OpenAPI and runtime route contract", () => {
       "modules/media/listing-upload.routes.ts",
       "modules/chat/chat.routes.ts",
       "modules/notification/notification.routes.ts",
+      "modules/reminder/reminder.routes.ts",
     ];
     const actual: string[] = [];
     for (const file of files) {

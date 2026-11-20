@@ -6,6 +6,8 @@ import { unauthorized, forbidden } from "../auth.errors";
 import { digest, secret } from "../security/random";
 import type { AccessTokens } from "../security/access-tokens";
 
+export const authSessionLifetimeSeconds = 7 * 86400;
+
 export class SessionService {
   /** Dùng chung kiểm tra token và phiên đã lưu cho HTTP và service feature. */
   constructor(
@@ -20,7 +22,7 @@ export class SessionService {
     const session = await this.repository.createSession(
       user.id,
       digest(refreshToken),
-      new Date(Date.now() + 7 * 86400000),
+      new Date(Date.now() + authSessionLifetimeSeconds * 1000),
       tx,
     );
     return {
