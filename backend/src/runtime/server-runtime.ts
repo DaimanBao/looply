@@ -9,7 +9,7 @@ type RuntimeDependencies = {
   database: DatabaseLifecycle;
   logger: Logger;
   config: Pick<AppConfig, "host" | "port" | "shutdownTimeoutMs">;
-  services?: { start(): Promise<void>; stop(): Promise<void> };
+  services?: { start(): Promise<void>; stop(): Promise<void>; beforeStop?(): void };
 };
 
 /** Chờ bind HTTP và gỡ error handler tạm sau thành công hoặc thất bại. */
@@ -87,6 +87,7 @@ export function createServerRuntime({
   async function closeResources(): Promise<void> {
     try {
       await startup;
+      services?.beforeStop?.();
       await closeHttp(server);
     } finally {
       await disconnectOnce();

@@ -1,6 +1,6 @@
 # Looply Backend
 
-Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, Search/Feed/Follow, upload/delivery ảnh và worker dọn tài khoản/media. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Video, Chat và Notification chưa triển khai. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
+Backend chạy Express 5, TypeScript, Prisma ORM 7.10.1 và Redis; Node.js 24. Có Core, Auth/User, avatar, Listing CRUD/management, Search/Feed/Follow, upload/delivery ảnh/video, Chat/Proposal và worker cleanup. `GET /api/health` giữ nguyên body `{ "status": "ok", "service": "looply-backend" }`. Notification/Reminder chưa triển khai. Trạng thái chức năng toàn sản phẩm thuộc [checklist](../docs/requirements/FUNCTIONAL_REQUIREMENTS.md).
 
 ## Cấu hình và chạy
 
@@ -214,3 +214,27 @@ Staging được xóa trước 201 hoặc khi lỗi/ngắt kết nối. Mỗi up
 Delivery dùng route hiện tại và kiểm tra Listing visibility/Block/lifecycle trên mỗi request. Video hỗ trợ full 200 và single byte Range 206; suffix/open-ended/clamp end đúng tổng bytes, invalid/multiple/unsatisfiable trả 416 cùng `Content-Range: bytes */total`. Có `Content-Type`, `Content-Length`, `Accept-Ranges: bytes`, `Cache-Control: no-store`; If-Range không khớp validator trả full 200. Ảnh giữ WebP detail/thumbnail và không phục vụ Range. Mở stream trong authorization transaction nhưng đọc body sau commit, đóng khi client ngắt hoặc deadline delivery 120 giây. Quyền được quyết định tại lúc mở, không thu hồi bytes đã cấp giữa một response đang truyền; request mới phải kiểm tra lại. Không cấp URL storage công khai.
 
 Fixtures MP4 H.264/WebM VP9 tổng hợp nằm tại `tests/fixtures/video/`, có hướng dẫn tạo lại. Kiểm thử decode và HTTP bytes không thay thế nghiệm thu browser playback thực; chưa tuyên bố mọi codec trong MP4/WebM phát được trên mọi trình duyệt. Live S3 và browser video chưa được nghiệm thu trong phase này; adapter S3 có contract test MIME/HEAD/Range/immutability.
+## Chat Module
+
+REST/OpenAPI, ack/events và phân quyền: [Chat design](../docs/api/CHAT_DESIGN.md).
+Snapshot/retention: [thiết kế database](../docs/database/CHAT_SNAPSHOT_DESIGN.md).
+
+- Cài theo lockfile, giữ Node 24/Prisma 7.10.1; có thêm Socket.IO 4.8.1 theo tech stack đã chọn.
+- Trước khi chạy server với Chat, database phải có `0006_chat_module` và `0007_chat_reservation_version`; server không tự migrate. Nhiệm vụ chỉ migrate `looply_test` sau URL + actual database guard. Development/production chưa áp dụng trong nhiệm vụ này; không dùng test migration URL cho server development.
+- API `/api/conversations`, namespace `/chat`, Bearer/handshake token dùng session gate Auth; không dùng refresh cookie thay Bearer, không nhận senderId/room tùy ý.
+- Realtime một process; khi reconnect tải dữ liệu bền vững qua REST. `chat.changed` không chứa preview. Outbox `chat.message.created` chứa conversationId/messageId/senderId/recipientId, `chat.proposal.resolved` chứa conversationId/proposalId/status; chỉ chuẩn bị contract, không gửi Notification.
+- Worker chạy batch theo vòng hiện có; snapshot REVOKED là retry bền vững, object delete sau commit. xmin fence ngăn completion cũ đánh dấu thế hệ cleanup mới. Inventory local đối soát ghi muộn sau crash; S3 adapter hiện chưa có bucket inventory, chưa nghiệm thu provider thật.
+
+Targeted kiểm thử (từ `backend/`, cần PostgreSQL `looply_test` và Redis test nonzero theo hướng dẫn hiện có):
+
+```powershell
+npm run test -- src/modules/chat/chat-policy.spec.ts src/shared/http/openapi.spec.ts src/runtime/server-runtime.spec.ts
+npm run test:integration -- tests/integration/chat-module.test.ts tests/integration/chat-realtime.test.ts tests/integration/chat-migration.test.ts
+npm run typecheck
+npx tsc --noEmit -p tests/tsconfig.json
+npx prisma validate --config prisma7.config.ts
+npm run build
+```
+
+Chat không cần FFmpeg để gửi ảnh; chạy regression video vẫn cần binary/env theo mục Media.
+Kết quả và giới hạn kiểm chứng thuộc [Database Integration Tests](../docs/database/INTEGRATION_TESTS.md).

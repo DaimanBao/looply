@@ -1,0 +1,63 @@
+:host {
+  display: block;
+  max-width: 900px;
+  margin-inline: auto;
+}
+.chat-context {
+  margin-block: 1rem;
+}
+.chat-context app-chat-image {
+  display: block;
+  max-width: 120px;
+}
+.messages {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 1rem;
+  border: 1px solid #dce7de;
+  border-radius: 16px;
+  background: #f7faf7;
+}
+.message {
+  width: fit-content;
+  max-width: 85%;
+  margin-block: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 14px;
+  background: white;
+  overflow-wrap: anywhere;
+}
+.message.mine {
+  margin-left: auto;
+  background: #e2f3e9;
+}
+.message-text {
+  white-space: pre-wrap;
+}
+.message small {
+  display: block;
+  margin-top: 0.5rem;
+  color: #4c6357;
+}
+.transaction-card {
+  display: grid;
+  gap: 0.5rem;
+}
+.composer,
+.proposal-form {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+.preview {
+  max-width: 100%;
+  max-height: 200px;
+}
+@media (max-width: 600px) {
+  .message {
+    max-width: 95%;
+  }
+  .messages {
+    padding: 0.5rem;
+  }
+}

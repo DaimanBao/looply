@@ -17,6 +17,7 @@ const checks = [];
 let fixture;
 let listener;
 let page;
+let chatRealtime;
 
 /** Chỉ khởi động tiến trình thuộc test, ẩn cửa sổ helper Windows và giữ kín credential. */
 function start(command, args, options) {
@@ -54,7 +55,7 @@ async function main() {
   assert.match(redis.pathname, /^\/[1-9][0-9]*$/);
   process.env.TEST_REDIS_URL = redis.href;
   process.env.MEDIA_STAGING_DIRECTORY = path.join(directory, 'staging');
-  for (const port of [3000, 4200, 9230]) {
+  for (const port of [3000, 4200, 9230, ...(process.argv.includes('--chat') ? [9231] : [])]) {
     await new Promise((resolve, reject) => {
       const server = require('node:net').createServer();
       server.once('error', () => reject(new Error(`Test port ${port} is in use`)));
@@ -89,14 +90,20 @@ async function main() {
     return result.body.id;
   }
   const videoId =
-    process.argv.includes('--management') || process.argv.includes('--follow')
+    process.argv.includes('--management') ||
+    process.argv.includes('--follow') ||
+    process.argv.includes('--chat')
       ? null
       : await upload(fs.readFileSync(path.join(backend, 'tests/fixtures/video/valid.mp4')));
   const listings = [];
   for (
     let index = 0;
     index <
-    (process.argv.includes('--management') ? 0 : process.argv.includes('--follow') ? 1 : 14);
+    (process.argv.includes('--management')
+      ? 0
+      : process.argv.includes('--follow') || process.argv.includes('--chat')
+        ? 1
+        : 14);
     index++
   ) {
     const imageId = await upload(image);
@@ -116,6 +123,15 @@ async function main() {
     listings.push(result.body);
   }
   listener = fixture.app.listen(3000, '127.0.0.1');
+  if (process.argv.includes('--chat')) {
+    const { attachChatRealtime } = require(path.join(backend, 'src/modules/chat/index.ts'));
+    chatRealtime = attachChatRealtime(
+      listener,
+      fixture.chat,
+      fixture.sessions,
+      fixture.config.origins,
+    );
+  }
   start(
     process.execPath,
     [
@@ -148,6 +164,26 @@ async function main() {
   await ready('http://127.0.0.1:9230/json/version');
   const tabs = await (await fetch('http://127.0.0.1:9230/json')).json();
   page = await BrowserPage.connect(tabs.find((tab) => tab.type === 'page').webSocketDebuggerUrl);
+  if (process.argv.includes('--chat')) {
+    await require('./chat.cjs')({
+      page,
+      fixture,
+      owner,
+      listing: listings[0],
+      passed,
+      start,
+      ready,
+      directory,
+      artifacts,
+      browser,
+      image,
+    });
+    fs.writeFileSync(
+      path.join(artifacts, 'chat-report.json'),
+      JSON.stringify({ database: 'looply_test', checks }, null, 2),
+    );
+    return;
+  }
   if (process.argv.includes('--follow')) {
     await require('./listing-follow.cjs')({ page, fixture, owner, listing: listings[0], passed });
     fs.writeFileSync(
@@ -330,6 +366,7 @@ main()
       page.close();
     }
     for (const child of children.reverse()) child.kill();
+    if (chatRealtime) chatRealtime.stop();
     if (listener) {
       listener.closeAllConnections();
       await new Promise((resolve) => listener.close(resolve));

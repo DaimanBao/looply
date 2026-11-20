@@ -127,6 +127,8 @@ describe("Auth/User migration compatibility", () => {
         ...previousMigrations,
         authUserMigration,
         "0005_listing_media_preparation",
+        "0006_chat_module",
+        "0007_chat_reservation_version",
       ]);
       for (const row of result.rows) {
         const body = readFileSync(

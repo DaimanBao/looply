@@ -1,6 +1,6 @@
 ﻿# Looply Frontend — Auth + User
 
-Angular 21, TypeScript strict, SCSS, standalone components, Signals, Reactive Forms và HttpClient. Kết nối API thật; không thêm dependency/UI framework. Project client-rendered, không bật SSR.
+Angular 21, TypeScript strict, SCSS, standalone components, Signals, Reactive Forms và HttpClient. Kết nối API thật, Socket.IO client cho Chat; giữ UI framework hiện có. Project client-rendered, không bật SSR.
 
 ## Phân tích và thiết kế
 
@@ -183,3 +183,22 @@ Nhánh `feat/auth-user-frontend` tạo từ `develop` sau khi PR #14 merge; PR #
 Đã bổ sung các biến Auth/Redis/CORS còn thiếu vào `backend/.env` cục bộ đã Git ignore, sinh khóa riêng ngẫu nhiên và giữ nguyên mọi giá trị cũ không rỗng. Inspector ở cấu hình local vẫn tắt mặc định; muốn dùng thủ công cần bật flag theo hướng dẫn. Các lượt E2E tự opt-in riêng trong môi trường process, không sửa file này.
 
 Tham chiếu framework: [Angular functional interceptors](https://angular.dev/guide/http/interceptors), [route guards](https://angular.dev/guide/routing/route-guards), [provideAppInitializer](https://angular.dev/api/core/provideAppInitializer).
+## Chat Module
+
+- `/chat`: Inbox nhóm Listing → người liên hệ và DIRECT riêng; phân trang, hide có xác nhận, tự khôi phục khi có nội dung mới.
+- `/chat/:conversationId`: lịch sử cursor 30 tin, cuộn lên/tải thêm, text/emoji, preview một ảnh ≤10 MiB, card giá niêm yết/thương lượng/trao đổi và accept/reject có xác nhận. Snapshot text độc lập Listing; ảnh hết hạn có placeholder.
+- Listing Detail và Profile có điểm mở Chat; guest được mời đăng nhập, không tự gửi card. Session/route generation loại response cũ, retry giữ requestId và upload thành công; reconnect bị lỡ nhiều hơn một trang khởi tạo cursor mới, không ghép lỗ lịch sử.
+- Socket.IO client 4.8.1 gắn token hiện tại, xoay credential/reconnect theo Auth; Blob private qua HttpClient. Development proxy thêm `/socket.io/**` với WebSocket; production reverse proxy cần chuyển tiếp cả `/api` và `/socket.io`, giữ Origin và WebSocket upgrade. Notification/Reminder không thuộc thay đổi này.
+
+```powershell
+npm run test -- --watch=false --include='src/app/features/chat/**/*.spec.ts'
+npm run build
+```
+
+Chrome integration hai tài khoản độc lập (từ root, cùng điều kiện PostgreSQL/Redis/Chrome của harness Listing):
+
+```powershell
+node --require ./backend/node_modules/tsx/dist/cjs/index.cjs frontend/e2e/listing.cjs --chat
+```
+
+Harness dùng hai Chrome profile, cổng 3000/4200/9230/9231 phải trống. Dữ liệu/media tổng hợp thuộc fixture `looply_test`; Auth login/session/HTTP/Socket.IO/database/local storage thật, SMS/email vẫn fake ở ranh giới provider. Report `frontend/tmp/listing-e2e/chat-report.json`, ảnh `chat-1440.png`/`chat-390.png` là artifact local Git ignore. Chưa chạy browser này trong CI, chưa nghiệm thu Safari/Firefox/live S3 hoặc p95.

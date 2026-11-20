@@ -1,4 +1,4 @@
-import type { Table } from "./database-fixtures";
+import type { ChatTable as Table } from "./database-fixtures";
 
 // Contract migration tường minh: test danh mục phát hiện constraint thiếu hoặc thừa.
 export const foreignKeys: ReadonlyArray<readonly [Table, string, Table]> = [
@@ -17,6 +17,7 @@ export const foreignKeys: ReadonlyArray<readonly [Table, string, Table]> = [
   ["listing_follows", "listingId", "listings"],
   ["media_assets", "uploadedById", "users"],
   ["media_assets", "listingId", "listings"],
+  ["media_assets", "chatConversationId", "conversations"],
   ["conversations", "listingId", "listings"],
   ["conversations", "initiatorId", "users"],
   ["conversations", "contactUserId", "users"],
@@ -25,6 +26,11 @@ export const foreignKeys: ReadonlyArray<readonly [Table, string, Table]> = [
   ["conversation_participants", "conversationId", "conversations"],
   ["conversation_participants", "userId", "users"],
   ["conversation_participants", "lastReadMessageId", "messages"],
+  ["conversation_participants", "lastDeliveredMessageId", "messages"],
+  ["listing_card_snapshots", "messageId", "messages"],
+  ["listing_card_snapshots", "conversationId", "conversations"],
+  ["listing_card_snapshots", "listingId", "listings"],
+  ["listing_card_snapshots", "sourceMediaId", "media_assets"],
   ["messages", "conversationId", "conversations"],
   ["messages", "senderId", "users"],
   ["messages", "imageMediaId", "media_assets"],
@@ -52,6 +58,8 @@ export const uniqueKeys: ReadonlyArray<readonly [Table, readonly string[]]> = [
   ["user_blocks", ["blockerId", "blockedId"]],
   ["listing_follows", ["userId", "listingId"]],
   ["media_assets", ["storageKey"]],
+  ["listing_card_snapshots", ["messageId"]],
+  ["listing_card_snapshots", ["imageStorageKey"]],
   ["conversations", ["listingId", "contactUserId"]],
   ["conversations", ["directUserLowId", "directUserHighId"]],
   ["conversation_participants", ["conversationId", "userId"]],

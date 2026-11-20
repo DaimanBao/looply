@@ -169,9 +169,16 @@ export async function createAuthFixture(storageOverride?: ObjectStore) {
       await db.conversationParticipant.deleteMany({
         where: { conversationId: { in: conversationIds } },
       });
+      await db.listingCardSnapshot.deleteMany({
+        where: { conversationId: { in: conversationIds } },
+      });
       await db.message.deleteMany({ where: { conversationId: { in: conversationIds } } });
       await db.transactionProposal.deleteMany({
         where: { OR: [{ proposerId: { in: ids } }, { conversationId: { in: conversationIds } }] },
+      });
+      await db.mediaAsset.updateMany({
+        where: { chatConversationId: { in: conversationIds } },
+        data: { chatConversationId: null },
       });
       await db.conversation.deleteMany({ where: { id: { in: conversationIds } } });
       await db.user.updateMany({ where: { id: { in: ids } }, data: { avatarMediaId: null } });
@@ -190,7 +197,7 @@ export async function createAuthFixture(storageOverride?: ObjectStore) {
       await db.authSession.deleteMany({ where: { userId: { in: ids } } });
       await db.otpChallenge.deleteMany({ where: { userId: { in: ids } } });
       const events = await db.outboxEvent.findMany({
-        where: { aggregateId: { in: [...ids, ...listingIds] } },
+        where: { aggregateId: { in: [...ids, ...listingIds, ...conversationIds] } },
         select: { id: true },
       });
       await db.processedEvent.deleteMany({

@@ -7,6 +7,7 @@ import { createLogger } from "./shared/logger/logger";
 import type { AuthConfig } from "./config/auth-config";
 import { createFeatures } from "./features";
 import { CleanupLoop } from "./jobs/cleanup-loop";
+import { attachChatRealtime } from "./modules/chat";
 
 /** Khai báo rõ các phụ thuộc production; tài nguyên chỉ mở khi runtime.start() chạy. */
 export function createBackend(config: AppConfig, authConfig: AuthConfig) {
@@ -21,20 +22,33 @@ export function createBackend(config: AppConfig, authConfig: AuthConfig) {
   const cleanup = new CleanupLoop(features.cleanup, logger);
   const app = createApp({ config: config.http, logger, featureRouters: features.routers });
   const server = createServer(app);
+  const chatRealtime = attachChatRealtime(
+    server,
+    features.chat,
+    features.sessions,
+    authConfig.origins,
+  );
+  const chatCleanup = new CleanupLoop(features.chat.retention, logger);
   const runtime = createServerRuntime({
     server,
     database,
     logger,
     config,
     services: {
+      /** Đóng websocket trước khi HTTP chờ các kết nối nâng cấp hoàn tất. */
+      beforeStop() {
+        chatRealtime.stop();
+      },
       /** Redis phải sẵn sàng trước khi nhận yêu cầu xác thực; worker chỉ chạy sau khi các phụ thuộc kết nối. */
       async start() {
         await features.redis.connect();
         cleanup.start();
+        chatCleanup.start();
       },
       /** Chờ worker hoàn tất thao tác storage/database trước khi ngắt Redis và Prisma. */
       async stop() {
         await cleanup.stop();
+        await chatCleanup.stop();
         await features.redis.close();
       },
     },

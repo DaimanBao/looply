@@ -31,6 +31,8 @@
 
 ## Frontend
 
+Chat MVP khóa `socket.io` và `socket.io-client` ở **4.8.1**, namespace `/chat`, một Backend process; không thêm Redis adapter/fanout phân tán. Notification delivery chưa triển khai.
+
 | Chức năng | Công nghệ |
 |---|---|
 | Framework | Angular 21, TypeScript |

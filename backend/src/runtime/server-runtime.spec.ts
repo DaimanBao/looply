@@ -11,7 +11,7 @@ function runtimeFixture(
     server?: Server;
     port?: number;
     shutdownTimeoutMs?: number;
-    services?: { start(): Promise<void>; stop(): Promise<void> };
+    services?: { start(): Promise<void>; stop(): Promise<void>; beforeStop?(): void };
   } = {},
 ) {
   const server = options.server ?? createServer();
@@ -46,6 +46,21 @@ afterEach(async () => {
 });
 
 describe("Server/database lifecycle", () => {
+  it("releases upgraded connections before waiting for HTTP close", async () => {
+    const services = {
+      start: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      stop: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      beforeStop: vi.fn<() => void>(),
+    };
+    const { runtime, server } = runtimeFixture({ services });
+    await runtime.start();
+    const close = server.close.bind(server);
+    vi.spyOn(server, "close").mockImplementation((callback) => {
+      expect(services.beforeStop).toHaveBeenCalledOnce();
+      return close(callback);
+    });
+    await runtime.stop();
+  });
   it("connects auxiliary resources before listening and stops them before disconnecting the database", async () => {
     const services = {
       start: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),

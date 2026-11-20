@@ -3,6 +3,17 @@ import { activeGuard, publicGuard, sessionGuard } from './core/auth/auth.guards'
 import { listingEditorGuard } from './features/listing/guards/listing-editor.guard';
 export const routes: Routes = [
   {
+    path: 'chat',
+    canActivate: [activeGuard],
+    loadComponent: () => import('./features/chat/pages/inbox.page').then((m) => m.InboxPage),
+  },
+  {
+    path: 'chat/:conversationId',
+    canActivate: [activeGuard],
+    loadComponent: () =>
+      import('./features/chat/pages/conversation.page').then((m) => m.ConversationPage),
+  },
+  {
     path: '',
     pathMatch: 'full',
     canActivate: [publicGuard],

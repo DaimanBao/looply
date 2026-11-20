@@ -179,6 +179,7 @@ describe("OpenAPI and runtime route contract", () => {
       "modules/listing/listing.routes.ts",
       "modules/listing/listing-discovery.routes.ts",
       "modules/media/listing-upload.routes.ts",
+      "modules/chat/chat.routes.ts",
     ];
     const actual: string[] = [];
     for (const file of files) {

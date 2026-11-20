@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createFixtures } from "../helpers/database-fixtures";
+import { createLegacyFixtures as createFixtures } from "../helpers/database-fixtures";
 import {
   authUserMigration,
   createMigrationSchema,

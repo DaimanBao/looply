@@ -17,7 +17,7 @@ export interface ObjectStore {
   put(key: string, bytes: Buffer, mimeType?: string): Promise<void>;
   get(key: string): Promise<Buffer>;
   delete(key: string): Promise<void>;
-  listManaged?(): AsyncGenerator<StoredMediaObject>;
+  listManaged?(prefixes?: readonly string[]): AsyncGenerator<StoredMediaObject>;
   putFile?(key: string, path: string, mimeType: string, size: number): Promise<void>;
   size?(key: string): Promise<number>;
   readRange?(key: string, start: number, end: number): Promise<Readable>;
@@ -106,8 +106,12 @@ export class LocalObjectStore implements ObjectStore {
   }
 
   /** Chỉ stream tên sinh thuộc ứng dụng; cursor thư mục giới hạn bộ nhớ và tiếp tục giữa các nhịp worker. */
-  async *listManaged(): AsyncGenerator<StoredMediaObject> {
-    for (const prefix of ["profile", "listing/v1"]) {
+  async *listManaged(
+    prefixes: readonly string[] = ["profile", "listing/v1"],
+  ): AsyncGenerator<StoredMediaObject> {
+    for (const prefix of prefixes) {
+      if (!["profile", "listing/v1", "chat", "chat-snapshot"].includes(prefix))
+        throw new Error("Invalid managed inventory prefix");
       const directory = await this.checkedPath(prefix);
       let entries;
       try {
@@ -124,7 +128,7 @@ export class LocalObjectStore implements ObjectStore {
           )
         )
           continue;
-        if (prefix === "profile" && /\.(mp4|webm)(\.complete)?$/.test(entry.name)) continue;
+        if (prefix !== "listing/v1" && /\.(mp4|webm)(\.complete)?$/.test(entry.name)) continue;
         const key = `${prefix}/${entry.name}`;
         try {
           yield { key, modifiedAt: (await lstat(await this.checkedPath(key))).mtime };

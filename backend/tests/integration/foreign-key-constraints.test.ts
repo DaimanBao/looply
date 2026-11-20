@@ -12,6 +12,16 @@ describe("Database foreign keys", () => {
       const missingId = randomUUID();
       const changes: Record<string, SqlValue> = { [column]: missingId };
       let constraint = `${table}_${column}_fkey`;
+      if (table === "media_assets" && column === "chatConversationId")
+        Object.assign(changes, { purpose: "CHAT", listingId: null });
+      if (table === "listing_card_snapshots" && column === "messageId")
+        Object.assign(changes, {
+          imageState: "AVAILABLE",
+          snapshotCreatedAt: new Date(),
+          imageSizeBytes: 1,
+          sourceMediaId: null,
+          sourceListingVersion: null,
+        });
       if (table === "messages" && column === "proposalId") {
         Object.assign(changes, { type: "TRANSACTION_CARD", content: null });
       }
@@ -43,7 +53,7 @@ describe("Database foreign keys", () => {
   });
 
   // Kiểm tra action và hai đầu của mọi FK, kể cả các FK Conversation liên kết.
-  it("matches all 36 migration FKs with RESTRICT deletes and CASCADE updates", async () => {
+  it("matches all migration FKs with RESTRICT deletes and CASCADE updates", async () => {
     await withTestTransaction(async (client) => {
       const result = await client.query<{
         table_name: string;

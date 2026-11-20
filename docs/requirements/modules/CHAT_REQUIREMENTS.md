@@ -76,6 +76,6 @@
 - Xóa mềm hội thoại phía một người không xóa lịch sử phía còn lại. Account deletion không tự hủy ảnh cần thiết cho người còn lại hoặc reset retention. Yêu cầu xóa dữ liệu hợp lệ có thể thu hồi trước hạn theo quy trình riêng; không tự quét PII.
 - Retention này độc lập **30 ngày chờ xóa tài khoản** và **retention backup**. Không giữ ảnh vô thời hạn chỉ vì từng có Conversation.
 
-Đề xuất model/authorization/copy/reference tracking và kiểm thử thời gian thuộc [thiết kế snapshot](../../database/CHAT_SNAPSHOT_DESIGN.md). Nghiệp vụ trên đã duyệt; Prisma/migration/Chat API và worker retention **chưa triển khai**.
+Model/authorization/copy/reference tracking và kiểm thử thời gian thuộc [thiết kế snapshot](../../database/CHAT_SNAPSHOT_DESIGN.md); HTTP/realtime contract thuộc [Chat API](../../api/CHAT_DESIGN.md). Trạng thái nghiệm thu theo checklist chức năng, không suy từ tài liệu yêu cầu.
 
 > **Theo dõi tiến độ:** Xem checklist theo mã chức năng tại [`FUNCTIONAL_REQUIREMENTS.md`](../FUNCTIONAL_REQUIREMENTS.md). File này chỉ mô tả yêu cầu nghiệp vụ, không tự xác nhận trạng thái triển khai.

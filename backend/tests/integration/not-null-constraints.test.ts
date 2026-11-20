@@ -4,7 +4,7 @@ import { withTestTransaction } from "../helpers/test-database";
 
 describe("Required database columns", () => {
   // Cô lập mỗi cột NOT NULL bằng savepoint để một vi phạm không che vi phạm tiếp theo.
-  it("rejects NULL in every required column across all 17 models", async () => {
+  it("rejects NULL in every required column across all 18 models", async () => {
     await withTestTransaction(async (client) => {
       const rows = await createFixtures(client);
       const columns = await client.query<{ table_name: string; column_name: string }>(
@@ -25,7 +25,7 @@ describe("Required database columns", () => {
           checked++;
         }
       }
-      expect(new Set(columns.rows.map((column) => column.table_name)).size).toBe(17);
+      expect(new Set(columns.rows.map((column) => column.table_name)).size).toBe(18);
       expect(checked).toBe(columns.rows.length);
     });
   });

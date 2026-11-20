@@ -22,7 +22,9 @@ export type Table =
   | "notifications"
   | "outbox_events"
   | "processed_events";
-export type FixtureRows = Record<Table, TestRow>;
+export type ChatTable = Table | "listing_card_snapshots";
+export type LegacyFixtureRows = Record<Table, TestRow>;
+export type FixtureRows = Record<ChatTable, TestRow>;
 
 /** Chỉ quote định danh fixture nội bộ, không dùng đầu vào ngoài. */
 function identifier(value: string): string {
@@ -31,7 +33,11 @@ function identifier(value: string): string {
 }
 
 /** Thêm giá trị fixture tường minh bằng SQL tham số hóa và trả hàng đã lưu. */
-export async function insertRow(client: Client, table: Table, values: TestRow): Promise<TestRow> {
+export async function insertRow(
+  client: Client,
+  table: ChatTable,
+  values: TestRow,
+): Promise<TestRow> {
   const columns = Object.keys(values);
   const placeholders = columns.map((_, index) => `$${index + 1}`);
   const result = await client.query<TestRow>(
@@ -46,7 +52,7 @@ export async function insertRow(client: Client, table: Table, values: TestRow): 
 /** Đổi một hàng fixture; mỗi câu lệnh lỗi là câu lệnh cuối trước rollback. */
 export async function updateRow(
   client: Client,
-  table: Table,
+  table: ChatTable,
   id: string,
   changes: Record<string, SqlValue>,
 ): Promise<TestRow> {
@@ -63,7 +69,7 @@ export async function updateRow(
 }
 
 /** Tạo đồ thị FK hợp lệ đầy đủ, không commit hoặc tác động bản ghi hiện có. */
-export async function createFixtures(client: Client): Promise<FixtureRows> {
+export async function createLegacyFixtures(client: Client): Promise<LegacyFixtureRows> {
   const now = new Date();
   const province = await insertRow(client, "provinces", {
     id: randomUUID(),
@@ -200,6 +206,23 @@ export async function createFixtures(client: Client): Promise<FixtureRows> {
     }),
     ...(await createOutboxFixtures(client, listing.id)),
   };
+}
+
+/** Tạo thêm snapshot chuẩn cho schema hiện tại, giữ fixture riêng cho kiểm thử migration lịch sử. */
+export async function createFixtures(client: Client): Promise<FixtureRows> {
+  const rows = await createLegacyFixtures(client);
+  const snapshot = await insertRow(client, "listing_card_snapshots", {
+    id: randomUUID(),
+    conversationId: rows.conversations.id,
+    listingId: rows.listings.id,
+    title: "Historical listing card",
+    type: "SALE",
+    listedPrice: "100000",
+    sourceMediaId: rows.media_assets.id,
+    sourceListingVersion: 1,
+    imageStorageKey: `chat-snapshot/${randomUUID()}.webp`,
+  });
+  return { ...rows, listing_card_snapshots: snapshot };
 }
 
 /** Tạo sự kiện outbox và biên nhận consumer độc lập. */
