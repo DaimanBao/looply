@@ -25,6 +25,7 @@
     </div>
     @if (auth.active() && !isOwner()) {
       <div class="actions">
+        <app-start-chat [userId]="user.id" />
         <button class="primary" (click)="relationship('follow', true)" [disabled]="state.busy()">
           Theo dõi</button
         ><button class="secondary" (click)="confirm.set('unfollow')">Bỏ theo dõi</button

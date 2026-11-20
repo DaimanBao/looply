@@ -1,0 +1,17 @@
+.card {
+  margin-block: 1rem;
+}
+.inbox-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid #dce7de;
+}
+@media (max-width: 600px) {
+  .inbox-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

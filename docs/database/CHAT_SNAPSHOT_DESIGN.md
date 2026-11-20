@@ -1,6 +1,6 @@
-# Đề xuất database cho snapshot card Listing trong Chat
+# Database cho snapshot card Listing trong Chat
 
-> Nghiệp vụ giữ ảnh độc lập và retention 12/24 tháng **đã phê duyệt** tại [Chat requirements](../requirements/modules/CHAT_REQUIREMENTS.md#6-snapshot-lịch-sử-và-retention-ảnh--đã-phê-duyệt). Cấu trúc dưới đây là **đề xuất kỹ thuật chưa triển khai**, không phải Prisma schema đã duyệt hoặc migration đã tạo. Không triển khai Chat trong nhiệm vụ thiết kế Listing.
+> Nghiệp vụ giữ ảnh độc lập và retention 12/24 tháng **đã phê duyệt** tại [Chat requirements](../requirements/modules/CHAT_REQUIREMENTS.md#6-snapshot-lịch-sử-và-retention-ảnh--đã-phê-duyệt). Thiết kế được triển khai trong `feat/chat-module`, migration `0006_chat_module` và `0007_chat_reservation_version`; chỉ áp dụng trên `looply_test` trong nhiệm vụ này. API/realtime thuộc [Chat design](../api/CHAT_DESIGN.md), bằng chứng thuộc [integration tests](INTEGRATION_TESTS.md).
 
 ## 1. So sánh và lựa chọn đề xuất
 
@@ -12,9 +12,9 @@
 
 Đề xuất phương án thứ hai. Không tái sử dụng `Message.imageMediaId` vì CHECK hiện cấm TRANSACTION_CARD có imageMediaId; không gán purpose CHAT vào MediaAsset gắn Listing (CHECK purpose cấm). Không sửa các CHECK này để lách snapshot. Một snapshot sở hữu **một private object key duy nhất**, không shared file/hardlink với cover hoặc snapshot khác. Unique key bảo vệ điều này; nếu sau này dedup, bắt buộc thiết kế ref table và khóa mọi ref trước xóa, không chỉ đếm best-effort.
 
-## 2. Model dự kiến khi triển khai Chat
+## 2. Model khi triển khai Chat
 
-Giữ nguyên mọi Prisma file trong nhiệm vụ hiện tại. Một migration Chat tương lai được review riêng sẽ thêm:
+Schema thực thi và schema thiết kế có 18 model. Hai migration Chat bổ sung các thành phần dưới đây; lịch sử `0001`–`0005` được giữ nguyên:
 
 | Thành phần | Dữ liệu/ràng buộc đề xuất |
 |---|---|
@@ -25,7 +25,7 @@ Giữ nguyên mọi Prisma file trong nhiệm vụ hiện tại. Một migration
 | createdAt | Server reservation timestamp, phục vụ orphan staging; chưa phải thời điểm gửi |
 | sourceMediaId/sourceListingVersion | FK MediaAsset RESTRICT nullable và Int dương khi PREPARING, phục vụ bảo vệ nguồn trong copy/recheck version; clear khi AVAILABLE hoặc REVOKED. Không giữ source reference vĩnh viễn |
 | snapshotCreatedAt | Nullable khi staging; khi publish bằng Message.createdAt do server ghi, không client timestamp, immutable |
-| imageStorageKey/imageMimeType/imageSizeBytes | Key private UNIQUE, WebP snapshot thumbnail, BigInt dương; không storage URL trong DTO. Key được giữ nội bộ qua retry cho tới xóa vật lý thành công |
+| imageStorageKey/imageSizeBytes | Key private UNIQUE, BigInt dương khi AVAILABLE; MIME cố định `image/webp`, không cần cột imageMimeType. Không storage URL trong DTO. Key được giữ nội bộ qua retry cho tới xóa vật lý thành công |
 | imageState | Enum riêng PREPARING, AVAILABLE, REVOKED, DELETED; PREPARING không có messageId/snapshotCreatedAt; AVAILABLE có cả hai; REVOKED/DELETED cho phép staging thất bại không có Message |
 | imageRevokedAt/imageDeletedAt | Server timestamp nullable; REVOKED có revokedAt; DELETED có cả hai; tuyệt đối không REVOKED→AVAILABLE. Không xóa text khi retire ảnh |
 | Conversation.lastActivityAt | Timestamptz mới tường minh cho retention, server-only; không tái sử dụng updatedAt hoặc lastMessageAt vì read/housekeeping và proposal resolution có ngữ nghĩa khác |
@@ -62,8 +62,8 @@ Khi bắt đầu delivery kiểm tra membership + imageState AVAILABLE + now<exp
 - Quy trình xử lý yêu cầu xóa hợp lệ là gate vận hành riêng đã nêu trong User requirements: chỉ người có quyền xử lý mới được revoke; không tự thêm public endpoint, tự quét PII hoặc lấy account deletion làm bằng chứng phải xóa mọi lịch sử.
 - Account deletion chỉ dọn file Listing/profile riêng, không chọn key snapshot. Không tăng activity, không reset retention clock, không auto-revoke ảnh của participant còn lại; hết hạn/yêu cầu hợp lệ vẫn thu hồi theo chính sách. Text snapshot không tự bị xóa cùng ảnh, nhưng quy trình xử lý dữ liệu hợp lệ có thể review riêng phạm vi text.
 
-## 6. Kiểm thử và điều kiện migration tương lai
+## 6. Kiểm thử và điều kiện migration
 
 Fake clock: đúng trước/tại/sau biên 12 tháng và 24 tháng, leap day/end-of-month UTC, activity trước expiry gia hạn nhưng không vượt cap; read/worker/retry/system event không gia hạn; activity sau expiry không resurrect. Membership, Block/history, hiddenAt một phía, deleted uploader, raw key không trong DTO, expired image 404 dù cleanup chưa chạy, delivery treo qua expiry, text vẫn còn.
 
-Integration trên actual looply_test: publish/rollback/copy fail; idempotent requestId/pending slot; source cleanup vs PREPARING reservation; listing edit/delete/cover swap vs snapshot copy; expire/activity race; duplicate cleanup, delete error/crash, orphan copy muộn; CHECK/FK/UNIQUE và legacy backfill. Không chạy các test này ở nhiệm vụ tài liệu. Migration snapshot **không chặn** Listing image CRUD, nhưng bắt buộc trước tích hợp Chat card thật và account cleanup có snapshot.
+Integration trên actual looply_test bao phủ publish/rollback/copy fail, idempotent requestId/pending slot, source cleanup vs PREPARING reservation, cover swap khi copy, expire/activity, cleanup retry/ghi muộn, CHECK/FK/UNIQUE và legacy backfill. Lệnh/kết quả tại [Integration Tests](INTEGRATION_TESTS.md#chat-module--20112026). Migration snapshot **không chặn** Listing image CRUD sau triển khai schema, nhưng bắt buộc trước khi chạy Backend mới có Chat worker. Development/production phải áp dụng theo quy trình migration riêng; không suy trạng thái các môi trường này từ test.

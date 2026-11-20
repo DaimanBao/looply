@@ -1,15 +1,17 @@
 # Thiết kế cơ sở dữ liệu — Looply Đồ án 1
 
 ## Tài liệu
-- [`schema.prisma`](schema.prisma): **bản thiết kế logic hợp nhất** PostgreSQL / Prisma 7.10.1 (17 model), bao phủ Auth, User, Listing, Media, Chat/Transaction và Notification/Outbox.
+- [`schema.prisma`](schema.prisma): **bản thiết kế logic hợp nhất** PostgreSQL / Prisma 7.10.1 (18 model), bao phủ Auth, User, Listing, Media, Chat/Transaction và Notification/Outbox.
 - [`SCHEMA_REVIEW.md`](SCHEMA_REVIEW.md): ràng buộc xuyên bảng, concurrency, migration và các kiểm thử cần có.
 - [`postgres_constraints.reference.sql`](postgres_constraints.reference.sql): SQL CHECK/index **tham khảo**, chưa phải migration được duyệt.
 - [`INTEGRATION_TESTS.md`](INTEGRATION_TESTS.md): phạm vi, cách chạy an toàn, kết quả và lỗi còn tồn tại của Database Integration Test.
-- [`CHAT_SNAPSHOT_DESIGN.md`](CHAT_SNAPSHOT_DESIGN.md): đề xuất snapshot card độc lập, retention ảnh 12/24 tháng, authorization và migration Chat tương lai; chưa sửa Prisma.
+- [`CHAT_SNAPSHOT_DESIGN.md`](CHAT_SNAPSHOT_DESIGN.md): snapshot card độc lập, retention ảnh 12/24 tháng, authorization và migration Chat `0006`/`0007`.
 - [Thiết kế Listing/Media](../api/LISTING_MEDIA_DESIGN.md): lifecycle, khóa, search/cursor và kế hoạch triển khai; [chuẩn bị migration](SCHEMA_REVIEW.md#chuẩn-bị-listingmedia) đã triển khai `0005` trên looply_test, chưa áp dụng development/production.
 
 ## Trạng thái và nguồn sự thật
-`docs/database/schema.prisma` là bản thiết kế logic xuất phát từ full draft. Schema thực thi hiện nằm tại [`backend/prisma/schema.prisma`](../../backend/prisma/schema.prisma), cùng lịch sử migration trong [`backend/prisma/migrations/`](../../backend/prisma/migrations/). Trên `looply_test` đã áp dụng năm migration từ `0001_init` đến `0005_listing_media_preparation`; bằng chứng kiểm thử mới nhất và giới hạn thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Trạng thái Development được ghi riêng như dưới đây; không suy ra hoàn thành chức năng từ việc database test đạt.
+
+**Chat — 20/11/2026:** `0006_chat_module` và `0007_chat_reservation_version` đã áp dụng sau khi xác minh URL và `current_database() = looply_test`. Thêm `ListingCardSnapshot`, `Conversation.lastActivityAt`, delivered cursor và scope của CHAT upload. Migration backfill activity từ lịch sử thực, không dựng snapshot giả từ Listing hiện tại; có integration test rollback trên schema cũ. Không migrate development/production trong nhiệm vụ Chat. Các đoạn kiểm chứng theo phase dưới đây là bằng chứng lịch sử; trạng thái test hiện tại có bảy migration.
+`docs/database/schema.prisma` là bản thiết kế logic hợp nhất. Schema thực thi nằm tại [`backend/prisma/schema.prisma`](../../backend/prisma/schema.prisma), cùng lịch sử migration trong [`backend/prisma/migrations/`](../../backend/prisma/migrations/). Trên `looply_test` đã áp dụng bảy migration từ `0001_init` đến `0007_chat_reservation_version`; bằng chứng kiểm thử và giới hạn thuộc [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md). Read-only preflight 20/11/2026 xác nhận development `looply_dev` có `0001`–`0005`; không áp dụng `0006`/`0007` lên development trong nhiệm vụ Chat. Không suy ra nghiệm thu chức năng từ việc schema test đạt.
 
 Nghiệp vụ chính thức thuộc `../requirements/modules/`. SQL tham khảo chưa đồng bộ đầy đủ với migration thực thi, đặc biệt phần CHAT media, message ảnh và kiểm tra NULL; không dùng thay migration.
 

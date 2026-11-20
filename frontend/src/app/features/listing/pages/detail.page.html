@@ -31,6 +31,7 @@
       <h1>{{ item.title }}</h1>
       <p class="detail-price"><app-listing-price [listing]="item" /></p>
       <app-listing-follow [listing]="item" />
+      <app-start-chat [listingId]="item.id" [userId]="item.owner.id" />
       <p>{{ item.province.name }}</p>
       <p class="muted">
         Đăng

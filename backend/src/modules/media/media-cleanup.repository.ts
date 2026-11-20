@@ -36,6 +36,15 @@ export class MediaCleanupRepository {
       await lockResources(tx, [`user:${userId.toLowerCase()}`]);
       await lockResources(tx, [`media:${id.toLowerCase()}`]);
       const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS now`;
+      const reservation = await tx.listingCardSnapshot.findFirst({
+        where: {
+          sourceMediaId: id,
+          imageState: "PREPARING",
+          createdAt: { gt: new Date(now.getTime() - 900_000) },
+        },
+        select: { id: true },
+      });
+      if (reservation) return null;
       const media = await tx.mediaAsset.findFirst({
         where: {
           id,

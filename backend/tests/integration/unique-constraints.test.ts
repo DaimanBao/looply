@@ -6,7 +6,7 @@ import {
   insertRow,
   updateRow,
   type FixtureRows,
-  type Table,
+  type ChatTable as Table,
   type TestRow,
 } from "../helpers/database-fixtures";
 import { withTestTransaction } from "../helpers/test-database";
@@ -20,6 +20,21 @@ async function prepareUniqueRows(
   columns: readonly string[],
 ): Promise<TestRow> {
   let original = rows[table];
+  if (table === "listing_card_snapshots" && columns.includes("messageId")) {
+    await updateRow(client, "messages", rows.messages.id, {
+      type: "TRANSACTION_CARD",
+      content: null,
+      proposalId: rows.transaction_proposals.id,
+    });
+    original = await updateRow(client, table, original.id, {
+      messageId: rows.messages.id,
+      imageState: "AVAILABLE",
+      snapshotCreatedAt: new Date(),
+      imageSizeBytes: 1,
+      sourceMediaId: null,
+      sourceListingVersion: null,
+    });
+  }
   if (table === "users" && columns.includes("avatarMediaId")) {
     await updateRow(client, "media_assets", rows.media_assets.id, {
       purpose: "PROFILE",
@@ -55,6 +70,8 @@ async function prepareUniqueRows(
     });
   }
   const duplicate: TestRow = { ...original, id: randomUUID() };
+  if (table === "listing_card_snapshots" && !columns.includes("imageStorageKey"))
+    duplicate.imageStorageKey = `chat-snapshot/${randomUUID()}.webp`;
   if (table === "users") {
     if (!columns.includes("username"))
       duplicate.username = `test_${randomUUID().replaceAll("-", "").slice(0, 20)}`;
@@ -108,6 +125,7 @@ describe("Database unique constraints", () => {
     "notifications",
     "outbox_events",
     "processed_events",
+    "listing_card_snapshots",
   ] as const)("rejects duplicate primary key in %s", async (table) => {
     await withTestTransaction(async (client) => {
       const rows = await createFixtures(client);

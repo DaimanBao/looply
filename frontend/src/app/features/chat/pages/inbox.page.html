@@ -1,0 +1,73 @@
+<h1>Tin nhắn</h1>
+<p class="muted">{{ realtime.connected() ? 'Đã kết nối Chat' : 'Đang kết nối Chat…' }}</p>
+@if (realtime.error()) {
+  <p role="status">{{ realtime.error() }}</p>
+}
+<div class="actions" aria-label="Nhóm hội thoại">
+  <button
+    type="button"
+    [attr.aria-pressed]="group() === 'LISTING'"
+    (click)="group.set('LISTING'); listingId.set('')"
+  >
+    Theo bài đăng
+  </button>
+  <button
+    type="button"
+    [attr.aria-pressed]="group() === 'DIRECT'"
+    (click)="group.set('DIRECT'); listingId.set('')"
+  >
+    Hội thoại tự do
+  </button>
+  <button type="button" (click)="load()" [disabled]="loading()">Tải lại</button>
+</div>
+@if (listingId()) {
+  <button type="button" (click)="listingId.set('')">← Tất cả bài đăng</button>
+}
+@if (loading()) {
+  <p role="status">Đang tải hội thoại…</p>
+}
+@if (error()) {
+  <p role="alert" class="notice warning">{{ error() }}</p>
+}
+@for (section of groups(); track section.id) {
+  <section class="card">
+    <h2>{{ section.title }}</h2>
+    @if (group() === 'LISTING') {
+      <button type="button" class="text-button" (click)="listingId.set(section.id)">
+        Xem người liên hệ bài này
+      </button>
+    }
+    @for (row of section.rows; track row.id) {
+      <div class="inbox-row">
+        <a [routerLink]="['/chat', row.id]">
+          @for (participant of row.participants; track participant.userId) {
+            <span>{{ participant.displayName }} </span>
+          }
+          @if (row.unreadCount) {
+            <strong> · {{ row.unreadCount }} chưa đọc</strong>
+          }
+          @if (row.listing) {
+            <span class="muted"> · {{ row.listing.status }}</span>
+          }
+        </a>
+        <button type="button" class="text-button" (click)="confirm.set(row.id)">
+          Ẩn hội thoại
+        </button>
+      </div>
+    }
+  </section>
+} @empty {
+  @if (!loading()) {
+    <p class="card">Chưa có hội thoại trong nhóm này. Mở bài đăng hoặc hồ sơ để nhắn tin.</p>
+  }
+}
+@if (next()) {
+  <button type="button" (click)="load(true)" [disabled]="loading()">Tải thêm hội thoại</button>
+}
+@if (confirm(); as id) {
+  <div class="notice" role="region" aria-label="Xác nhận ẩn hội thoại">
+    <p>Ẩn khỏi Inbox của bạn? Hội thoại xuất hiện lại khi có tin nhắn mới; lịch sử vẫn được giữ.</p>
+    <button type="button" (click)="hide(id)" [disabled]="busy()">Xác nhận ẩn</button>
+    <button type="button" (click)="confirm.set(null)" [disabled]="busy()">Hủy</button>
+  </div>
+}

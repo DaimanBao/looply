@@ -10,9 +10,10 @@ import { ListingGallery } from '../components/listing-gallery';
 import { ListingPrice } from '../components/listing-price';
 import { ListingFollow } from '../components/listing-follow';
 import type { ListingDetail } from '../models/listing.models';
+import { StartChat } from '../../chat/public-api';
 
 @Component({
-  imports: [DatePipe, RouterLink, ListingGallery, ListingPrice, ListingFollow],
+  imports: [DatePipe, RouterLink, ListingGallery, ListingPrice, ListingFollow, StartChat],
   templateUrl: './detail.page.html',
   styleUrl: './detail.page.scss',
 })

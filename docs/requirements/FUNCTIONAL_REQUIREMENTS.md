@@ -16,13 +16,13 @@
 | Nhóm | Tổng số | Đã xác nhận hoàn thành |
 |---|---:|---:|
 | AUTH | 16 | 7 |
-| USER | 17 | 12 |
-| LISTING | 19 | 11 |
+| USER | 17 | 13 |
+| LISTING | 19 | 15 |
 | MEDIA | 10 | 1 |
-| CHAT | 17 | 0 |
+| CHAT | 17 | 16 |
 | NOTIFICATION | 10 | 0 |
 | REMINDER | 7 | 0 |
-| **Tổng** | **96** | **31** |
+| **Tổng** | **96** | **52** |
 
 > Cập nhật cột tổng quan đồng thời với các ô checklist bên dưới; không tự đánh dấu hoàn thành khi chưa có bằng chứng.
 
@@ -69,7 +69,7 @@ Chi tiết: [`USER_REQUIREMENTS.md`](modules/USER_REQUIREMENTS.md)
 | [x] | `USER-007` | Unfollow | Đã có xác nhận UI, API idempotent và kiểm thử quan hệ. |
 | [x] | `USER-008` | Xem Followers | Đã có số lượng trên Profile, danh sách phân trang và liên kết hồ sơ. |
 | [x] | `USER-009` | Xem Following | Đã có số lượng trên Profile, danh sách phân trang và liên kết hồ sơ. |
-| [ ] | `USER-010` | Block | UI/API và ẩn Profile/Listing đã có; chưa có luồng Chat để nghiệm thu chặn gửi tin. |
+| [x] | `USER-010` | Block | UI/API và ẩn Profile/Listing đã có; Chat đã kiểm chứng Block/Unblock qua User API thật, chặn gửi hai chiều nhưng giữ lịch sử. |
 | [x] | `USER-011` | Unblock | Đã có xác nhận UI/API bỏ Block của mình; kiểm thử không tự khôi phục Follow. |
 | [x] | `USER-012` | Danh sách đã chặn | Đã có danh sách riêng, phân trang và thao tác bỏ chặn có xác nhận. |
 | [ ] | `USER-013` | Thêm/thay đổi email | Form/API và re-auth/OTP đã có; email provider thật chưa nghiệm thu. |
@@ -83,7 +83,7 @@ Chi tiết: [`USER_REQUIREMENTS.md`](modules/USER_REQUIREMENTS.md)
 
 Chi tiết: [`LISTING_REQUIREMENTS.md`](modules/LISTING_REQUIREMENTS.md)
 
-Backend đã triển khai CRUD/management, Search/Suggestions/Filters/Sorting/keyset pagination, hai Home Feed, Follow/Unfollow/Followed Listings và upload/delivery ảnh/video. Angular public discovery Phase 5A đã qua [Final Review PR #24](https://github.com/DaimanBao/looply-rebuild/pull/24), gồm sửa hồi quy tải lại detail/video khi token rotation; không còn chờ review riêng. Angular quản lý Listing/Media Phase 5B đã merge qua PR #26. Follow/Unfollow/danh sách theo dõi và tích hợp Discovery/Detail/Auth/My Listings được kiểm chứng ở Phase 5C theo [Frontend README](../../frontend/README.md#follow-listing-và-tích-hợp--phase-5c). Liên thông Chat/Notification vẫn chưa hoàn thành. Bằng chứng Backend tại [Integration tests](../database/INTEGRATION_TESTS.md).
+Backend đã triển khai CRUD/management, Search/Suggestions/Filters/Sorting/keyset pagination, hai Home Feed, Follow/Unfollow/Followed Listings và upload/delivery ảnh/video. Angular public discovery Phase 5A đã qua [Final Review PR #24](https://github.com/DaimanBao/looply-rebuild/pull/24), gồm sửa hồi quy tải lại detail/video khi token rotation; không còn chờ review riêng. Angular quản lý Listing/Media Phase 5B đã merge qua PR #26. Follow/Unfollow/danh sách theo dõi và tích hợp Discovery/Detail/Auth/My Listings được kiểm chứng ở Phase 5C theo [Frontend README](../../frontend/README.md#follow-listing-và-tích-hợp--phase-5c). Chat đã tích hợp Listing Detail, accept và reopen/activeCycle; Notification delivery chưa triển khai. Bằng chứng Backend tại [Integration tests](../database/INTEGRATION_TESTS.md).
 
 | Xong | Mã | Chức năng | Trạng thái thực tế / phần còn thiếu |
 |---|---|---|---|
@@ -92,10 +92,10 @@ Backend đã triển khai CRUD/management, Search/Suggestions/Filters/Sorting/ke
 | [ ] | `LISTING-003` | Xóa bài đăng | Đã có UI xác nhận/xóa mềm, expectedVersion và Chrome E2E Phase 5B; chưa đối chiếu lại toàn checklist mã này ở Phase 5C. |
 | [ ] | `LISTING-004` | Quản lý bài đăng cá nhân | Đã có My Listings/filter/cursor ở Phase 5B; Phase 5C thêm điều hướng đến danh sách theo dõi. |
 | [x] | `LISTING-005` | Xem danh sách công khai | Đã có API/UI công khai, lọc visibility/Block/lifecycle và kiểm thử guest. |
-| [ ] | `LISTING-006` | Xem chi tiết bài đăng | API/UI nội dung/gallery/owner và Follow đã có; còn thiếu hành động Chat theo yêu cầu. |
-| [ ] | `LISTING-007` | Ẩn bài đăng | Đã có UI/version/ownership và E2E ẩn ở Phase 5B; chưa có luồng chấp nhận đề xuất Chat. |
-| [ ] | `LISTING-008` | Hiển thị lại | Đã có UI xác nhận reopen/version/cycle và E2E Phase 5B; liên thông giao dịch Chat chưa có. |
-| [ ] | `LISTING-009` | Cập nhật trạng thái theo giao dịch | Chưa có luồng chấp nhận giao dịch Chat cập nhật trạng thái Listing. |
+| [x] | `LISTING-006` | Xem chi tiết bài đăng | API/UI/gallery/owner/Follow và hành động Chat đã có; targeted Detail/Profile và Chrome guest/login/mở Chat PASS. |
+| [x] | `LISTING-007` | Ẩn bài đăng | UI/version/ownership/E2E ẩn Phase 5B; accept SALE/EXCHANGE ẩn nguyên tử, RENT giữ ACTIVE đã kiểm chứng. |
+| [x] | `LISTING-008` | Hiển thị lại | UI xác nhận reopen/version/cycle Phase 5B; Chat integration kiểm chứng tiếp tục pending và acceptedCycle mới sau reopen. |
+| [x] | `LISTING-009` | Cập nhật trạng thái theo giao dịch | Accept SALE/RENT/EXCHANGE, concurrent accepts, rollback và bảo toàn lịch sử đã kiểm chứng qua PostgreSQL/Chrome. |
 | [x] | `LISTING-010` | Theo dõi bài đăng | API/UI Discovery/Detail, chặn self/guest/nhấn lặp, stale response và Chrome E2E Phase 5C đạt. |
 | [x] | `LISTING-011` | Bỏ theo dõi | API/UI Unfollow idempotent, trạng thái chung và Chrome E2E Phase 5C đạt; không phát notification. |
 | [x] | `LISTING-012` | Xem bài đã theo dõi | Trang riêng ACTIVE, cursor/dedup/retry/reset theo danh tính và kiểm thử Phase 5C đạt. |
@@ -132,23 +132,25 @@ Chi tiết: [`CHAT_REQUIREMENTS.md`](modules/CHAT_REQUIREMENTS.md)
 
 | Xong | Mã | Chức năng |
 |---|---|---|
-| [ ] | `CHAT-001` | Tạo hội thoại theo Listing |
-| [ ] | `CHAT-002` | Tạo hội thoại tự do |
-| [ ] | `CHAT-003` | Danh sách hội thoại |
-| [ ] | `CHAT-004` | Xem hội thoại |
-| [ ] | `CHAT-005` | Xóa hội thoại |
-| [ ] | `CHAT-006` | Gửi tin nhắn |
-| [ ] | `CHAT-007` | Nhận tin nhắn |
-| [ ] | `CHAT-008` | Trạng thái tin nhắn |
-| [ ] | `CHAT-009` | Lịch sử tin nhắn |
-| [ ] | `CHAT-010` | Liên hệ theo giá niêm yết |
-| [ ] | `CHAT-011` | Đề xuất giá mới |
-| [ ] | `CHAT-012` | Chấp nhận giao dịch |
-| [ ] | `CHAT-013` | Từ chối đề xuất |
-| [ ] | `CHAT-014` | Lịch sử đề xuất |
-| [ ] | `CHAT-015` | Phân nhóm Inbox |
-| [ ] | `CHAT-016` | Card thông tin Listing |
+| [x] | `CHAT-001` | Tạo hội thoại theo Listing |
+| [x] | `CHAT-002` | Tạo hội thoại tự do |
+| [x] | `CHAT-003` | Danh sách hội thoại |
+| [x] | `CHAT-004` | Xem hội thoại |
+| [x] | `CHAT-005` | Xóa hội thoại |
+| [x] | `CHAT-006` | Gửi tin nhắn |
+| [x] | `CHAT-007` | Nhận tin nhắn |
+| [x] | `CHAT-008` | Trạng thái tin nhắn |
+| [x] | `CHAT-009` | Lịch sử tin nhắn |
+| [x] | `CHAT-010` | Liên hệ theo giá niêm yết |
+| [x] | `CHAT-011` | Đề xuất giá mới |
+| [x] | `CHAT-012` | Chấp nhận giao dịch |
+| [x] | `CHAT-013` | Từ chối đề xuất |
+| [x] | `CHAT-014` | Lịch sử đề xuất |
+| [x] | `CHAT-015` | Phân nhóm Inbox |
+| [x] | `CHAT-016` | Card thông tin Listing |
 | [ ] | `CHAT-017` | Thông báo tin nhắn |
+
+Đối chiếu Chat 20/11/2026 trên `feat/chat-module`: REST/Socket.IO, Angular Inbox/Conversation, ảnh và proposal/snapshot đã kiểm chứng bằng targeted tests + Chrome hai tài khoản. [Bằng chứng và giới hạn](../database/INTEGRATION_TESTS.md#chat-module--20112026), [contract](../api/CHAT_DESIGN.md). `CHAT-017` mới có outbox identifiers; consumer, biểu tượng và danh sách thông báo thuộc Notification, chưa triển khai theo phạm vi nhiệm vụ. Không suy kết quả này thành nghiệm thu live S3, nhiều Backend process hoặc NFR p95.
 
 
 ## NOTIFICATION — 10 chức năng
@@ -195,8 +197,9 @@ Chi tiết: [`REMINDER_REQUIREMENTS.md`](modules/REMINDER_REQUIREMENTS.md)
 
 | Phạm vi | Bằng chứng hiện có | Giới hạn còn lại |
 |---|---|---|
-| Auth/User | [Frontend README](../../frontend/README.md#bằng-chứng-local-13112026): Chrome E2E 26 bước, unit/component, typecheck/build và review; [Backend integration](../database/INTEGRATION_TESTS.md) kiểm tra PostgreSQL/Redis, phiên, quyền sở hữu, concurrency và xóa tài khoản. | SMS/email thật, Google UI/client thật chưa nghiệm thu; Profile chưa có danh sách Listing; Block/Unblock chưa được tích hợp với gửi tin Chat. Backup/restore, retention và nguồn trạng thái xóa độc lập chưa triển khai. |
-| Listing/Media Backend | [Integration tests](../database/INTEGRATION_TESTS.md): CRUD, atomic manifest, upload/delivery ảnh/video, Search/Feed/Follow, quyền hiển thị/Block, rollback/race và cleanup; Final Review PR #21/#22 đã sửa các hồi quy được ghi nhận. API đã mở theo [OpenAPI](../api/openapi.json). | Chưa có luồng chấp nhận giao dịch Chat hoặc consumer Notification chỉnh sửa Listing; S3 thật chưa nghiệm thu. Không coi schema hoặc outbox event là chức năng Chat/Notification đã hoàn chỉnh. |
-| Listing/Media Frontend | [Phase 5A](../../frontend/README.md#listing-public-discovery--phase-5a), [Phase 5B](../../frontend/README.md#listing-management-và-media--phase-5b) đã có discovery/management/media editor; [Phase 5C](../../frontend/README.md#follow-listing-và-tích-hợp--phase-5c) kiểm chứng Follow/Unfollow/danh sách, đổi tài khoản và quyền chủ bằng targeted tests + Chrome/API thật. | Chưa có Chat/Notification participant. Browser E2E đã kiểm chứng MP4, chưa nghiệm thu WebM/Safari/Firefox hoặc video lớn; video tải trọn tệp trước phát. |
+| Auth/User | [Frontend README](../../frontend/README.md#bằng-chứng-local-13112026): Chrome E2E 26 bước, unit/component, typecheck/build và review; [Backend integration](../database/INTEGRATION_TESTS.md) kiểm tra PostgreSQL/Redis, phiên, quyền sở hữu, concurrency và xóa tài khoản. Chat kiểm tra phiên và Block hai chiều khi tạo nội dung mới. | SMS/email thật, Google UI/client thật chưa nghiệm thu; Profile chưa có danh sách Listing. Backup/restore, retention và nguồn trạng thái xóa độc lập chưa triển khai. |
+| Listing/Media Backend | [Integration tests](../database/INTEGRATION_TESTS.md): CRUD, atomic manifest, upload/delivery ảnh/video, Search/Feed/Follow, quyền hiển thị/Block, rollback/race và cleanup; Chat accept đã tích hợp nguyên tử với Listing/activeCycle. API theo [OpenAPI](../api/openapi.json). | Consumer Notification chỉnh sửa Listing và S3 thật chưa nghiệm thu. Outbox event không thay thế notification delivery. |
+| Listing/Media Frontend | [Phase 5A](../../frontend/README.md#listing-public-discovery--phase-5a), [Phase 5B](../../frontend/README.md#listing-management-và-media--phase-5b) đã có discovery/management/media editor; [Phase 5C](../../frontend/README.md#follow-listing-và-tích-hợp--phase-5c) kiểm chứng Follow/Unfollow/danh sách, đổi tài khoản và quyền chủ bằng targeted tests + Chrome/API thật. Chat tích hợp ở mục bên dưới. | Notification participant chưa triển khai. Browser E2E đã kiểm chứng MP4, chưa nghiệm thu WebM/Safari/Firefox hoặc video lớn; video tải trọn tệp trước phát. |
 | CI của lần đối chiếu ban đầu | Commit `36596d0`: [Backend CI PASS](https://github.com/DaimanBao/looply-rebuild/actions/runs/43420523096) và [Frontend CI PASS](https://github.com/DaimanBao/looply-rebuild/actions/runs/43420523089); được merge qua PR #25 vào `8477d6c`, không đổi code ứng dụng so với commit đã kiểm tra. | Đây là bằng chứng lịch sử; CI của Phase 5B/5C theo commit cuối tại PR tương ứng. Browser E2E là bằng chứng local trong README, không chạy trên GitHub Actions. |
-| Chat, Notification, Reminder | Chưa có module runtime/UI tương ứng trong code hiện tại; mới có schema/ràng buộc dữ liệu và một số giao diện chuẩn bị tích hợp. | Toàn bộ mã CHAT, NOTI và REM tiếp tục `[ ]`; các trang hồ sơ hoặc thông báo lỗi UI thông thường không thay thế Reminder/Notification. |
+| Chat | [Backend integration](../database/INTEGRATION_TESTS.md#chat-module--20112026), [Frontend](../../frontend/README.md#chat-module): Conversation, Message, realtime, ảnh, proposal/snapshot và Inbox đã triển khai/kiểm chứng/review. | `CHAT-017` chờ Notification; chưa nghiệm thu live S3, browser ngoài Chrome hoặc p95. |
+| Notification, Reminder | Chưa có runtime/UI; Chat chỉ chuẩn bị event identifiers để tích hợp sau. | Các mã NOTI/REM tiếp tục `[ ]`; các thông báo lỗi UI thông thường không thay thế các module này. |

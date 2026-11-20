@@ -8,9 +8,10 @@ import { Feedback } from '../../../shared/ui/feedback';
 import { UserApi } from '../data-access/user.api';
 import { Avatar } from '../components/avatar';
 import { apiError } from '../../../core/http/api-error';
+import { StartChat } from '../../chat/public-api';
 
 @Component({
-  imports: [RouterLink, Feedback, Avatar],
+  imports: [RouterLink, Feedback, Avatar, StartChat],
   templateUrl: './public-profile.page.html',
 })
 export class PublicProfilePage {

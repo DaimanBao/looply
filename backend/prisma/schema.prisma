@@ -1,4 +1,4 @@
-// Looply DA1 — schema PostgreSQL thực thi gồm 17 model cho Prisma ORM 7.10.1.
+// Looply DA1 — schema PostgreSQL thực thi gồm 18 model cho Prisma ORM 7.10.1.
 // Các CHECK constraint và partial index tùy chỉnh nằm trong prisma/migrations; cần review cùng schema này.
 
 generator client {
@@ -253,6 +253,7 @@ model Listing {
   conversations Conversation[]
   proposals     TransactionProposal[]
   notifications Notification[]
+  cardSnapshots ListingCardSnapshot[]
 
   @@index([status, createdAt, id])
   @@index([status, provinceId, createdAt, id])
@@ -276,25 +277,28 @@ model ListingFollow {
 }
 
 model MediaAsset {
-  id              String       @id @default(uuid()) @db.Uuid
-  uploadedById    String       @db.Uuid
-  uploadedBy      User         @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
-  purpose         MediaPurpose
-  type            MediaType
-  listingId       String?      @db.Uuid
-  listing         Listing?     @relation("ListingMedia", fields: [listingId], references: [id], onDelete: Restrict)
-  currentAvatarOf User?        @relation("CurrentAvatar")
-  chatMessage     Message?     @relation("ChatMessageImage")
-  storageKey      String       @unique @db.Text
-  mimeType        String       @db.VarChar(100)
-  sizeBytes       BigInt
-  durationSeconds Int?
-  position        Int?
-  isCover         Boolean      @default(false)
-  status          MediaStatus  @default(TEMP)
-  createdAt       DateTime     @default(now()) @db.Timestamptz(3)
-  expiresAt       DateTime?    @db.Timestamptz(3)
-  deletedAt       DateTime?    @db.Timestamptz(3)
+  id                   String                @id @default(uuid()) @db.Uuid
+  uploadedById         String                @db.Uuid
+  uploadedBy           User                  @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  purpose              MediaPurpose
+  type                 MediaType
+  listingId            String?               @db.Uuid
+  listing              Listing?              @relation("ListingMedia", fields: [listingId], references: [id], onDelete: Restrict)
+  currentAvatarOf      User?                 @relation("CurrentAvatar")
+  chatMessage          Message?              @relation("ChatMessageImage")
+  chatConversationId   String?               @db.Uuid
+  chatConversation     Conversation?         @relation("ChatUploads", fields: [chatConversationId], references: [id], onDelete: Restrict)
+  snapshotReservations ListingCardSnapshot[] @relation("SnapshotSource")
+  storageKey           String                @unique @db.Text
+  mimeType             String                @db.VarChar(100)
+  sizeBytes            BigInt
+  durationSeconds      Int?
+  position             Int?
+  isCover              Boolean               @default(false)
+  status               MediaStatus           @default(TEMP)
+  createdAt            DateTime              @default(now()) @db.Timestamptz(3)
+  expiresAt            DateTime?             @db.Timestamptz(3)
+  deletedAt            DateTime?             @db.Timestamptz(3)
 
   @@index([listingId, position])
   @@index([status, expiresAt])
@@ -316,12 +320,15 @@ model Conversation {
   directUserHighId String?                   @db.Uuid
   directUserHigh   User?                     @relation("DirectUserHigh", fields: [directUserHighId], references: [id], onDelete: Restrict)
   lastMessageAt    DateTime?                 @db.Timestamptz(3)
+  lastActivityAt   DateTime                  @default(now()) @db.Timestamptz(3)
   createdAt        DateTime                  @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime                  @updatedAt @db.Timestamptz(3)
   participants     ConversationParticipant[]
   messages         Message[]
   proposals        TransactionProposal[]
   notifications    Notification[]
+  uploads          MediaAsset[]              @relation("ChatUploads")
+  cardSnapshots    ListingCardSnapshot[]
 
   @@unique([listingId, contactUserId])
   @@unique([directUserLowId, directUserHighId])
@@ -330,15 +337,17 @@ model Conversation {
 }
 
 model ConversationParticipant {
-  id                String       @id @default(uuid()) @db.Uuid
-  conversationId    String       @db.Uuid
-  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
-  userId            String       @db.Uuid
-  user              User         @relation(fields: [userId], references: [id], onDelete: Restrict)
-  hiddenAt          DateTime?    @db.Timestamptz(3)
-  lastReadMessageId String?      @db.Uuid
-  lastReadMessage   Message?     @relation("ParticipantReadCursor", fields: [lastReadMessageId], references: [id], onDelete: Restrict)
-  joinedAt          DateTime     @default(now()) @db.Timestamptz(3)
+  id                     String       @id @default(uuid()) @db.Uuid
+  conversationId         String       @db.Uuid
+  conversation           Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  userId                 String       @db.Uuid
+  user                   User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  hiddenAt               DateTime?    @db.Timestamptz(3)
+  lastReadMessageId      String?      @db.Uuid
+  lastReadMessage        Message?     @relation("ParticipantReadCursor", fields: [lastReadMessageId], references: [id], onDelete: Restrict)
+  lastDeliveredMessageId String?      @db.Uuid
+  lastDeliveredMessage   Message?     @relation("ParticipantDeliveredCursor", fields: [lastDeliveredMessageId], references: [id], onDelete: Restrict)
+  joinedAt               DateTime     @default(now()) @db.Timestamptz(3)
 
   @@unique([conversationId, userId])
   @@index([userId, hiddenAt])
@@ -361,11 +370,47 @@ model Message {
   payloadHash           String                    @db.VarChar(128)
   createdAt             DateTime                  @default(now()) @db.Timestamptz(3)
   readCursorFor         ConversationParticipant[] @relation("ParticipantReadCursor")
+  deliveredCursorFor    ConversationParticipant[] @relation("ParticipantDeliveredCursor")
+  cardSnapshot          ListingCardSnapshot?
   latestInNotifications Notification[]            @relation("NotificationLatestMessage")
 
   @@unique([conversationId, senderId, requestId])
   @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)])
   @@map("messages")
+}
+
+enum SnapshotImageState {
+  PREPARING
+  AVAILABLE
+  REVOKED
+  DELETED
+}
+
+model ListingCardSnapshot {
+  id                   String             @id @default(uuid()) @db.Uuid
+  messageId            String?            @unique @db.Uuid
+  message              Message?           @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  conversationId       String             @db.Uuid
+  conversation         Conversation       @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  listingId            String             @db.Uuid
+  listing              Listing            @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  title                String             @db.VarChar(150)
+  type                 ListingType
+  listedPrice          Decimal?           @db.Decimal(15, 0)
+  rentalUnit           RentalUnit?
+  createdAt            DateTime           @default(now()) @db.Timestamptz(3)
+  snapshotCreatedAt    DateTime?          @db.Timestamptz(3)
+  sourceMediaId        String?            @db.Uuid
+  sourceMedia          MediaAsset?        @relation("SnapshotSource", fields: [sourceMediaId], references: [id], onDelete: Restrict)
+  sourceListingVersion Int?
+  imageStorageKey      String             @unique @db.Text
+  imageSizeBytes       BigInt?
+  imageState           SnapshotImageState @default(PREPARING)
+  imageRevokedAt       DateTime?          @db.Timestamptz(3)
+  imageDeletedAt       DateTime?          @db.Timestamptz(3)
+
+  @@index([conversationId])
+  @@map("listing_card_snapshots")
 }
 
 model TransactionProposal {

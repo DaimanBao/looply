@@ -1,5 +1,36 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Chat Module — 20/11/2026
+
+Nhánh `feat/chat-module` từ cached `origin/develop` `d6e36eb` (đã chứa Listing/Media và Phase 5C). Working tree ban đầu sạch; không fetch/pull/commit/push/merge/PR. Xác minh URL và actual database `looply_test` trước ghi; áp dụng additive `0006_chat_module`, `0007_chat_reservation_version`. Read-only preflight `looply_dev` xác nhận vẫn có `0001`–`0005`; không ghi development/production hoặc sửa migration lịch sử.
+
+| Kiểm chứng đã chạy | Kết quả |
+| --- | --- |
+| Chat policy + OpenAPI route/ref contract + runtime shutdown | 18 PASS; thêm 6 unit Media object-store/orphan PASS ở lượt liên quan |
+| `chat-module.test.ts` | 28/28 PASS trên PostgreSQL/Redis test, Supertest HTTP và storage fixture |
+| `chat-realtime.test.ts` | 3/3 PASS với server HTTP/Socket.IO và nhiều websocket client thật |
+| Nhóm mở rộng: Chat/realtime/migration, FK/UNIQUE/NOT NULL, Auth/User migration, Listing/Media migration | 129/129 PASS ở lượt mở rộng; Chat bổ sung regression sau đó theo dòng 28/28 phía trên |
+| Nhóm Chat/realtime + Listing CRUD + account deletion + media lifecycle | 67/67 PASS ở lượt kiểm tra ảnh hưởng liên module |
+| Angular Chat state/decoders | 9/9 PASS; thêm 5 regression Detail/Profile PASS trong lượt liên quan |
+| Chrome hai profile riêng qua `frontend/e2e/listing.cjs --chat` | 6 nhóm PASS: guest/login, nhắn hai chiều/read receipt, ảnh, proposal/Listing, 1440/390 px, reload/đổi tài khoản/IDOR |
+| Prisma generate/validate; Backend source/test typecheck/build; Angular ngc/test types/production build | PASS; không có lint script riêng |
+| CI trên thay đổi này | NOT RUN: nhiệm vụ không cho commit/push/PR; không lấy CI commit cũ làm bằng chứng |
+
+Các lượt có phạm vi trùng nhau, không cộng số PASS thành tổng số test khác nhau. Lượt cuối gộp Chat/realtime **31/31 PASS** sau khi dùng lại predicate User và tách Listing repository. Bổ sung kiểm chứng Block/Unblock qua User API thật vào ca Chat hiện có: **1 PASS, 27 không được chọn**; lượt lọc regression SQL lease cũng **1 PASS, 27 không được chọn**. Toàn bộ 28 ca đã PASS ở lượt đầy đủ trước đó; không coi lượt lọc là chạy lại toàn suite. Không full suite local.
+
+Code Review và Final Review tập trung membership/session/Block, idempotency, concurrency, media lifecycle và regression. Các findings đã sửa có test tương ứng:
+
+- **High:** response pagination cũ sau reconnect có thể khôi phục cursor lỗi thời; thêm history generation và regression. Bỏ lỡ hơn một trang khởi tạo lại lịch sử/cursor, không ghép lỗ dữ liệu.
+- **High:** writer muộn sau snapshot cleanup cần mở lại REVOKED một cách nguyên tử; xmin fence ngăn completion cũ đánh dấu thế hệ cleanup mới. Có test cleanup trước writer, crash inventory, retry storage và bảo toàn text/ảnh sau account cleanup thật.
+- **High:** reservation phải kiểm tra clock sau User locks và tại UPDATE publish cuối; final SQL lease fence rollback cả Message/proposal khi quá hạn. Snapshot copy lỗi/version/cover thay đổi không publish card.
+- **Medium:** CHECK cho sourceListingVersion phải từ chối NULL tường minh; bổ sung `0007`, không chỉnh sửa migration đã áp dụng. Fixtures/catalog bao phủ 18 model và FK/UNIQUE mới; fixture schema cũ giữ riêng cho migration compatibility.
+- **Medium:** HTTP shutdown cần đóng upgraded websocket trước khi chờ server close; có runtime regression. Retry ảnh giữ requestId/upload và response tài khoản cũ không attach vào tài khoản mới.
+- Static check phát hiện mock PrismaPromise/Promise không khớp; interface async của repository đã chỉnh và chạy lại source/test types.
+
+Contract và nơi triển khai: [Chat design](../api/CHAT_DESIGN.md), [snapshot database](CHAT_SNAPSHOT_DESIGN.md), [Backend hướng dẫn](../../backend/README.md#chat-module), [Frontend/Chrome hướng dẫn](../../frontend/README.md#chat-module). Artifact local Git ignore: `frontend/tmp/listing-e2e/chat-backend-tests.json`, `chat-report.json`, `chat-1440.png`, `chat-390.png`.
+
+Giới hạn: một Backend process, Notification/Reminder chưa triển khai (chỉ Chat outbox identifiers); chưa đo p95, chưa nghiệm thu Safari/Firefox hoặc live S3. Inventory crash reconciliation hiện có cho local ObjectStore; S3 adapter chưa có bucket inventory. SMS/email fixture fake không thay thế nghiệm thu provider Auth production. Không tuyên bố production readiness từ các kiểm tra local.
+
 ## Final Review PR #22 — 13/11/2026
 
 - Tái hiện trên PostgreSQL thật: cleanup đã xóa original/marker nhưng chưa complete; writer muộn ghi lại original rồi `abandon`; completion cũ ghi tombstone làm file bị bỏ sót, đặc biệt S3 không có inventory. Regression video mới FAIL trước sửa và PASS sau thêm row-version fence; test không dùng inventory cứu dữ liệu. Bổ sung regression ảnh cho `abandon` khi `deletedAt` giữ nguyên null.

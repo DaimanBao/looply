@@ -35,6 +35,7 @@ import { ListingFollowRepository } from "./modules/listing/listing-follow.reposi
 import { ListingFollowService } from "./modules/listing/listing-follow.service";
 import { createListingDiscoveryController } from "./modules/listing/listing-discovery.controller";
 import { createListingDiscoveryRouter } from "./modules/listing/listing-discovery.routes";
+import { createChatModule } from "./modules/chat";
 
 /** Lắp ghép storage local riêng cho development hoặc adapter S3-compatible đã cấu hình cho production. */
 export function createStorage(config: AuthConfig): ObjectStore {
@@ -69,6 +70,7 @@ export function createFeatures(
   namespace?: string,
 ) {
   const auth = createAuthModule(db, config, providers, undefined, namespace);
+  const chat = createChatModule(db, auth.sessions, storage);
   const repository = new UserRepository(db);
   const users = new UserService(repository, auth.sessions);
   const avatars = new AvatarService(
@@ -125,8 +127,10 @@ export function createFeatures(
     listingUploads,
     discovery,
     listingFollows,
+    chat,
     routers: [
       ...auth.routers,
+      chat.router,
       createUserRouter(createUserController(users, auth.credentials), auth.sessions),
       createAvatarRouter(createAvatarController(avatars), auth.sessions),
       createDeletionRouter(
