@@ -6,7 +6,7 @@ import {
   insertRow,
   updateRow,
   type SqlValue,
-  type Table,
+  type ChatTable,
   type TestRow,
 } from "../helpers/database-fixtures";
 import { withTestTransaction } from "../helpers/test-database";
@@ -74,7 +74,7 @@ async function writePrice(
   client: Client,
   input: {
     operation: "INSERT" | "UPDATE";
-    table: Table;
+    table: ChatTable;
     original: TestRow;
     changes: Record<string, SqlValue>;
   },
