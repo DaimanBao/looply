@@ -1,0 +1,21 @@
+.badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: 1rem;
+  background: #22664a;
+  color: white;
+}
+.notification-toast {
+  position: fixed;
+  z-index: 100;
+  right: 1rem;
+  bottom: 1rem;
+  max-width: min(24rem, calc(100vw - 2rem));
+  background: white;
+  border: 1px solid #22664a;
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: 0 0.5rem 2rem #0002;
+}
+.notification-toast button {
+  margin-left: 1rem;
+}

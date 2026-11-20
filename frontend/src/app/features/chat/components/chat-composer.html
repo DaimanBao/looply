@@ -1,0 +1,59 @@
+<form class="composer" (submit)="submit($event)">
+  @if (preview()) {
+    <div class="attachment-preview">
+      <img class="preview" [src]="preview()" alt="Xem trước ảnh sắp gửi" /><span
+        >Ảnh sẵn sàng gửi</span
+      ><button
+        type="button"
+        (click)="removed.emit()"
+        [disabled]="busy()"
+        aria-label="Bỏ ảnh đã chọn"
+      >
+        ×
+      </button>
+    </div>
+  }
+  @if (error()) {
+    <p class="composer-error" role="alert">{{ error() }}</p>
+  }
+  <div class="composer-row">
+    <label
+      class="attach-button"
+      for="chat-image"
+      title="Đính kèm một ảnh JPG/PNG/WebP, tối đa 10 MiB"
+      ><span aria-hidden="true">＋</span
+      ><span class="sr-only">Đính kèm một ảnh, tối đa 10 MiB</span></label
+    >
+    <input
+      class="file-input"
+      id="chat-image"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      (change)="chosen.emit($event)"
+      [disabled]="busy()"
+    />
+    <textarea
+      #textarea
+      id="chat-content"
+      [formControl]="content()"
+      rows="1"
+      placeholder="Nhập tin nhắn…"
+      aria-label="Tin nhắn"
+      [readOnly]="busy()"
+      (input)="resize()"
+      (keydown)="keydown($event)"
+    ></textarea>
+    <button
+      class="send-button primary"
+      type="submit"
+      [disabled]="!valid()"
+      [attr.aria-label]="busy() ? 'Đang gửi tin nhắn' : 'Gửi tin nhắn'"
+      title="Gửi tin nhắn"
+    >
+      <span aria-hidden="true">{{ busy() ? '◌' : '➤' }}</span>
+    </button>
+  </div>
+  <p class="composer-hint">
+    {{ busy() ? 'Đang xử lý, vui lòng chờ…' : 'Enter để gửi · Shift + Enter để xuống dòng' }}
+  </p>
+</form>

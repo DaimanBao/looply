@@ -16,6 +16,7 @@ module.exports = async function chat({
   artifacts,
   browser,
   image,
+  chatRealtime,
 }) {
   const contact = await fixture.user();
   const secondUser = await fixture.user();
@@ -114,6 +115,7 @@ module.exports = async function chat({
     );
     passed('Image preview/upload/message attachment and authorized Blob delivery');
 
+    await page.evaluate(`document.querySelector('.proposal-toggle').click()`);
     await page.fill('#proposed-price', '99000');
     await page.click('Đề xuất giá mới');
     await page.click('Xác nhận gửi');
@@ -124,7 +126,7 @@ module.exports = async function chat({
     await ownerPage.click('Chấp nhận');
     await ownerPage.click('Xác nhận');
     await page.wait(
-      `document.querySelector('.transaction-card')?.textContent.includes('Đã chấp nhận') && document.querySelector('.chat-context').textContent.includes('HIDDEN')`,
+      `document.querySelector('.transaction-card')?.textContent.includes('Đã chấp nhận') && document.querySelector('.chat-context').textContent.includes('Đã ẩn')`,
       'accepted card and hidden listing',
     );
     passed('Proposal snapshot accepted atomically and Listing hidden in both clients');
@@ -149,6 +151,18 @@ module.exports = async function chat({
       `document.querySelector('.messages').textContent.includes('Xin chào chủ bài 😀')`,
       'history after page reload',
     );
+    if (process.argv.includes('--chat-ui'))
+      await require('./chat-ui.cjs')({
+        page,
+        ownerPage,
+        fixture,
+        contact,
+        owner,
+        conversationId,
+        chatRealtime,
+        passed,
+        artifacts,
+      });
     await page.click('Đăng xuất');
     await page.wait(`location.pathname === '/auth/login'`, 'contact logout');
     await login(page, secondUser, '/chat');

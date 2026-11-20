@@ -1,0 +1,59 @@
+@if (message().proposal; as proposal) {
+  <div class="transaction-card">
+    <div class="card-heading">
+      <span aria-hidden="true">↔</span><strong>ĐỀ XUẤT GIAO DỊCH</strong>
+    </div>
+    @if (message().snapshot?.imagePath; as path) {
+      <app-chat-image [path]="path" alt="Ảnh bài đăng tại lúc gửi card" />
+    }
+    <strong class="card-title">{{
+      message().snapshot?.title || 'Thông tin lịch sử không khả dụng'
+    }}</strong>
+    <span class="card-type"
+      >{{ types[proposal.type] }} ·
+      {{ proposal.kind === 'NEGOTIATED_PRICE' ? 'Giá đề xuất' : 'Liên hệ theo bài đăng' }}</span
+    >
+    @if (proposal.proposedPrice || proposal.listedPrice) {
+      <strong class="card-price"
+        >{{ proposal.proposedPrice || proposal.listedPrice }} ₫
+        @if (proposal.rentalUnit) {
+          <span>/ {{ proposal.rentalUnit === 'DAY' ? 'ngày' : 'tháng' }}</span>
+        }
+      </strong>
+    }
+    @if (proposal.proposedPrice && proposal.listedPrice) {
+      <span class="listed-price">Giá niêm yết lúc gửi: {{ proposal.listedPrice }} ₫</span>
+    }
+    @if (!message().snapshot?.imagePath) {
+      <span class="listed-price">Ảnh lịch sử không còn khả dụng</span>
+    }
+    <strong class="proposal-status" [class.accepted]="proposal.status === 'ACCEPTED'">{{
+      proposal.status === 'PENDING'
+        ? 'Đang chờ'
+        : proposal.status === 'ACCEPTED'
+          ? 'Đã chấp nhận'
+          : 'Đã từ chối'
+    }}</strong>
+    @if (canResolve() && proposal.status === 'PENDING') {
+      <div class="card-actions">
+        <button
+          class="primary"
+          type="button"
+          (click)="decision.emit({ id: proposal.id, status: 'ACCEPTED' })"
+          [disabled]="busy()"
+        >
+          Chấp nhận
+        </button>
+        @if (proposal.kind === 'NEGOTIATED_PRICE') {
+          <button
+            type="button"
+            (click)="decision.emit({ id: proposal.id, status: 'REJECTED' })"
+            [disabled]="busy()"
+          >
+            Không chấp nhận
+          </button>
+        }
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,60 @@
+<section aria-labelledby="notifications-title">
+  <div class="heading">
+    <h1 id="notifications-title">Thông báo</h1>
+    <button (click)="state.refresh()" [disabled]="state.loading() || state.busy()">Tải lại</button>
+    <button
+      (click)="state.readAll()"
+      [disabled]="!state.count() || state.loading() || state.busy()"
+    >
+      Đánh dấu tất cả đã đọc
+    </button>
+  </div>
+  <p>{{ state.count() }} thông báo chưa đọc</p>
+  @if (state.error()) {
+    <p role="alert" class="notice warning">{{ state.error() }}</p>
+  }
+  @if (state.loading()) {
+    <p role="status">Đang tải thông báo…</p>
+  }
+  @if (!state.loading() && !state.error() && !state.items().length) {
+    <p class="notice">Bạn chưa có thông báo nào.</p>
+  }
+  <ul class="notifications">
+    @for (item of state.items(); track item.id) {
+      <li [class.unread]="!item.isRead">
+        <div>
+          <button class="notification-link" (click)="state.open(item)" [disabled]="state.busy()">
+            {{ labels[item.type] }}
+          </button>
+          <p>
+            <span>{{ item.isRead ? 'Đã đọc' : 'Chưa đọc' }}</span> ·
+            <time [attr.datetime]="item.updatedAt">{{
+              item.updatedAt | date: 'dd/MM/yyyy HH:mm'
+            }}</time>
+          </p>
+        </div>
+        <div class="actions">
+          @if (!item.isRead) {
+            <button (click)="state.read(item)" [disabled]="state.busy()">Đánh dấu đã đọc</button>
+          }
+          <button (click)="deleting.set(item)" [disabled]="state.busy()">Xóa</button>
+        </div>
+      </li>
+    }
+  </ul>
+  @if (state.nextCursor()) {
+    <button
+      (click)="state.more()"
+      [disabled]="state.loading() || state.loadingMore() || state.busy()"
+    >
+      {{ state.loadingMore() ? 'Đang tải…' : 'Xem thêm' }}
+    </button>
+  }
+  @if (deleting(); as item) {
+    <div class="notice warning" role="alert">
+      <p>Xóa thông báo này khỏi danh sách của bạn?</p>
+      <button (click)="confirmDelete()" [disabled]="state.busy()">Xác nhận xóa</button>
+      <button (click)="deleting.set(null)" [disabled]="state.busy()">Hủy</button>
+    </div>
+  }
+</section>

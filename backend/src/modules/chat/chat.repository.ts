@@ -241,7 +241,7 @@ export class ChatRepository {
     });
   }
 
-  /** Outbox thuộc hợp đồng Chat, không tự tạo Notification hoặc chứa preview. */
+  /** Ghi outbox cùng transaction; consumer Notification xử lý độc lập, không chứa preview. */
   event(
     conversationId: string,
     eventType: string,

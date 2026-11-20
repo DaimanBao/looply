@@ -15,6 +15,10 @@ export class MessageService {
     private readonly media: ChatMediaService,
     private readonly retention: ChatRetention,
     private readonly events: ChatEvents,
+    private readonly isViewing: (
+      userId: string,
+      conversationId: string,
+    ) => boolean | Promise<boolean> = () => false,
   ) {}
 
   /** Lưu nội dung đúng một lần; replay không unhide, không tăng activity hoặc phát sự kiện mới. */
@@ -61,6 +65,10 @@ export class MessageService {
           messageId: message.id,
           senderId: principal.userId,
           recipientId: row.participants.find((p) => p.userId !== principal.userId)!.userId,
+          suppressNotification: await this.isViewing(
+            row.participants.find((p) => p.userId !== principal.userId)!.userId,
+            id,
+          ),
         },
         tx,
       );

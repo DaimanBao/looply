@@ -99,3 +99,51 @@ nav {
     display: none;
   }
 }
+:host:has(app-chat-workspace) {
+  height: 100dvh;
+  overflow: hidden;
+}
+:host:has(app-chat-workspace) .main-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: min(1280px, calc(100% - 48px));
+  margin: 20px auto;
+}
+:host:has(app-chat-workspace) .site-footer {
+  display: none;
+}
+@media (max-width: 1100px) {
+  :host:has(app-chat-workspace) .header-inner {
+    flex-wrap: wrap;
+    padding: 12px 24px;
+    gap: 8px;
+  }
+  :host:has(app-chat-workspace) nav {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 720px) {
+  :host:has(app-chat-workspace) .main-container {
+    width: calc(100% - 20px);
+    margin: 10px auto;
+  }
+  :host:has(app-chat-workspace) .header-inner {
+    padding: 8px 16px;
+  }
+  :host:has(app-chat-workspace) .brand {
+    font-size: 1.4rem;
+  }
+  :host:has(app-chat-workspace) .brand-mark {
+    font-size: 1.4rem;
+  }
+  :host:has(app-chat-workspace) nav {
+    font-size: 0.75rem;
+    gap: 8px 12px;
+  }
+  :host:has(app-chat-workspace) nav button {
+    padding: 7px 10px;
+  }
+}

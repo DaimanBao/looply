@@ -62,6 +62,6 @@ User UUID được giữ trong tombstone, username kỹ thuật ngẫu nhiên h�
 - `MediaAsset` hiện liên kết với Listing, avatar hoặc Message; cần đảm bảo kiểm tra ownership, trạng thái upload và dọn file mồ côi.
 - Sau `0002_fix_media_duration`, CHECK yêu cầu VIDEO có `durationSeconds` nguyên trong khoảng 1–180 giây, IMAGE phải có giá trị NULL. Prisma vẫn dùng `Int?` vì cùng cột phục vụ cả hai loại; CHECK bảo vệ tính bắt buộc theo loại media.
 - Sau [`0003_reject_nan_prices`](../../backend/prisma/migrations/0003_reject_nan_prices/migration.sql), cả ba cột giá Decimal đều từ chối NaN. Các điều kiện giá/loại giao dịch/đơn vị thuê/trạng thái và khả năng NULL của snapshot được giữ nguyên. [`migration_lock.toml`](../../backend/prisma/migrations/migration_lock.toml) khóa provider `postgresql` cho Prisma Migrate.
-- `Notification`/`OutboxEvent` cần idempotency và worker retry; SQL tham khảo cần đối chiếu schema thực tế trước khi đưa vào migration.
+- `Notification`/`OutboxEvent`/`ProcessedEvent` đã được consumer Notification sử dụng cho grouping, idempotency và lease/retry; không thêm migration. Partial unique unread MESSAGE, eventKey và receipt giữ nguyên. Biên đọc đồng thời theo [Notification design](../api/NOTIFICATION_DESIGN.md).
 - `Reminder` chỉ là kiểm tra hồ sơ theo phiên, không cần bảng riêng trong phạm vi hiện tại.
 - Chưa chốt nhà cung cấp SMS và object storage; thiết kế DB không quyết định nhà cung cấp.

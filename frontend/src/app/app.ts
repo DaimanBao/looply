@@ -4,9 +4,10 @@ import { firstValueFrom } from 'rxjs';
 import { SessionService } from './core/auth/session.service';
 import { ActionState } from './shared/ui/action-state';
 import { Feedback } from './shared/ui/feedback';
+import { NotificationCenter } from './features/notification/public-api';
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Feedback],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Feedback, NotificationCenter],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })

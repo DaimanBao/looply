@@ -1,73 +1,137 @@
-<h1>Tin nhắn</h1>
-<p class="muted">{{ realtime.connected() ? 'Đã kết nối Chat' : 'Đang kết nối Chat…' }}</p>
-@if (realtime.error()) {
-  <p role="status">{{ realtime.error() }}</p>
-}
-<div class="actions" aria-label="Nhóm hội thoại">
+<header class="inbox-heading">
+  <div>
+    <span class="eyebrow">KẾT NỐI TRÊN LOOPLY</span>
+    <h1>Tin nhắn<span class="heading-dot">.</span></h1>
+  </div>
+  <button
+    class="refresh"
+    type="button"
+    aria-label="Làm mới hộp thư"
+    title="Làm mới hộp thư"
+    (click)="state.load()"
+    [disabled]="state.loading()"
+  >
+    ↻
+  </button>
+</header>
+<label class="search-box"
+  ><span aria-hidden="true">⌕</span
+  ><input
+    type="search"
+    placeholder="Tìm hội thoại đã tải"
+    aria-label="Tìm trong hội thoại đã tải"
+    [value]="state.search()"
+    (input)="search($event)"
+/></label>
+<div class="inbox-tabs" aria-label="Nhóm hội thoại">
   <button
     type="button"
-    [attr.aria-pressed]="group() === 'LISTING'"
-    (click)="group.set('LISTING'); listingId.set('')"
+    [attr.aria-pressed]="state.group() === 'LISTING'"
+    (click)="state.group.set('LISTING'); state.listingId.set('')"
   >
     Theo bài đăng
   </button>
   <button
     type="button"
-    [attr.aria-pressed]="group() === 'DIRECT'"
-    (click)="group.set('DIRECT'); listingId.set('')"
+    [attr.aria-pressed]="state.group() === 'DIRECT'"
+    (click)="state.group.set('DIRECT'); state.listingId.set('')"
   >
     Hội thoại tự do
   </button>
-  <button type="button" (click)="load()" [disabled]="loading()">Tải lại</button>
 </div>
-@if (listingId()) {
-  <button type="button" (click)="listingId.set('')">← Tất cả bài đăng</button>
+@if (state.listingId()) {
+  <button class="filter-back" type="button" (click)="state.listingId.set('')">
+    ← Tất cả bài đăng
+  </button>
 }
-@if (loading()) {
-  <p role="status">Đang tải hội thoại…</p>
+@if (state.error()) {
+  <p class="inbox-feedback" role="alert">
+    {{ state.error() }} <button type="button" (click)="state.load()">Thử lại</button>
+  </p>
 }
-@if (error()) {
-  <p role="alert" class="notice warning">{{ error() }}</p>
-}
-@for (section of groups(); track section.id) {
-  <section class="card">
-    <h2>{{ section.title }}</h2>
-    @if (group() === 'LISTING') {
-      <button type="button" class="text-button" (click)="listingId.set(section.id)">
-        Xem người liên hệ bài này
+<nav class="conversation-list" aria-label="Danh sách hội thoại" [attr.aria-busy]="state.loading()">
+  @if (state.loading() && !state.rows().length) {
+    <p class="inbox-empty" role="status">Đang tải hội thoại…</p>
+  }
+  @for (section of state.groups(); track section.id) {
+    @if (state.group() === 'LISTING') {
+      <button
+        class="section-label"
+        type="button"
+        (click)="state.listingId.set(section.id)"
+        title="Xem người liên hệ bài này"
+      >
+        {{ section.title }}
       </button>
     }
     @for (row of section.rows; track row.id) {
-      <div class="inbox-row">
-        <a [routerLink]="['/chat', row.id]">
-          @for (participant of row.participants; track participant.userId) {
-            <span>{{ participant.displayName }} </span>
-          }
+      <div
+        class="conversation-row"
+        [class.selected]="selectedId() === row.id"
+        [class.unread]="row.unreadCount > 0"
+      >
+        <a
+          [routerLink]="['/chat', row.id]"
+          [attr.aria-current]="selectedId() === row.id ? 'page' : null"
+        >
+          <span class="peer-avatar" aria-hidden="true">{{
+            initials(state.peer(row)?.displayName || '')
+          }}</span>
+          <span class="row-content">
+            <span class="row-heading"
+              ><strong>{{ state.peer(row)?.displayName || 'Người dùng' }}</strong>
+              @if (row.lastMessageAt) {
+                <time
+                  [attr.datetime]="row.lastMessageAt"
+                  [title]="row.lastMessageAt | date: 'dd/MM/yyyy HH:mm'"
+                  >{{ row.lastMessageAt | date: 'dd/MM' }}</time
+                >
+              }
+            </span>
+            <span class="row-subtitle">{{ row.listing?.title || 'Hội thoại tự do' }}</span>
+            <span class="row-summary">{{
+              row.unreadCount ? row.unreadCount + ' tin chưa đọc' : 'Mở cuộc trò chuyện'
+            }}</span>
+          </span>
           @if (row.unreadCount) {
-            <strong> · {{ row.unreadCount }} chưa đọc</strong>
-          }
-          @if (row.listing) {
-            <span class="muted"> · {{ row.listing.status }}</span>
+            <span class="unread-badge" [attr.aria-label]="row.unreadCount + ' tin chưa đọc'">{{
+              row.unreadCount > 99 ? '99+' : row.unreadCount
+            }}</span>
           }
         </a>
-        <button type="button" class="text-button" (click)="confirm.set(row.id)">
-          Ẩn hội thoại
+        <button
+          class="row-menu"
+          type="button"
+          [attr.aria-label]="'Ẩn hội thoại với ' + state.peer(row)?.displayName"
+          title="Ẩn hội thoại"
+          (click)="state.confirm.set(row.id)"
+        >
+          ⋯
         </button>
       </div>
     }
-  </section>
-} @empty {
-  @if (!loading()) {
-    <p class="card">Chưa có hội thoại trong nhóm này. Mở bài đăng hoặc hồ sơ để nhắn tin.</p>
+  } @empty {
+    @if (!state.loading() && !state.error()) {
+      <div class="inbox-empty">
+        <span aria-hidden="true">◌</span>
+        <p>
+          {{
+            state.search()
+              ? 'Không tìm thấy trong hội thoại đã tải.'
+              : 'Chưa có hội thoại trong nhóm này.'
+          }}
+        </p>
+        <p>Mở bài đăng hoặc hồ sơ để bắt đầu kết nối.</p>
+      </div>
+    }
   }
-}
-@if (next()) {
-  <button type="button" (click)="load(true)" [disabled]="loading()">Tải thêm hội thoại</button>
-}
-@if (confirm(); as id) {
-  <div class="notice" role="region" aria-label="Xác nhận ẩn hội thoại">
-    <p>Ẩn khỏi Inbox của bạn? Hội thoại xuất hiện lại khi có tin nhắn mới; lịch sử vẫn được giữ.</p>
-    <button type="button" (click)="hide(id)" [disabled]="busy()">Xác nhận ẩn</button>
-    <button type="button" (click)="confirm.set(null)" [disabled]="busy()">Hủy</button>
-  </div>
-}
+  @if (state.next()) {
+    <button class="load-more" type="button" (click)="state.load(true)" [disabled]="state.loading()">
+      {{ state.loading() ? 'Đang tải…' : 'Tải thêm hội thoại' }}
+    </button>
+  }
+</nav>
+<footer class="connection-note">
+  <span aria-hidden="true">{{ realtime.connected() ? '↻' : '○' }}</span>
+  {{ realtime.connected() ? 'Đã kết nối Chat' : 'Đang kết nối lại…' }}
+</footer>

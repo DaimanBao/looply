@@ -1,5 +1,47 @@
 # Database Integration Test — Looply Đồ án 1
 
+## Notification Module — 20/11/2026
+
+Nhánh `feat/notification-module` từ `develop` `261db04` (PR #28 Chat đã merge), working tree
+ban đầu sạch. Không fetch/pull/rebase/merge/commit/push/PR. Docker PostgreSQL 17 và Redis đã chạy;
+guard kiểm tra URL và `SELECT current_database()` = `looply_test` trước ghi. Database test có
+migration `0001`–`0007`; không cần schema/migration/dependency mới, không ghi `looply_dev`/production.
+
+| Kiểm chứng | Kết quả |
+| --- | --- |
+| Notification policy, OpenAPI refs/routes và runtime shutdown | 17 PASS sau regression presence async |
+| `notification-module.test.ts` | 14 PASS: grouping/concurrent workers, no preview/self, presence tại producer, authority, read boundary, read-all monotonic, soft delete/replay, ownership/IDOR, keyset, Block/account, consumer rollback/retry, stale lease, producer rollback, Listing edit recipients, proposal ACCEPTED/REJECTED |
+| Lượt cuối Notification + Listing CRUD + Chat realtime | 41 PASS (14 + 22 + 5); không cộng các lượt trước có phạm vi trùng |
+| Chat module + realtime trong lượt trước | 33 PASS (28 + 5), gồm Auth/Block, account cleanup, media/snapshot/proposal regression |
+| Angular Notification + Chat + App | 22 PASS, gồm stale identity/target, old pagination, duplicate mutation, read conflict, toast đóng không đọc và DTO decoder |
+| Chrome hai profile, API/database/media thật | 6 nhóm PASS: realtime/grouping/no-preview; target/read/presence; leave/read-all/soft delete; proposal; card cũ hơn 30 tin; reload/responsive 1440/390/đổi tài khoản |
+| Backend source/test typecheck + build; Angular test types + production build; Prisma validate | PASS; schema giữ nguyên nên không generate/migrate |
+
+Lệnh nằm trong [Backend README](../../backend/README.md#notification-module),
+[Frontend README](../../frontend/README.md#notification-module). Artifacts Chrome ignored tại
+`frontend/tmp/listing-e2e/notification-report.json` và `notification-{1440,390}.png`.
+Không chạy full suite local; lint script không có. CI **NOT RUN** vì nhiệm vụ cấm commit/push/PR;
+CI của PR #28 là baseline lịch sử, không phải CI của thay đổi Notification chưa commit.
+
+Code Review và Final Review đối chiếu contract, User/membership/Block, ownership, transaction/locks,
+lease fencing, receipt, keyset, soft delete và state identity. Các findings đã sửa:
+
+- **Medium:** Presence cũ có thể suppress sau revoke hoặc leave trong lúc revalidate async:
+  kiểm tra authority và đọc lại lease/socket hiện tại; có unit và realtime regression.
+- **Medium:** Read-all dựa wall-clock mất phân biệt sự kiện cùng ms: dùng event boundary tăng đơn
+  điệu dưới recipient lock; read/delete giữ biên; integration kiểm tra sự kiện sau capture còn unread.
+- **Medium:** Consumer trễ có thể gửi Listing edit cho Conversation mới: producer chụp IDs cùng
+  transaction/Listing lock; integration tạo Conversation mới sau edit để kiểm chứng không nhận.
+- **Medium:** Recipient/type selection ban đầu nằm trong repository: tách vào source service,
+  repository chỉ truy vấn nguồn/persistence; integration chạy lại sau thay đổi.
+- **Low (test):** Chrome ban đầu click khi refresh của grouped event chưa về, nhận read conflict đúng
+  thiết kế: harness chờ timestamp item mới trước click; UI có thông báo retry rõ ràng cho 409.
+
+Không còn Critical/High/Medium đã biết trong phạm vi MVP. Reminder, email/SMS/Web Push không triển khai.
+Presence/fanout chỉ một Backend process; chưa nghiệm thu browser ngoài Chrome, p95 hay load test.
+Repository chưa có SRS/NFR riêng; không suy ra SLA hoặc production readiness từ bằng chứng local.
+Notification không phụ thuộc nghiệm thu live S3 (không có bytes/preview); media regression dùng storage fixture.
+
 ## PR #28 — đồng bộ kiểm thử giá snapshot — 20/11/2026
 
 Sau khi được cho phép commit/push và tạo PR, Backend CI trên `8b215dc` đạt 161 unit, 23 API và 544/545 integration test. Một test kiểm kê NUMERIC còn kỳ vọng ba cột, chưa bao gồm `listing_card_snapshots.listedPrice` từ migration Chat. Frontend CI PASS.

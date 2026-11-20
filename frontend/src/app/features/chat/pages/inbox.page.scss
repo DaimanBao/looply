@@ -1,17 +1,237 @@
-.card {
-  margin-block: 1rem;
-}
-.inbox-row {
+:host {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding-block: 1rem;
-  border-bottom: 1px solid #dce7de;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: #fff;
 }
-@media (max-width: 600px) {
-  .inbox-row {
-    align-items: flex-start;
-    flex-direction: column;
+.inbox-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 24px 18px;
+}
+.eyebrow {
+  font-size: 0.62rem;
+  margin-bottom: 6px;
+  letter-spacing: 1.3px;
+}
+h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+.heading-dot {
+  color: var(--green);
+}
+.refresh {
+  border: 1px solid var(--line);
+  background: #fff;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 1.4rem;
+  color: var(--green);
+  border-radius: 50%;
+}
+.search-box {
+  margin: 0 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f3f6f3;
+  padding: 0 14px;
+  border-radius: 12px;
+}
+.search-box span {
+  font-size: 1.5rem;
+  color: var(--muted);
+}
+.search-box input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 12px 0;
+  font-size: 0.88rem;
+  margin: 0;
+  min-width: 0;
+}
+.inbox-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.inbox-tabs button {
+  flex: 1;
+  padding: 10px 6px;
+  font-size: 0.8rem;
+  background: transparent;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.inbox-tabs button[aria-pressed='true'] {
+  background: #e9f2eb;
+  color: var(--green-dark);
+}
+.conversation-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px;
+}
+.section-label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.73rem;
+  font-weight: 650;
+  color: var(--muted);
+  background: transparent;
+  padding: 14px 12px 8px;
+}
+.conversation-row {
+  position: relative;
+  border-radius: 14px;
+  margin-bottom: 4px;
+}
+.conversation-row:hover {
+  background: #f4f7f3;
+}
+.conversation-row.selected {
+  background: #eaf3ed;
+  box-shadow: inset 3px 0 var(--green);
+}
+.conversation-row a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 28px 15px 12px;
+  color: var(--ink);
+  text-decoration: none;
+  min-height: 92px;
+}
+.peer-avatar {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e7eddf;
+  color: var(--green-dark);
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+.row-content {
+  flex: 1;
+  min-width: 0;
+}
+.row-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.row-heading strong {
+  font-size: 0.94rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+time {
+  font-size: 0.65rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.row-subtitle,
+.row-summary {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.row-subtitle {
+  color: #455c4e;
+  margin-top: 3px;
+}
+.row-summary {
+  margin-top: 2px;
+}
+.unread .row-summary {
+  color: var(--green);
+  font-weight: 650;
+}
+.unread-badge {
+  background: var(--green);
+  color: white;
+  font-size: 0.7rem;
+  min-width: 22px;
+  height: 22px;
+  padding: 1px 5px;
+  border-radius: 12px;
+  text-align: center;
+}
+.row-menu {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.connection-note {
+  padding: 12px 24px;
+  font-size: 0.73rem;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+.connection-note span {
+  color: var(--green);
+  margin-right: 4px;
+}
+.inbox-empty {
+  text-align: center;
+  padding: 40px 18px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.inbox-empty > span {
+  font-size: 3rem;
+  color: #9bb8a5;
+}
+.inbox-empty p:last-child {
+  font-size: 0.8rem;
+}
+.filter-back,
+.load-more {
+  font-size: 0.8rem;
+  color: var(--green);
+  background: transparent;
+  margin: 6px 10px;
+}
+.inbox-feedback {
+  padding: 12px 20px;
+  color: #96303a;
+  font-size: 0.85rem;
+  margin: 0;
+}
+@media (max-width: 720px) {
+  .row-menu {
+    width: 44px;
+    height: 44px;
+  }
+  .conversation-row a {
+    padding-right: 44px;
+  }
+  .refresh {
+    width: 44px;
+    height: 44px;
   }
 }

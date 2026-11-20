@@ -1,0 +1,71 @@
+:host {
+  display: block;
+  color: var(--ink);
+}
+.transaction-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 280px;
+  max-width: 100%;
+  padding: 16px;
+  border: 1px solid #d7e5d9;
+  background: #fff;
+  border-radius: 16px;
+}
+.card-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-size: 0.63rem;
+  letter-spacing: 1px;
+}
+.card-heading > span {
+  font-size: 1.2rem;
+}
+app-chat-image {
+  max-height: 150px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+.card-title {
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+.card-type,
+.listed-price {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.card-price {
+  font-size: 1.2rem;
+  color: var(--green-dark);
+}
+.card-price span {
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+.proposal-status {
+  font-size: 0.74rem;
+  color: #755119;
+  background: #fcf6e9;
+  padding: 5px 10px;
+  border-radius: 7px;
+  align-self: flex-start;
+}
+.proposal-status.accepted {
+  color: var(--green-dark);
+  background: #eaf3eb;
+}
+.card-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.card-actions button {
+  font-size: 0.75rem;
+  padding: 9px 10px;
+}

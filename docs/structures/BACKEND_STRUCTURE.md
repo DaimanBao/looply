@@ -51,6 +51,12 @@ backend/
 ```
 
 ## Cấu trúc bên trong một module
+
+Notification hiện có service quản lý, source service chọn recipient, repositories quản lý/outbox,
+worker, presence và events; public composition tại `modules/notification/index.ts`.
+Composition root nối presence với Chat producer và cùng Socket.IO gateway; Chat/Listing không
+chứa logic lưu/quản lý Notification. Worker tái sử dụng vòng poll tại `jobs/`.
+
 ```text
 modules/<module>/
 ├── <module>.routes.ts            # Khai báo endpoint, middleware
@@ -71,7 +77,7 @@ Cleanup coordinator thuộc `user/deletion/deletion.worker.ts`, không sửa/xó
 
 Media có `listing-media.service/repository.ts` cho primitive ảnh, `listing-manifest.service.ts` sở hữu final membership/cover/detach/delivery, `listing-image.ts` decode/tạo rendition, và `listing-upload.*` cho HTTP upload/cancel. `media-cleanup-event.ts` deduplicate outbox, `media-object-keys.ts` định nghĩa rendition versioned và `media-orphan-recovery.service.ts` đối chiếu local inventory với metadata. Public services export qua `media/index.ts`; `features.ts` ghép dependencies. `chat-media.service/repository.ts` tái sử dụng processor/storage, sở hữu upload CHAT, scope Conversation và cleanup TEMP; không tạo pipeline xử lý ảnh thứ hai.
 
-Chat có `conversation.service.ts`, `message.service.ts`, `proposal.service.ts`; `chat-access.ts` cung cấp cổng membership/session dùng chung. `chat.repository.ts` chứa query, `chat.dto.ts` projection an toàn, `chat-policy.ts` cursor/retention thuần, `chat-retention.service.ts` thu hồi snapshot và điều phối cleanup. `chat.routes/controller/validation/schema.ts` tách HTTP; `realtime/chat.gateway.ts` dùng chính các service REST, kiểm tra lại quyền mỗi lần phát. `chat.module.ts` ghép nội bộ và `chat/index.ts` là public entry. Listing cung cấp `acceptListingTransaction` qua `listing/index.ts` để sở hữu chuyển trạng thái khi Chat accept. Bootstrap gắn Socket.IO và thêm vòng cleanup Chat; runtime đóng websocket trước khi đợi HTTP shutdown. Notification/Reminder chưa có runtime.
+Chat có `conversation.service.ts`, `message.service.ts`, `proposal.service.ts`; `chat-access.ts` cung cấp cổng membership/session dùng chung. `chat.repository.ts` chứa query, `chat.dto.ts` projection an toàn, `chat-policy.ts` cursor/retention thuần, `chat-retention.service.ts` thu hồi snapshot và điều phối cleanup. `chat.routes/controller/validation/schema.ts` tách HTTP; `realtime/chat.gateway.ts` dùng chính các service REST, kiểm tra lại quyền mỗi lần phát. `chat.module.ts` ghép nội bộ và `chat/index.ts` là public entry. Listing cung cấp `acceptListingTransaction` qua `listing/index.ts` để sở hữu chuyển trạng thái khi Chat accept. Bootstrap gắn Socket.IO, vòng cleanup Chat và consumer Notification; runtime đóng websocket trước khi đợi HTTP shutdown. Reminder chưa có runtime.
 
 Listing có `listing.routes/controller/validation/schema.ts` cho CRUD/management; `listing.service.ts` quản lý quyền, version, trạng thái và transaction; `listing.repository.ts` truy cập Listing/Province, facts Conversation/Proposal và outbox. `listing.dto.ts` serialize public fields, `listing-cursor.ts` quản lý keyset My Listings, `listing-search.ts` chuẩn hóa searchTitle dùng chung với discovery. Phase 3 thêm `listing-discovery.*` tách schema/validation/controller/routes/service/repository, `listing-discovery-cursor.ts` gắn query/viewer/scope/asOf/seed, và `listing-follow.service/repository.ts` cho quan hệ unique hiện có. Discovery dùng public User predicates cho SQL/Prisma, query bounded ở database rồi hydrate DTO. Follow tái sử dụng User→Listing locks và session gate. Listing gọi public `ListingManifestService` thay vì storage trực tiếp. Unit tests gần module; HTTP/PostgreSQL tests ở `tests/integration/listing-crud.test.ts` và `listing-discovery.test.ts`.
 
