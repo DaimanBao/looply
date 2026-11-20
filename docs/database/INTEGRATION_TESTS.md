@@ -1,5 +1,13 @@
 # Database Integration Test — Looply Đồ án 1
 
+## PR #28 — đồng bộ kiểm thử giá snapshot — 20/11/2026
+
+Sau khi được cho phép commit/push và tạo PR, Backend CI trên `8b215dc` đạt 161 unit, 23 API và 544/545 integration test. Một test kiểm kê NUMERIC còn kỳ vọng ba cột, chưa bao gồm `listing_card_snapshots.listedPrice` từ migration Chat. Frontend CI PASS.
+
+Bổ sung snapshot vào kiểm kê và ma trận INSERT/UPDATE: từ chối NaN (SALE/RENT/EXCHANGE), Infinity/-Infinity, chấp nhận hai biên giá hữu hạn và EXCHANGE giá NULL. Fixture INSERT snapshot dùng khóa ảnh riêng để không bị UNIQUE che mất constraint giá cần kiểm tra. Không sửa hoặc làm yếu constraint database.
+
+Lượt targeted local sau sửa dừng ở kết nối `ECONNREFUSED 127.0.0.1:5435`: Docker local chưa chạy, chưa đến được fixture hoặc assertion. Kết quả này không phải PASS; kiểm chứng tích hợp bản sửa thực hiện trên CI của commit tiếp theo trong PR. Phần bên dưới giữ bằng chứng của lượt triển khai trước khi được cho phép tạo PR.
+
 ## Chat Module — 20/11/2026
 
 Nhánh `feat/chat-module` từ cached `origin/develop` `d6e36eb` (đã chứa Listing/Media và Phase 5C). Working tree ban đầu sạch; không fetch/pull/commit/push/merge/PR. Xác minh URL và actual database `looply_test` trước ghi; áp dụng additive `0006_chat_module`, `0007_chat_reservation_version`. Read-only preflight `looply_dev` xác nhận vẫn có `0001`–`0005`; không ghi development/production hoặc sửa migration lịch sử.

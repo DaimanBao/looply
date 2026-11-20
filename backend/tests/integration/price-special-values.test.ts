@@ -12,8 +12,8 @@ import {
 import { withTestTransaction } from "../helpers/test-database";
 
 type PriceTarget = {
-  table: "listings" | "transaction_proposals";
-  column: "price" | "proposedPrice" | "listedPriceSnapshot";
+  table: "listings" | "transaction_proposals" | "listing_card_snapshots";
+  column: "price" | "proposedPrice" | "listedPriceSnapshot" | "listedPrice";
   constraint: string;
 };
 type PriceScenario = PriceTarget & {
@@ -22,6 +22,7 @@ type PriceScenario = PriceTarget & {
 };
 
 const targets: PriceTarget[] = [
+  { table: "listing_card_snapshots", column: "listedPrice", constraint: "ck_snapshot_terms" },
   { table: "listings", column: "price", constraint: "ck_listing_price_type" },
   { table: "transaction_proposals", column: "proposedPrice", constraint: "ck_proposal_kind" },
   {
@@ -33,7 +34,7 @@ const targets: PriceTarget[] = [
 const scenarios: PriceScenario[] = [];
 for (const target of targets) {
   const kinds =
-    target.table === "listings" ? ["LISTED_PRICE"] : ["LISTED_PRICE", "NEGOTIATED_PRICE"];
+    target.table === "transaction_proposals" ? ["LISTED_PRICE", "NEGOTIATED_PRICE"] : ["LISTED_PRICE"];
   for (const type of ["SALE", "RENT"]) {
     for (const proposalKind of kinds) {
       scenarios.push({
@@ -59,9 +60,16 @@ for (const target of targets) {
       },
     });
   }
+  if (target.table === "listing_card_snapshots") {
+    scenarios.push({
+      ...target,
+      name: "EXCHANGE listing card snapshot",
+      changes: { type: "EXCHANGE", rentalUnit: null },
+    });
+  }
 }
 
-/** Ghi hàng mới hoặc đổi fixture; đề xuất mới giải phóng slot đang chờ hiện có trước. */
+/** Ghi fixture với khóa ảnh riêng; đề xuất mới giải phóng slot đang chờ hiện có trước. */
 async function writePrice(
   client: Client,
   input: {
@@ -76,7 +84,14 @@ async function writePrice(
   if (table === "transaction_proposals") {
     await updateRow(client, table, original.id, { status: "REJECTED", resolvedAt: new Date() });
   }
-  return insertRow(client, table, { ...original, id: randomUUID(), ...changes });
+  return insertRow(client, table, {
+    ...original,
+    id: randomUUID(),
+    ...(table === "listing_card_snapshots"
+      ? { imageStorageKey: `chat-snapshot/${randomUUID()}.webp` }
+      : {}),
+    ...changes,
+  });
 }
 
 describe.each(["INSERT", "UPDATE"] as const)("Numeric price validity on %s", (operation) => {
@@ -143,7 +158,7 @@ describe.each(["INSERT", "UPDATE"] as const)("Numeric price validity on %s", (op
   });
 
   // EXCHANGE tiếp tục không có giá listing/đề xuất hoặc đơn vị thuê.
-  it.each(["listings", "transaction_proposals"] as const)(
+  it.each(["listings", "transaction_proposals", "listing_card_snapshots"] as const)(
     "keeps EXCHANGE NULL prices valid in %s",
     async (table) => {
       await withTestTransaction(async (client) => {
@@ -151,13 +166,15 @@ describe.each(["INSERT", "UPDATE"] as const)("Numeric price validity on %s", (op
         const changes: Record<string, SqlValue> =
           table === "listings"
             ? { type: "EXCHANGE", price: null, rentalUnit: null }
-            : {
-                type: "EXCHANGE",
-                proposalKind: "EXCHANGE_CONTACT",
-                proposedPrice: null,
-                listedPriceSnapshot: null,
-                rentalUnit: null,
-              };
+            : table === "listing_card_snapshots"
+              ? { type: "EXCHANGE", listedPrice: null, rentalUnit: null }
+              : {
+                  type: "EXCHANGE",
+                  proposalKind: "EXCHANGE_CONTACT",
+                  proposedPrice: null,
+                  listedPriceSnapshot: null,
+                  rentalUnit: null,
+                };
         const row = await writePrice(client, { operation, table, original: rows[table], changes });
         expect(row.type).toBe("EXCHANGE");
       });
@@ -187,7 +204,7 @@ describe.each(["INSERT", "UPDATE"] as const)("Numeric price validity on %s", (op
 
 describe("Price field inventory", () => {
   // Trường NUMERIC mới phải được review tường minh, không âm thầm nằm ngoài kiểm thử giá.
-  it("covers all three numeric columns in the database schema", async () => {
+  it("covers all numeric price columns in the database schema", async () => {
     await withTestTransaction(async (client) => {
       const result = await client.query<{
         table_name: string;
@@ -200,6 +217,12 @@ describe("Price field inventory", () => {
          ORDER BY table_name, column_name`,
       );
       expect(result.rows).toEqual([
+        {
+          table_name: "listing_card_snapshots",
+          column_name: "listedPrice",
+          numeric_precision: 15,
+          numeric_scale: 0,
+        },
         { table_name: "listings", column_name: "price", numeric_precision: 15, numeric_scale: 0 },
         {
           table_name: "transaction_proposals",
