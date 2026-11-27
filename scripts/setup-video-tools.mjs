@@ -8,15 +8,15 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 const version = "n8.1.3-35-gf1acb0a266";
-const release = "autobuild-2026-11-12-15-40";
+const release = "autobuild-2026-11-17-12-40";
 const platforms = {
   win32: {
     asset: `ffmpeg-${version}-win64-gpl-8.1.zip`,
-    sha256: "688d6d2d33ff3b91ae15eb8be5660e7ccaec7d3170fb25f091c4972dcb447d9d",
+    sha256: "5e50099d2ad086f193889452e98bce6f5ece36e852b2390769707c3afa39659b",
   },
   linux: {
     asset: `ffmpeg-${version}-linux64-gpl-8.1.tar.xz`,
-    sha256: "320c1f97653ad0740343f87abe2303656b85eb119c3f06abcb639837e9beaed3",
+    sha256: "4f88dca1e0e3079b0e8ba59a74a5bbdb8c89086a1508630616df76a56b0e0e55",
   },
 };
 /** Chỉ chuẩn bị release đã review, kiểm tra digest đã pin trước giải nén hoặc thực thi. */
@@ -33,7 +33,11 @@ async function main() {
       `https://github.com/FFmpeg-Builds/FFmpeg-Builds/releases/download/${release}/${platform.asset}`,
       { signal: AbortSignal.timeout(300000) },
     );
-    if (!response.ok || !response.body) throw new Error("Video tools download failed");
+    if (!response.ok || !response.body) {
+      throw new Error(
+        `Video tools download failed (HTTP ${response.status}): ${release}/${platform.asset}`,
+      );
+    }
     await pipeline(Readable.fromWeb(response.body), createWriteStream(archive, { flags: "wx" }));
     const hash = createHash("sha256")
       .update(await readFile(archive))
