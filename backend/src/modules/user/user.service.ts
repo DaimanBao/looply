@@ -4,6 +4,7 @@ import type { UserRepository } from "./user.repository";
 import type { SessionService, Principal } from "../auth";
 import type { DatabaseTransaction } from "../../shared/database/prisma";
 import { AppError } from "../../shared/errors/app-error";
+import { cursorPage } from "../../shared/http/pagination";
 import { conflict, forbidden } from "../auth";
 import type { User } from "../../generated/prisma/client";
 
@@ -125,15 +126,21 @@ export class UserService {
     await this.repository.transaction(async (tx) => {
       await this.repository.lock(tx, [principal.userId, target]);
       await this.sessions.requireCurrent(principal, tx);
-      if (operation === "follow") {
-        await this.requireInteraction(tx, principal.userId, target);
-        await this.repository.follow(principal.userId, target, tx);
-      } else if (operation === "unfollow")
-        await this.repository.unfollow(principal.userId, target, tx);
-      else if (operation === "unblock") await this.repository.unblock(principal.userId, target, tx);
-      else {
-        if (!(await this.repository.visible(target, undefined, tx))) throw forbidden();
-        await this.repository.block(principal.userId, target, tx);
+      switch (operation) {
+        case "follow":
+          await this.requireInteraction(tx, principal.userId, target);
+          await this.repository.follow(principal.userId, target, tx);
+          break;
+        case "unfollow":
+          await this.repository.unfollow(principal.userId, target, tx);
+          break;
+        case "unblock":
+          await this.repository.unblock(principal.userId, target, tx);
+          break;
+        case "block":
+          if (!(await this.repository.visible(target, undefined, tx))) throw forbidden();
+          await this.repository.block(principal.userId, target, tx);
+          break;
       }
     });
   }
@@ -156,12 +163,10 @@ export class UserService {
       viewer?.userId,
     );
     const data = rows.slice(0, page.limit);
-    return {
-      data: data.map(publicProfile),
-      pagination: {
-        nextCursor: rows.length > page.limit ? (data[data.length - 1]?.id ?? null) : null,
-      },
-    };
+    return cursorPage(
+      data.map(publicProfile),
+      rows.length > page.limit ? (data.at(-1)?.id ?? null) : null,
+    );
   }
 
   /** Chỉ cung cấp danh mục Province đang hoạt động, không yêu cầu xác thực. */

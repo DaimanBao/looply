@@ -26,6 +26,7 @@ describe('SessionService', () => {
     expect(session.token()).toBe('opaque-test-token');
   });
   it('clears revoked sessions and permits a subsequent fresh attempt', async () => {
+    session.accept({ accessToken: 'revoked-test-token', expiresIn: 900, status: 'ACTIVE' });
     const failed = firstValueFrom(session.refresh());
     http.expectOne('/api/auth/refresh').flush({}, { status: 401, statusText: 'Unauthorized' });
     await expect(failed).rejects.toBeDefined();

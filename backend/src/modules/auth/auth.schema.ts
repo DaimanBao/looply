@@ -28,6 +28,10 @@ export const phoneLoginSchema = otpProofSchema.extend({ phone: phoneSchema }).st
 export const googleSchema = z
   .object({ credential: z.string().min(1).max(16384), challengeId: z.string().min(40).max(128) })
   .strict();
+export const linkGoogleSchema = googleSchema
+  .extend({ reauthProof: z.string().min(40).max(128) })
+  .strict();
+export const sessionParams = z.object({ sessionId: z.uuid() });
 export const requestOtpSchema = z
   .object({ purpose: z.enum(otpPurposes), destination: z.string().max(254) })
   .strict();

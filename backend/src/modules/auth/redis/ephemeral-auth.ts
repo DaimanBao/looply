@@ -7,6 +7,12 @@ import type { ScriptStore } from "./redis-store";
 import { requestOtpScript, verifyOtpScript } from "./otp-scripts";
 
 const getAndDelete = `local v=redis.call('GET',KEYS[1]); if v then redis.call('DEL',KEYS[1]) end; return v`;
+
+/** Gắn cùng định danh thao tác và phiên ở cả hai phía cấp và tiêu thụ proof. */
+function reauthBinding(sessionId: string, operation: SensitiveOperation): string {
+  return `reauth:${sessionId}:${operation}`;
+}
+
 export class EphemeralAuth {
   /** Dùng chung một triển khai Redis cho OTP, nonce, xác thực lại và rate limit. */
   constructor(
@@ -69,9 +75,14 @@ export class EphemeralAuth {
     if (result !== binding) throw unauthorized();
   }
 
-  /** Gắn quyền thao tác nhạy cảm với thao tác và phiên hiện tại, không chỉ với User. */
-  reauthBinding(sessionId: string, operation: SensitiveOperation): string {
-    return `reauth:${sessionId}:${operation}`;
+  /** Cấp proof ngắn hạn cho đúng thao tác và phiên vừa xác thực lại. */
+  issueReauth(sessionId: string, operation: SensitiveOperation): Promise<string> {
+    return this.issueProof(reauthBinding(sessionId, operation));
+  }
+
+  /** Tiêu thụ một lần qua chung cổng Redis, kể cả khi proof sai thao tác. */
+  consumeReauth(sessionId: string, operation: SensitiveOperation, proof: string): Promise<void> {
+    return this.consumeProof(proof, reauthBinding(sessionId, operation));
   }
 
   /** Áp dụng giới hạn fixed-window chung; lượt bị chặn không âm thầm chuyển sang bộ nhớ. */

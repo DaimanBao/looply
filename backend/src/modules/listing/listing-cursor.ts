@@ -1,6 +1,10 @@
-import { createHash } from "node:crypto";
 import { z } from "zod";
-import { AppError } from "../../shared/errors/app-error";
+import {
+  hashCursorQuery,
+  invalidListingCursor,
+  readCursorPayload,
+  writeCursorPayload,
+} from "./listing-cursor-codec";
 import { listingId, type MyListingsQuery } from "./listing.schema";
 
 const cursorSchema = z.strictObject({
@@ -13,40 +17,36 @@ const cursorSchema = z.strictObject({
   last: z.strictObject({ createdAt: z.iso.datetime(), id: listingId }),
 });
 export type ListingCursor = z.infer<typeof cursorSchema>;
-/** Gắn phần tiếp theo với chủ sở hữu, trạng thái chọn và kích thước trang. */
-function queryHash(query: MyListingsQuery): string {
-  return createHash("sha256")
-    .update(JSON.stringify({ status: query.status ?? null, limit: query.limit, sort: "NEWEST" }))
-    .digest("hex");
-}
+
 /** Chỉ coi cursor không ký là mốc biên đã kiểm tra; mọi trang vẫn áp dụng phân quyền. */
 export function decodeMyCursor(query: MyListingsQuery, viewerId: string, now: Date): ListingCursor {
+  const queryHash = hashCursorQuery({
+    status: query.status ?? null,
+    limit: query.limit,
+    sort: "NEWEST",
+  });
   if (!query.after)
     return {
       v: 1,
       scope: "my",
-      queryHash: queryHash(query),
+      queryHash,
       viewerId,
       asOf: now.toISOString(),
       seed: null,
       last: { createdAt: now.toISOString(), id: "ffffffff-ffff-4fff-bfff-ffffffffffff" },
     };
   try {
-    const bytes = Buffer.from(query.after, "base64url");
-    if (bytes.toString("base64url") !== query.after) throw new Error("Invalid encoding");
-    const cursor = cursorSchema.parse(JSON.parse(bytes.toString("utf8")));
+    const cursor = cursorSchema.parse(readCursorPayload(query.after));
     if (
       cursor.viewerId !== viewerId ||
-      cursor.queryHash !== queryHash(query) ||
+      cursor.queryHash !== queryHash ||
       new Date(cursor.asOf) > now ||
       new Date(cursor.last.createdAt) > new Date(cursor.asOf)
     )
       throw new Error("Invalid binding");
     return cursor;
   } catch {
-    throw new AppError(400, "VALIDATION_ERROR", "Invalid continuation cursor.", [
-      { path: "query.after", code: "custom" },
-    ]);
+    throw invalidListingCursor();
   }
 }
 /** Mã hóa hàng cuối đã trả, không dùng hàng đọc trước. */
@@ -54,7 +54,8 @@ export function encodeMyCursor(
   cursor: ListingCursor,
   last: { id: string; createdAt: Date },
 ): string {
-  return Buffer.from(
-    JSON.stringify({ ...cursor, last: { id: last.id, createdAt: last.createdAt.toISOString() } }),
-  ).toString("base64url");
+  return writeCursorPayload({
+    ...cursor,
+    last: { id: last.id, createdAt: last.createdAt.toISOString() },
+  });
 }

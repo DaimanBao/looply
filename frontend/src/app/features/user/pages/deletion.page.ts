@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
-import { Component, OnInit, inject, signal, viewChild } from '@angular/core';
+import { Component, OnInit, inject, viewChild } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { SessionService } from '../../../core/auth/session.service';

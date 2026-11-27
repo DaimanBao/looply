@@ -6,6 +6,35 @@ import { decodeDiscoveryCursor, encodeDiscoveryCursor } from "./listing-discover
 const now = new Date("2026-11-13T00:00:00.000Z");
 const id = randomUUID();
 describe("Discovery cursor", () => {
+  it("preserves previously issued price cursors and their query binding", () => {
+    // Giữ nguyên hash, thứ tự trường và biểu diễn giá ghi từ codec cũ.
+    const legacy = {
+      v: 1,
+      scope: "discovery",
+      queryHash: "c37b85adf2893dff6dfa62a92360ca4612117e955fbb0fe1df6f7b61281a22e3",
+      viewerId: "27330c0f-366c-4e8d-9f8e-b97909e64b65",
+      asOf: "2026-11-13T10:00:00.123Z",
+      seed: null,
+      last: { id: "84ad4336-3804-4dc9-9297-8534dbf0852a", price: "150" },
+    };
+    const after = Buffer.from(JSON.stringify(legacy)).toString("base64url");
+    const query = discoveryQuerySchema.parse({
+      q: "Đồ đạc",
+      type: "SALE",
+      sort: "PRICE_ASC",
+      limit: "2",
+      postedWithin: "7D",
+      minPrice: "100",
+    });
+    const timestamp = new Date(legacy.asOf);
+    const first = decodeDiscoveryCursor(query, "discovery", legacy.viewerId, timestamp);
+
+    expect(encodeDiscoveryCursor(first, legacy.last)).toBe(after);
+    expect(
+      decodeDiscoveryCursor({ ...query, after }, "discovery", legacy.viewerId, timestamp),
+    ).toEqual(legacy);
+  });
+
   it("rejects ISO year zero in both timestamp fields before constructing SQL", () => {
     const query = discoveryQuerySchema.parse({});
     const cursor = decodeDiscoveryCursor(query, "discovery", null, now);

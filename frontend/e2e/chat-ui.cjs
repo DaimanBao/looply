@@ -136,17 +136,29 @@ module.exports = async function chatUi({
       Math.abs((await page.evaluate(`document.querySelector('.messages').scrollTop`)) - oldTop) < 6,
       'Receiving does not force scroll',
     );
+    // Chờ Chrome phát xong sự kiện cuộn xuống cuối trước khi cuộn ngược lên để tải trang cũ.
+    await page.evaluate(
+      `(() => {
+        const viewport = document.querySelector('.messages');
+        // Đánh dấu trên viewport của hội thoại đang kiểm tra.
+        viewport.addEventListener('scrollend', () => {
+          viewport.dataset.e2eLatestScrollEnded = 'true';
+        }, { once: true });
+      })()`,
+    );
     await page.click('↓ Tin nhắn mới');
     await page.wait(
-      `(()=>{const e=document.querySelector('.messages');return e.scrollHeight-e.scrollTop-e.clientHeight<96})()`,
-      'return to latest',
+      `(() => {
+        const viewport = document.querySelector('.messages');
+        return viewport.dataset.e2eLatestScrollEnded === 'true' &&
+          viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 96;
+      })()`,
+      'return to latest and finish scrolling',
     );
     const before = await page.evaluate(
       `(()=>{const v=document.querySelector('.messages');const e=v.querySelector('.message');return {id:e.id,count:v.querySelectorAll('.message').length}})()`,
     );
-    await page.evaluate(
-      `const v=document.querySelector('.messages');v.scrollTop=0;v.dispatchEvent(new Event('scroll'))`,
-    );
+    await page.evaluate(`document.querySelector('.messages').scrollTop = 0`);
     await page.wait(
       `document.querySelectorAll('.messages .message').length > ${before.count}`,
       'older page prepended',
@@ -246,8 +258,16 @@ module.exports = async function chatUi({
     );
     await page.navigate(`/chat/${conversationId}`, `!!document.querySelector('#chat-content')`);
   } catch (error) {
-    const shot = await page.send('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(path.join(artifacts, 'chat-ui-failure.png'), Buffer.from(shot.data, 'base64'));
+    try {
+      const shot = await page.send('Page.captureScreenshot', { format: 'png' });
+      fs.writeFileSync(
+        path.join(artifacts, 'chat-ui-failure.png'),
+        Buffer.from(shot.data, 'base64'),
+      );
+    } catch {
+      // Khi Chrome đã đóng, vẫn báo assertion gốc ở caller.
+      console.error('Could not capture Chat failure screenshot');
+    }
     throw error;
   }
 };

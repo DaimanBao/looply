@@ -3,6 +3,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthApi } from '../data-access/auth.api';
 import { SessionService } from '../../../core/auth/session.service';
+import { sessionDestination } from '../../../core/auth/session-destination';
 import type { OtpProof } from '../../../core/http/api.models';
 import { usernameValidator, phoneValidator } from '../../../shared/validation/account.validators';
 import { ActionState } from '../../../shared/ui/action-state';
@@ -57,13 +58,7 @@ export class LoginPage {
       this.form.controls.password.reset();
       this.proof.set(null);
       const requested = this.route.snapshot.queryParamMap.get('returnUrl');
-      const target =
-        requested?.startsWith('/') && !requested.startsWith('//') && !requested.startsWith('/auth/')
-          ? requested
-          : '/account';
-      await this.router.navigateByUrl(
-        tokens.status === 'PENDING_DELETION' ? '/account/deletion' : target,
-      );
+      await this.router.navigateByUrl(sessionDestination(tokens.status, requested));
     });
   }
 }

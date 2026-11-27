@@ -1,7 +1,7 @@
 import type { ChatMessage } from './chat.models';
 
 /** So ngày theo timezone người xem, không dùng UTC slice gây sai mốc nửa đêm. */
-export function dayKey(date: Date): string {
+function dayKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
@@ -21,32 +21,27 @@ export function dayLabel(value: string, now = new Date()): string {
 
 /** Chỉ nhóm tin liên tiếp cùng sender/ngày trong 5 phút; card giữ phân cách riêng. */
 export function groupedMessages(messages: ChatMessage[]) {
-  return messages.map((message, index) => {
-    const previous = messages[index - 1];
-    const next = messages[index + 1];
-    const day = dayKey(new Date(message.createdAt));
-    const grouped =
-      !!previous &&
-      previous.type === 'TEXT' &&
-      message.type === 'TEXT' &&
-      previous.senderId === message.senderId &&
-      dayKey(new Date(previous.createdAt)) === day &&
-      new Date(message.createdAt).getTime() - new Date(previous.createdAt).getTime() < 300000;
-    const endGroup =
-      !next ||
-      next.senderId !== message.senderId ||
-      next.type !== 'TEXT' ||
-      message.type !== 'TEXT' ||
-      dayKey(new Date(next.createdAt)) !== day ||
-      new Date(next.createdAt).getTime() - new Date(message.createdAt).getTime() >= 300000;
-    return {
-      message,
-      grouped,
-      endGroup,
-      separator:
-        !previous || dayKey(new Date(previous.createdAt)) !== day
-          ? dayLabel(message.createdAt)
-          : null,
-    };
+  const rows = messages.map((message) => {
+    const date = new Date(message.createdAt);
+    return { message, day: dayKey(date), time: date.getTime() };
   });
+  const joinsPrevious = rows.map(({ message, day, time }, index) => {
+    const previous = rows[index - 1];
+    return (
+      previous !== undefined &&
+      previous.message.type === 'TEXT' &&
+      message.type === 'TEXT' &&
+      previous.message.senderId === message.senderId &&
+      previous.day === day &&
+      time - previous.time < 5 * 60_000
+    );
+  });
+
+  // Hai phía của cùng một ranh giới dùng chung quyết định nhóm tin.
+  return rows.map(({ message, day }, index) => ({
+    message,
+    grouped: joinsPrevious[index],
+    endGroup: !joinsPrevious[index + 1],
+    separator: rows[index - 1]?.day === day ? null : dayLabel(message.createdAt),
+  }));
 }

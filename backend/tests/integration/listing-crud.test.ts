@@ -98,6 +98,14 @@ function row(id: string) {
 }
 
 describe("Listing CRUD HTTP with real PostgreSQL", () => {
+  it("reports path validation before an invalid patch body", async () => {
+    const response = await patch("invalid-id", {}).expect(400);
+    expect(response.body.error).toMatchObject({
+      code: "VALIDATION_ERROR",
+      details: [{ path: "params.listingId", code: "invalid_format" }],
+    });
+  });
+
   it("uploads and delivers a valid JPEG even when its APP metadata contains the video sniff marker", async () => {
     image = await jpegWithFtypAppSegment();
     const mediaId = await upload();

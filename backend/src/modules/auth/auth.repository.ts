@@ -1,7 +1,9 @@
 import type { PrismaClient, Prisma, User } from "../../generated/prisma/client";
 import type { DatabaseTransaction } from "../../shared/database/prisma";
 import { lockResources } from "../../shared/database/locks";
-import { emailTrimCharacters } from "./credentials/email-normalization";
+// SQL index dùng cùng tập khoảng trắng ECMAScript trim(), giữ nguyên dấu chấm và +suffix.
+const emailTrimCharacters =
+  " \t\n\r\f\v\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff";
 
 export class AuthRepository {
   /** Dùng Prisma pool chung; service truyền transaction client tường minh. */

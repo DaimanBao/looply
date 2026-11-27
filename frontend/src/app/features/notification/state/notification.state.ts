@@ -155,24 +155,18 @@ export class NotificationState {
 
   /** Đọc riêng không chỉnh cursor Chat. */
   read(item: NotificationItem): Promise<void> {
-    return this.mutate(async () => {
-      await this.api.read(item);
-    });
+    return this.mutate(() => this.api.read(item));
   }
 
   /** Đọc toàn bộ chỉ tới boundary trang hiện tại. */
   readAll(): Promise<void> {
     if (!this.asOf) return Promise.resolve();
-    return this.mutate(async () => {
-      await this.api.readAll(this.asOf);
-    });
+    return this.mutate(() => this.api.readAll(this.asOf));
   }
 
   /** Xóa không thay đổi lịch sử Chat hoặc nội dung bài đăng. */
   remove(item: NotificationItem): Promise<void> {
-    return this.mutate(async () => {
-      await this.api.remove(item.id);
-    });
+    return this.mutate(() => this.api.remove(item.id));
   }
 
   /** Resolve đích rồi đọc đúng boundary; lỗi đích hiển thị tại trang hiện tại. */

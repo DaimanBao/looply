@@ -1,5 +1,6 @@
 import type { Principal, SessionService } from "../auth";
 import { AppError } from "../../shared/errors/app-error";
+import { cursorPage } from "../../shared/http/pagination";
 import { ListingRepository } from "./listing.repository";
 import { listingItem } from "./listing.dto";
 import {
@@ -50,24 +51,22 @@ export class ListingDiscoveryService {
         tx,
       );
       const byId = new Map(rows.map((row) => [row.id, row]));
-      const visible = candidates.filter((row) => byId.has(row.id));
+      // Duyệt thứ tự keyset từ candidates, bỏ hàng không còn hiển thị khi đọc projection.
+      const visible = candidates.flatMap((candidate) => {
+        const row = byId.get(candidate.id);
+        return row ? [{ candidate, row }] : [];
+      });
       const page = visible.slice(0, query.limit);
       const last = page.at(-1);
-      return {
-        data: page.map((candidate) => {
-          const row = byId.get(candidate.id)!;
-          return listingItem(row, row.followers.length > 0);
-        }),
-        pagination: {
-          nextCursor:
-            visible.length > query.limit && last
-              ? encodeDiscoveryCursor(
-                  cursor,
-                  boundary(last, "sort" in query ? query.sort : "NEWEST"),
-                )
-              : null,
-        },
-      };
+      return cursorPage(
+        page.map(({ row }) => listingItem(row, row.followers.length > 0)),
+        visible.length > query.limit && last
+          ? encodeDiscoveryCursor(
+              cursor,
+              boundary(last.candidate, "sort" in query ? query.sort : "NEWEST"),
+            )
+          : null,
+      );
     });
   }
 

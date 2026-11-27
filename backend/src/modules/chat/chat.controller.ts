@@ -2,7 +2,7 @@ import type { RequestHandler } from "express";
 import { z } from "zod";
 import { principal } from "../auth";
 import { AppError } from "../../shared/errors/app-error";
-import { body } from "../../shared/http/validated-body";
+import { parseRequest, validatedHandler } from "../../shared/middleware/validate-request";
 import type { ConversationService } from "./conversation.service";
 import type { MessageService } from "./message.service";
 import type { ProposalService } from "./proposal.service";
@@ -23,90 +23,82 @@ export function createChatController(
   messages: MessageService,
   proposals: ProposalService,
 ) {
+  const conversationParams = z.object({ conversationId: chatId });
+  const emptyQuery = z.strictObject({});
+  const conversation = z.object({ params: conversationParams, query: emptyQuery });
+  const message = z.object({
+    params: conversationParams.extend({ messageId: chatId }),
+    query: emptyQuery,
+  });
+  const messageBody = z.object({ body: messageInput });
+  const receiptBody = z.object({ body: receiptInput });
+  const proposalBody = z.object({ body: proposalInput });
+  const resolutionBody = z.object({ body: resolveInput });
   /** Tạo mới hoặc trả Conversation duy nhất đã có. */
-  const create: RequestHandler = async (_request, response) => {
-    response.json(
-      await conversations.create(principal(response), body(response, conversationInput)),
-    );
-  };
+  const create = validatedHandler(
+    z.object({ body: conversationInput }),
+    async ({ body }, response) => {
+      response.json(await conversations.create(principal(response), body));
+    },
+  );
   /** Trả trang Inbox theo filter đã được middleware kiểm tra. */
-  const inbox: RequestHandler = async (_request, response) => {
-    const { query } = z.object({ query: inboxQuery }).parse(response.locals.validated);
+  const inbox = validatedHandler(z.object({ query: inboxQuery }), async ({ query }, response) => {
     response.json(await conversations.inbox(principal(response), query));
-  };
+  });
   /** Trả metadata an toàn của Conversation thuộc participant. */
-  const get: RequestHandler = async (request, response) => {
-    response.json(
-      await conversations.get(principal(response), chatId.parse(request.params.conversationId)),
-    );
-  };
+  const get = validatedHandler(conversation, async ({ params }, response) => {
+    response.json(await conversations.get(principal(response), params.conversationId));
+  });
   /** Chỉ ẩn Inbox cá nhân, giữ lịch sử cho cả hai. */
-  const hide: RequestHandler = async (request, response) => {
-    await conversations.hide(principal(response), chatId.parse(request.params.conversationId));
+  const hide = validatedHandler(conversation, async ({ params }, response) => {
+    await conversations.hide(principal(response), params.conversationId);
     response.sendStatus(204);
-  };
+  });
   /** Tải một trang lịch sử, không tự đánh dấu đã đọc khi GET. */
-  const history: RequestHandler = async (request, response) => {
-    const { query } = z.object({ query: chatPage }).parse(response.locals.validated);
-    response.json(
-      await messages.history(
-        principal(response),
-        chatId.parse(request.params.conversationId),
-        query,
-      ),
-    );
-  };
+  const history = validatedHandler(
+    z.object({ params: conversationParams, query: chatPage }),
+    async ({ params, query }, response) => {
+      response.json(await messages.history(principal(response), params.conversationId, query));
+    },
+  );
   /** Payload không được khai báo sender; danh tính lấy từ Auth. */
-  const send: RequestHandler = async (request, response) => {
-    response.json(
-      await messages.send(
-        principal(response),
-        chatId.parse(request.params.conversationId),
-        body(response, messageInput),
-      ),
-    );
-  };
+  const send = validatedHandler(conversation, async ({ params }, response, request) => {
+    // UUID và query sai được báo trước body như các route Chat cũ.
+    const { body } = parseRequest(messageBody, request);
+    response.json(await messages.send(principal(response), params.conversationId, body));
+  });
   /** Xác nhận đã xem từ client, không suy từ việc phát socket. */
-  const read: RequestHandler = async (request, response) => {
-    await messages.receipt(
-      principal(response),
-      chatId.parse(request.params.conversationId),
-      body(response, receiptInput).messageId,
-      true,
-    );
+  const read = validatedHandler(conversation, async ({ params }, response, request) => {
+    const { body } = parseRequest(receiptBody, request);
+    await messages.receipt(principal(response), params.conversationId, body.messageId, true);
     response.sendStatus(204);
-  };
+  });
   /** Xác nhận đã nhận và giữ read cursor hiện có. */
-  const delivered: RequestHandler = async (request, response) => {
-    await messages.receipt(
-      principal(response),
-      chatId.parse(request.params.conversationId),
-      body(response, receiptInput).messageId,
-      false,
-    );
+  const delivered = validatedHandler(conversation, async ({ params }, response, request) => {
+    const { body } = parseRequest(receiptBody, request);
+    await messages.receipt(principal(response), params.conversationId, body.messageId, false);
     response.sendStatus(204);
-  };
+  });
   /** Gửi card qua quy trình prepare/copy/publish snapshot. */
-  const propose: RequestHandler = async (request, response) => {
-    response.json(
-      await proposals.create(
-        principal(response),
-        chatId.parse(request.params.conversationId),
-        body(response, proposalInput),
-      ),
-    );
-  };
+  const propose = validatedHandler(conversation, async ({ params }, response, request) => {
+    const { body } = parseRequest(proposalBody, request);
+    response.json(await proposals.create(principal(response), params.conversationId, body));
+  });
   /** Chủ Listing xử lý proposal có kiểm soát đồng thời. */
-  const resolve: RequestHandler = async (request, response) => {
-    response.json(
-      await proposals.resolve(
-        principal(response),
-        chatId.parse(request.params.conversationId),
-        chatId.parse(request.params.proposalId),
-        body(response, resolveInput).status,
-      ),
-    );
-  };
+  const resolve = validatedHandler(
+    z.object({ params: conversationParams.extend({ proposalId: chatId }), query: emptyQuery }),
+    async ({ params }, response, request) => {
+      const { body } = parseRequest(resolutionBody, request);
+      response.json(
+        await proposals.resolve(
+          principal(response),
+          params.conversationId,
+          params.proposalId,
+          body.status,
+        ),
+      );
+    },
+  );
   /** Chỉ nhận raw bytes giới hạn bởi middleware, không tin MIME/filename client. */
   const upload: RequestHandler = async (request, response) => {
     if (!Buffer.isBuffer(request.body))
@@ -122,38 +114,25 @@ export function createChatController(
       );
   };
   /** Hủy TEMP có quyền, không xóa Message hoặc ảnh đã gửi. */
-  const cancel: RequestHandler = async (request, response) => {
-    await messages.cancel(
-      principal(response),
-      chatId.parse(request.params.conversationId),
-      chatId.parse(request.params.mediaId),
-    );
-    response.sendStatus(204);
-  };
+  const cancel = validatedHandler(
+    z.object({ params: conversationParams.extend({ mediaId: chatId }), query: emptyQuery }),
+    async ({ params }, response) => {
+      await messages.cancel(principal(response), params.conversationId, params.mediaId);
+      response.sendStatus(204);
+    },
+  );
   /** Phân phối ảnh Message qua cổng membership, không mount private storage. */
-  const image: RequestHandler = async (request, response) => {
+  const image = validatedHandler(message, async ({ params }, response) => {
     response
       .type("image/webp")
-      .send(
-        await messages.image(
-          principal(response),
-          chatId.parse(request.params.conversationId),
-          chatId.parse(request.params.messageId),
-        ),
-      );
-  };
+      .send(await messages.image(principal(response), params.conversationId, params.messageId));
+  });
   /** Snapshot quá hạn trả 404 ngay cả khi cleanup chưa chạy. */
-  const snapshot: RequestHandler = async (request, response) => {
+  const snapshot = validatedHandler(message, async ({ params }, response) => {
     response
       .type("image/webp")
-      .send(
-        await proposals.image(
-          principal(response),
-          chatId.parse(request.params.conversationId),
-          chatId.parse(request.params.messageId),
-        ),
-      );
-  };
+      .send(await proposals.image(principal(response), params.conversationId, params.messageId));
+  });
   return {
     create,
     inbox,

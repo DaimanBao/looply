@@ -1,5 +1,5 @@
 import type { RequestHandler, Response } from "express";
-import type { SessionService } from "../sessions/session.service";
+import type { SessionService } from "../session.service";
 import type { Principal } from "../auth.types";
 import { unauthorized } from "../auth.errors";
 

@@ -34,7 +34,7 @@
   @if (session.startupError()) {
     <div class="notice warning" role="alert">
       Chưa khôi phục được phiên đăng nhập.
-      <button class="text-button" (click)="session.restore()">Thử lại</button>
+      <button class="text-button" (click)="retrySession()">Thử lại</button>
     </div>
   }
   <app-reminder-card />

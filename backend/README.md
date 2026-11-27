@@ -193,7 +193,9 @@ Từ root repository, Windows x64 hoặc Linux x64 có Node.js 24 và `tar`:
 node scripts/setup-video-tools.mjs
 ```
 
-Script tải build BtbN được trang download FFmpeg dẫn chiếu, release cố định `autobuild-2026-11-12-15-40`, version `n8.1.3-35-gf1acb0a266`. Windows ZIP SHA-256 `688d6d2d33ff3b91ae15eb8be5660e7ccaec7d3170fb25f091c4972dcb447d9d`; Linux TAR.XZ SHA-256 `320c1f97653ad0740343f87abe2303656b85eb119c3f06abcb639837e9beaed3`. Chỉ extract/chạy sau khi hash khớp; xác minh version của cả hai executable. Đây là build trên nhánh release 8.1 tại source commit đã pin, không tự cập nhật theo URL `latest`. Muốn nâng binary phải review lại artifact/hash và fixtures. Không thêm npm dependency, không tải công cụ trong runtime.
+Script tải build BtbN được trang download FFmpeg dẫn chiếu, release cố định `autobuild-2026-11-17-12-40`, version `n8.1.3-35-gf1acb0a266`. Windows ZIP SHA-256 `5e50099d2ad086f193889452e98bce6f5ece36e852b2390769707c3afa39659b`; Linux TAR.XZ SHA-256 `4f88dca1e0e3079b0e8ba59a74a5bbdb8c89086a1508630616df76a56b0e0e55`. Chỉ extract/chạy sau khi hash khớp; xác minh version của cả hai executable. Đây là build trên nhánh release 8.1 tại source commit đã pin, không tự cập nhật theo URL `latest`. Muốn nâng binary phải review lại artifact/hash và fixtures. Không thêm npm dependency, không tải công cụ trong runtime.
+
+[Chính sách lưu release của upstream](https://github.com/FFmpeg-Builds/FFmpeg-Builds#release-retention-policy) giữ 14 build hằng ngày gần nhất và giữ build cuối tháng trong hai năm. Khi URL trả HTTP 404, cần kiểm tra release và đối chiếu artifact, checksum, version cùng fixtures trước khi cập nhật pin.
 
 Output mặc định `.video-tools/` (Git ignore), file `.video-tools/video.env` chứa đường dẫn tuyệt đối của máy đang setup. Có thể truyền thư mục đích làm argument; không commit file env hoặc binary. Bộ build giữ license/source metadata đi kèm; khi đóng gói image, giữ các thông tin phân phối của build. Linux runtime cần môi trường tương thích binary (glibc, không dùng Alpine/musl trực tiếp). Setup CI dùng cùng script và ghi đường dẫn qua `GITHUB_ENV`.
 

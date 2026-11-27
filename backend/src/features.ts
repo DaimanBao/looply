@@ -31,7 +31,6 @@ import { createListingController } from "./modules/listing/listing.controller";
 import { createListingRouter } from "./modules/listing/listing.routes";
 import { ListingDiscoveryRepository } from "./modules/listing/listing-discovery.repository";
 import { ListingDiscoveryService } from "./modules/listing/listing-discovery.service";
-import { ListingFollowRepository } from "./modules/listing/listing-follow.repository";
 import { ListingFollowService } from "./modules/listing/listing-follow.service";
 import { createListingDiscoveryController } from "./modules/listing/listing-discovery.controller";
 import { createListingDiscoveryRouter } from "./modules/listing/listing-discovery.routes";
@@ -86,7 +85,7 @@ export function createFeatures(
     auth.sessions,
   );
   const deletionRepository = new DeletionRepository(db);
-  const deletion = new DeletionService(deletionRepository, auth.sessions, auth.identity);
+  const deletion = new DeletionService(deletionRepository, auth.sessions, auth.credentials);
   const mediaCleanupRepository = new MediaCleanupRepository(db);
   const listingMediaRepository = new ListingMediaRepository(db);
   const listingMedia = new ListingMediaService(listingMediaRepository, storage);
@@ -106,11 +105,7 @@ export function createFeatures(
     new ListingDiscoveryRepository(),
     auth.sessions,
   );
-  const listingFollows = new ListingFollowService(
-    listingRepository,
-    new ListingFollowRepository(),
-    auth.sessions,
-  );
+  const listingFollows = new ListingFollowService(listingRepository, auth.sessions);
   const cleanup = new AccountCleanup(
     deletionRepository,
     new CleanupRepository(db),

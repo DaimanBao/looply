@@ -5,16 +5,16 @@ import type {
   passwordLoginSchema,
   phoneLoginSchema,
   googleSchema,
-} from "../auth.schema";
-import type { AuthRepository } from "../auth.repository";
-import type { SessionService } from "../sessions/session.service";
-import type { EphemeralAuth } from "../redis/ephemeral-auth";
-import type { GoogleVerifier, PasswordScreen, Principal, SensitiveOperation } from "../auth.types";
-import { conflict, unauthorized } from "../auth.errors";
-import { hashPassword, verifyPassword } from "../security/password";
-import { otpBinding } from "../otp/otp.service";
-import { lockResources } from "../../../shared/database/locks";
-import { AppError } from "../../../shared/errors/app-error";
+} from "./auth.schema";
+import type { AuthRepository } from "./auth.repository";
+import type { SessionService } from "./session.service";
+import type { EphemeralAuth } from "./redis/ephemeral-auth";
+import type { GoogleVerifier, PasswordScreen, Principal } from "./auth.types";
+import { conflict, unauthorized } from "./auth.errors";
+import { hashPassword, verifyPassword } from "./security/password";
+import { otpBinding } from "./otp.service";
+import { lockResources } from "../../shared/database/locks";
+import { AppError } from "../../shared/errors/app-error";
 
 export class IdentityService {
   private readonly dummyHash = hashPassword(randomUUID());
@@ -68,15 +68,13 @@ export class IdentityService {
       this.ephemeral.limits.password.seconds,
     );
     const candidate = await this.repository.user({ username: input.username });
-    if (
-      !(await verifyPassword(candidate?.passwordHash ?? (await this.dummyHash), input.password)) ||
-      !candidate?.passwordHash
-    )
-      throw unauthorized();
+    const passwordHash = candidate?.passwordHash;
+    const matches = await verifyPassword(passwordHash ?? (await this.dummyHash), input.password);
+    if (!candidate || !passwordHash || !matches) throw unauthorized();
     return this.repository.transaction(async (tx) => {
       await this.repository.lock(tx, candidate.id);
       const current = await this.repository.user({ id: candidate.id }, tx);
-      if (!current || current.passwordHash !== candidate.passwordHash) throw unauthorized();
+      if (!current || current.passwordHash !== passwordHash) throw unauthorized();
       return this.sessions.create(current, tx);
     });
   }
@@ -160,7 +158,7 @@ export class IdentityService {
     principal: Principal,
     input: z.infer<typeof googleSchema> & { reauthProof: string },
   ): Promise<void> {
-    await this.consumeReauth(principal, "LINK_GOOGLE", input.reauthProof);
+    await this.ephemeral.consumeReauth(principal.sessionId, "LINK_GOOGLE", input.reauthProof);
     const identity = await this.verifyGoogle(input, principal);
     await this.repository.transaction(async (tx) => {
       await this.repository.lock(tx, principal.userId, [`google:${identity.subject}`]);
@@ -174,17 +172,5 @@ export class IdentityService {
         throw conflict("This Google identity cannot be linked.");
       if (!owner) await this.repository.linkGoogle(principal.userId, identity.subject, tx);
     });
-  }
-
-  /** Giao diện Auth công khai cho thay đổi tài khoản User, xác thực đúng thao tác/phiên. */
-  async consumeReauth(
-    principal: Principal,
-    operation: SensitiveOperation,
-    proof: string,
-  ): Promise<void> {
-    await this.ephemeral.consumeProof(
-      proof,
-      this.ephemeral.reauthBinding(principal.sessionId, operation),
-    );
   }
 }

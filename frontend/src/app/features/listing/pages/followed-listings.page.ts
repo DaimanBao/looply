@@ -22,12 +22,12 @@ export class FollowedListingsPage {
     effect(() => {
       this.follows.identity();
       const active = this.follows.session.active();
-      untracked(() => (active ? this.store.resetFollowed() : this.store.reset(null)));
+      untracked(() => this.store.reset(active ? 'followed' : null));
     });
   }
 
   /** Đọc lại danh sách từ server để cập nhật visibility và quan hệ đổi ở tab khác. */
   reload(): void {
-    if (!this.store.loading() && this.follows.session.active()) this.store.resetFollowed();
+    if (!this.store.loading() && this.follows.session.active()) this.store.reset('followed');
   }
 }

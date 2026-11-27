@@ -19,6 +19,7 @@ let fixture: AuthFixture;
 let directory: string;
 let store: LocalObjectStore;
 let token: string;
+let refreshToken: string;
 let ownerId: string;
 let provinceCode: string;
 let imageId: string;
@@ -29,7 +30,9 @@ beforeEach(async () => {
   fixture = await createAuthFixture(store);
   const owner = await fixture.user();
   ownerId = owner.id;
-  token = (await fixture.db.$transaction((tx) => fixture.sessions.create(owner, tx))).accessToken;
+  const session = await fixture.db.$transaction((tx) => fixture.sessions.create(owner, tx));
+  token = session.accessToken;
+  refreshToken = session.refreshToken;
   provinceCode = (await fixture.province()).code;
   const image = await sharp({ create: { width: 32, height: 24, channels: 3, background: "blue" } })
     .png()
@@ -93,6 +96,32 @@ function cleanup() {
 }
 
 describe("Listing videos with real PostgreSQL, local files and FFmpeg", () => {
+  it.each(["IMAGE", "VIDEO"] as const)(
+    "revalidates the session after publishing %s to storage",
+    async (type) => {
+      const marker = Buffer.from(type === "IMAGE" ? "looply-listing-v1" : "looply-video-v1");
+      const put = store.put.bind(store);
+      vi.spyOn(store, "put").mockImplementation(async (key, content) => {
+        await put(key, content);
+        // Thu hồi phiên ngay sau khi marker thật đã được ghi, trước khi upload trả TEMP.
+        if (content.equals(marker)) await fixture.sessions.logout(refreshToken);
+      });
+      const input =
+        type === "VIDEO"
+          ? await bytes()
+          : await sharp({
+              create: { width: 32, height: 24, channels: 3, background: "red" },
+            })
+              .png()
+              .toBuffer();
+
+      const response = await upload(input).expect(401);
+      expect(response.body.error.code).toBe("UNAUTHENTICATED");
+      expect(response.body).not.toHaveProperty("id");
+      expect(await readdir(join(directory, "staging"))).toEqual([]);
+    },
+  );
+
   it.each(["mp4", "webm"])(
     "uploads, attaches and delivers unchanged private %s with correct MIME and ranges",
     async (extension) => {

@@ -115,7 +115,9 @@ export class SessionService {
           return this.install(payload);
         }),
         catchError((error: unknown) => {
-          if (generation === this.generation) this.clear();
+          // Quota từ chối lượt refresh trước khi xác minh hoặc luân chuyển cookie.
+          const rateLimited = error instanceof HttpErrorResponse && error.status === 429;
+          if (generation === this.generation && !rateLimited) this.clear();
           return throwError(() => error);
         }),
         finalize(() => {
@@ -127,11 +129,13 @@ export class SessionService {
   }
 
   /** Khôi phục phiên khi tải lại trước route guard; lỗi hạ tầng vẫn hiển thị. */
-  async restore(): Promise<void> {
+  async restore(): Promise<boolean> {
     try {
       await firstValueFrom(this.refresh());
+      return true;
     } catch (error) {
       this.startupError.set(!(error instanceof HttpErrorResponse && error.status === 401));
+      return false;
     }
   }
 

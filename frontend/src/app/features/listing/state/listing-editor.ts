@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, OnDestroy, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { SessionService } from '../../../core/auth/session.service';
 import type { Province } from '../../../core/http/api.models';
 import { UserApi } from '../../user/public-api';
@@ -116,14 +116,13 @@ export class ListingEditor implements OnDestroy {
       contactPhone: value.contactPhone || null,
       media: manifest,
     };
-    const saved = await this.mutate(async () => {
-      const result = await firstValueFrom(
+    const saved = await this.mutate(
+      () =>
         listing
           ? this.api.update(listing.id, input, listing.version, confirmConversationImpact)
           : this.api.create(input),
-      );
-      return result;
-    }, 'Đã lưu bài đăng.');
+      'Đã lưu bài đăng.',
+    );
     if (saved) {
       this.media.committed();
       this.form.markAsPristine();
@@ -137,13 +136,11 @@ export class ListingEditor implements OnDestroy {
     if (!listing || !confirmed || this.busy() || this.blocked()) return false;
     return this.mutate(
       () =>
-        firstValueFrom(
-          this.api.visibility(
-            listing.id,
-            listing.version,
-            listing.status === 'ACTIVE' ? 'HIDDEN' : 'ACTIVE',
-            listing.hasAcceptedProposal,
-          ),
+        this.api.visibility(
+          listing.id,
+          listing.version,
+          listing.status === 'ACTIVE' ? 'HIDDEN' : 'ACTIVE',
+          listing.hasAcceptedProposal,
         ),
       'Đã cập nhật trạng thái.',
     );
@@ -153,10 +150,7 @@ export class ListingEditor implements OnDestroy {
   async remove(confirmed: boolean): Promise<boolean> {
     const listing = this.listing();
     if (!listing || !confirmed || this.busy() || this.blocked()) return false;
-    return this.mutate(async () => {
-      await firstValueFrom(this.api.remove(listing.id, listing.version));
-      return null;
-    }, 'Đã xóa bài đăng.');
+    return this.mutate(() => this.api.remove(listing.id, listing.version), 'Đã xóa bài đăng.');
   }
 
   /** Đổi danh tính phải xóa ngay dữ liệu riêng và vô hiệu hóa response cũ. */
@@ -175,7 +169,7 @@ export class ListingEditor implements OnDestroy {
 
   /** Khóa thao tác song song và chặn retry mù khi không xác định được kết quả commit. */
   private async mutate(
-    run: () => Promise<ListingDetail | null>,
+    request: () => Observable<ListingDetail | void>,
     message: string,
   ): Promise<boolean> {
     const epoch = this.epoch;
@@ -184,7 +178,7 @@ export class ListingEditor implements OnDestroy {
     this.error.set('');
     this.success.set('');
     try {
-      const result = await run();
+      const result = await firstValueFrom(request());
       if (epoch !== this.epoch || identity !== this.session.identityVersion()) return false;
       if (result) this.listing.set(result);
       this.success.set(message);

@@ -405,70 +405,6 @@ app-avatar {
   padding: 50px 20px;
   color: var(--muted);
 }
-.home-hero {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 40px;
-  align-items: center;
-  padding: 35px 0 70px;
-}
-.home-hero h1 {
-  font-size: clamp(2.5rem, 4.5vw, 4rem);
-  letter-spacing: -2px;
-}
-.home-hero h1 em {
-  color: var(--green);
-  font-style: normal;
-}
-.home-hero p {
-  max-width: 520px;
-  color: var(--muted);
-  margin: 24px 0 30px;
-}
-.home-art {
-  background: #e9efdd;
-  border-radius: 45% 45% 20% 20%;
-  padding: 25px;
-  min-height: 340px;
-  display: grid;
-  place-items: center;
-  color: var(--green);
-  position: relative;
-}
-.home-art > span {
-  font-size: 16rem;
-  line-height: 1;
-  transform: rotate(-25deg);
-}
-.art-label {
-  position: absolute;
-  bottom: 20px;
-  right: 10px;
-  background: #fffdf6;
-  border: 1px solid #e1ddc8;
-  padding: 15px 25px;
-  transform: rotate(-6deg);
-  border-radius: 5px;
-  font-weight: 650;
-}
-.intro-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--line);
-  padding-top: 35px;
-  gap: 36px;
-}
-.intro-grid p {
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-.step-number {
-  color: var(--green);
-  display: block;
-  margin-bottom: 14px;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
 @media (max-width: 800px) {
   .auth-layout {
     grid-template-columns: 1fr;
@@ -481,12 +417,6 @@ app-avatar {
     max-width: 520px;
     width: 100%;
     margin: auto;
-  }
-  .home-hero {
-    grid-template-columns: 1fr;
-  }
-  .home-art {
-    display: none;
   }
   .settings-grid {
     grid-template-columns: 1fr;
@@ -511,13 +441,6 @@ app-avatar {
     align-items: flex-start;
     flex-direction: column;
     gap: 12px;
-  }
-  .intro-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .home-hero {
-    padding: 20px 0 40px;
   }
   .list-row {
     gap: 12px;

@@ -4,16 +4,16 @@ import type {
   changeContactSchema,
   reauthSchema,
   resetSchema,
-} from "../auth.schema";
-import type { AuthRepository } from "../auth.repository";
-import type { SessionService } from "../sessions/session.service";
-import type { IdentityService } from "../identity/identity.service";
-import type { EphemeralAuth } from "../redis/ephemeral-auth";
-import type { PasswordScreen, Principal } from "../auth.types";
-import { unauthorized } from "../auth.errors";
-import { hashPassword, verifyPassword } from "../security/password";
-import { normalizeContact, otpBinding } from "../otp/otp.service";
-import type { DatabaseTransaction } from "../../../shared/database/prisma";
+} from "./auth.schema";
+import type { AuthRepository } from "./auth.repository";
+import type { SessionService } from "./session.service";
+import type { IdentityService } from "./identity.service";
+import type { EphemeralAuth } from "./redis/ephemeral-auth";
+import type { PasswordScreen, Principal } from "./auth.types";
+import { unauthorized } from "./auth.errors";
+import { hashPassword, verifyPassword } from "./security/password";
+import { normalizeContact, otpBinding } from "./otp.service";
+import type { DatabaseTransaction } from "../../shared/database/prisma";
 
 export class CredentialService {
   /** Tập trung thay đổi thông tin xác thực và kiểm tra proof, tránh lặp trong controller User. */
@@ -64,9 +64,7 @@ export class CredentialService {
       } else throw unauthorized();
     });
     return {
-      reauthProof: await this.ephemeral.issueProof(
-        this.ephemeral.reauthBinding(principal.sessionId, input.operation),
-      ),
+      reauthProof: await this.ephemeral.issueReauth(principal.sessionId, input.operation),
       expiresIn: 300,
     };
   }
@@ -78,7 +76,7 @@ export class CredentialService {
   ): Promise<void> {
     await this.passwords.check(input.password);
     const hash = await hashPassword(input.password);
-    await this.identity.consumeReauth(principal, "CHANGE_PASSWORD", input.reauthProof);
+    await this.ephemeral.consumeReauth(principal.sessionId, "CHANGE_PASSWORD", input.reauthProof);
     await this.repository.transaction(async (tx) => {
       await this.repository.lock(tx, principal.userId);
       await this.sessions.requireCurrent(principal, tx);
@@ -120,8 +118,8 @@ export class CredentialService {
     input: z.infer<typeof changeContactSchema>,
   ): Promise<void> {
     const destination = normalizeContact(input.destination, field);
-    await this.identity.consumeReauth(
-      principal,
+    await this.ephemeral.consumeReauth(
+      principal.sessionId,
       field === "email" ? "CHANGE_EMAIL" : "CHANGE_PHONE",
       input.reauthProof,
     );
@@ -135,5 +133,10 @@ export class CredentialService {
       await this.sessions.requireCurrent(principal, tx);
       await this.repository.verifiedContact(principal.userId, destination, tx);
     });
+  }
+
+  /** Cổng Auth hẹp cho vòng đời User; User không tự dựng binding hoặc truy cập Redis. */
+  authorizeDeletion(principal: Principal, proof: string): Promise<void> {
+    return this.ephemeral.consumeReauth(principal.sessionId, "DELETE_ACCOUNT", proof);
   }
 }

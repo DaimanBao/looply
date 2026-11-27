@@ -3,9 +3,8 @@ import { AppError } from "../../shared/errors/app-error";
 import type { ListingMediaRepository } from "./listing-media.repository";
 import type { ListingMediaService } from "./listing-media.service";
 import type { ObjectStore } from "./object-store";
-import { listingMediaObjectKeys } from "./media-object-keys";
+import { listingMediaObjectKeys, videoObjectKeys } from "./media-object-keys";
 import type { Readable } from "node:stream";
-import { videoObjectKeys } from "./media-object-keys";
 import { videoRange } from "./video-range";
 
 export type MediaManifest = { imageIds: string[]; coverImageId?: string; videoId: string | null };
@@ -33,7 +32,11 @@ export class ListingManifestService {
     tx: DatabaseTransaction,
   ): Promise<void> {
     const current = await this.repository.members(listingId, tx);
-    const finalIds = [...manifest.imageIds, ...(manifest.videoId ? [manifest.videoId] : [])];
+    const finalAssets: Array<{ id: string; position: number | null }> = manifest.imageIds.map(
+      (id, position) => ({ id, position }),
+    );
+    if (manifest.videoId) finalAssets.push({ id: manifest.videoId, position: null });
+    const finalIds = finalAssets.map((asset) => asset.id);
     if (
       manifest.imageIds.length < 1 ||
       manifest.imageIds.length > 5 ||
@@ -47,9 +50,10 @@ export class ListingManifestService {
       listingId,
     );
     const fresh: Array<{ id: string; position: number | null }> = [];
-    for (const id of finalIds) {
-      const asset = await this.repository.asset(id, tx);
-      const expectedType = id === manifest.videoId ? "VIDEO" : "IMAGE";
+    // Duyệt đúng thứ tự ảnh rồi video để giữ lỗi đầu tiên của manifest.
+    for (const entry of finalAssets) {
+      const asset = await this.repository.asset(entry.id, tx);
+      const expectedType = entry.position === null ? "VIDEO" : "IMAGE";
       if (
         !asset ||
         asset.uploadedById !== userId ||
@@ -57,12 +61,12 @@ export class ListingManifestService {
         asset.type !== expectedType
       )
         throw new AppError(404, "NOT_FOUND", "Media not found.");
-      if ((await this.repository.referenced(id, tx)) || asset.deletedAt)
+      if ((await this.repository.referenced(entry.id, tx)) || asset.deletedAt)
         throw new AppError(409, "MEDIA_NOT_AVAILABLE", "Media is unavailable.");
       if (asset.status === "ATTACHED" && asset.listingId === listingId) continue;
       if (asset.status !== "TEMP" || asset.listingId)
         throw new AppError(409, "MEDIA_NOT_AVAILABLE", "Media is unavailable.");
-      fresh.push({ id, position: asset.type === "VIDEO" ? null : manifest.imageIds.indexOf(id) });
+      fresh.push(entry);
     }
     const coverId =
       manifest.coverImageId ??
@@ -76,9 +80,8 @@ export class ListingManifestService {
       await this.repository.cancel(asset.id, userId, tx);
     }
     if (fresh.length) await this.lifecycle.attach({ userId, listingId, assets: fresh }, tx);
-    for (const [position, id] of manifest.imageIds.entries())
-      await this.repository.presentation(id, position, id === coverId, tx);
-    if (manifest.videoId) await this.repository.presentation(manifest.videoId, null, false, tx);
+    for (const { id, position } of finalAssets)
+      await this.repository.presentation(id, position, position !== null && id === coverId, tx);
   }
 
   /** Chỉ đọc đính kèm hiện tại; bên gọi giữ khóa User/Listing và phải cấp quyền hiển thị. */

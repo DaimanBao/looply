@@ -25,7 +25,6 @@ export const pageQuerySchema = z.strictObject({
     .regex(/^[A-Za-z0-9_-]+$/)
     .optional(),
 });
-export const pageValuesSchema = pageQuerySchema.extend({ limit: z.number().int().min(1).max(48) });
 export const suggestionsSchema = z.strictObject({ q: queryText });
 const discoveryFields = {
   ...pageQuerySchema.shape,
@@ -44,11 +43,6 @@ const discoveryFields = {
   postedWithin: z.enum(["ALL", "24H", "7D", "30D"]).default("ALL"),
   sort: sort.optional(),
 };
-export const discoveryValuesSchema = z.strictObject({
-  ...discoveryFields,
-  limit: pageValuesSchema.shape.limit,
-  sort,
-});
 export const discoveryQuerySchema = z
   .strictObject(discoveryFields)
   .superRefine((value, context) => {
