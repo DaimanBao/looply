@@ -138,4 +138,25 @@ describe('Auth interceptor', () => {
       vi.restoreAllMocks();
     }
   });
+  it('keeps the session and leaves a chat message unsent when refresh is rate limited', async () => {
+    session.accept({ accessToken: 'chat-token', expiresIn: 900, status: 'ACTIVE' });
+    vi.spyOn(session, 'expiresSoon').mockReturnValue(true);
+    const identity = session.identityVersion();
+    const messageUrl = '/api/conversations/test-conversation/messages';
+    const send = firstValueFrom(client.post(messageUrl, { content: 'Tin nhắn thử' }));
+    http.expectOne('/api/auth/refresh').flush({}, { status: 429, statusText: 'Too Many Requests' });
+    await expect(send).rejects.toMatchObject({ status: 429 });
+    http.expectNone(messageUrl);
+    expect(session.token()).toBe('chat-token');
+    expect(session.identityVersion()).toBe(identity);
+
+    const retry = firstValueFrom(client.post(messageUrl, { content: 'Tin nhắn thử' }));
+    http
+      .expectOne('/api/auth/refresh')
+      .flush({ accessToken: 'rotated-chat-token', expiresIn: 900, status: 'ACTIVE' });
+    const request = http.expectOne(messageUrl);
+    expect(request.request.headers.get('Authorization')).toBe('Bearer rotated-chat-token');
+    request.flush({});
+    await retry;
+  });
 });

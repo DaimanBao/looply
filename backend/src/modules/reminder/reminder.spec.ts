@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { missingProfileFields } from "./reminder.policy";
+import { missingProfileFields } from "./reminder.service";
 
 describe("Reminder profile rules", () => {
   it("requires both a contact value and verification, and never an avatar", () => {

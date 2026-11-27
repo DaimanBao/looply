@@ -185,25 +185,26 @@ export class MediaDraft implements OnDestroy {
 
   /** Không đưa file lỗi, đang upload hoặc TEMP hết hạn vào payload. */
   manifest() {
-    const assets = this.assets();
-    const images = assets.filter((entry) => entry.type === 'IMAGE');
-    const cover = images.find((entry) => entry.key === this.coverKey());
-    if (
-      !images.length ||
-      !cover?.id ||
-      assets.some(
-        (entry) =>
-          !entry.id ||
-          entry.state !== 'ready' ||
-          (entry.expiresAt && Date.parse(entry.expiresAt) <= Date.now()),
+    const coverKey = this.coverKey();
+    const imageIds: string[] = [];
+    let coverImageId: string | null = null;
+    let videoId: string | null = null;
+    for (const asset of this.assets()) {
+      if (
+        !asset.id ||
+        asset.state !== 'ready' ||
+        (asset.expiresAt && Date.parse(asset.expiresAt) <= Date.now())
       )
-    )
-      return null;
-    return {
-      imageIds: images.map((entry) => entry.id!),
-      coverImageId: cover.id,
-      videoId: assets.find((entry) => entry.type === 'VIDEO')?.id ?? null,
-    };
+        return null;
+
+      if (asset.type === 'IMAGE') {
+        imageIds.push(asset.id);
+        if (asset.key === coverKey) coverImageId = asset.id;
+      } else {
+        videoId ??= asset.id;
+      }
+    }
+    return coverImageId ? { imageIds, coverImageId, videoId } : null;
   }
 
   /** Sau commit, thu hồi quyền hủy TEMP trước khi rời editor. */
@@ -239,10 +240,8 @@ export class MediaDraft implements OnDestroy {
 
   /** Cleanup best effort; server TTL vẫn bảo đảm dọn TEMP khi phiên/kết nối đã mất. */
   private cancel(id: string): void {
-    this.api
-      .cancel(id)
-      .subscribe({
-        error: () => this.error.set('Chưa hủy được tệp tạm; hệ thống sẽ dọn theo thời hạn.'),
-      });
+    this.api.cancel(id).subscribe({
+      error: () => this.error.set('Chưa hủy được tệp tạm; hệ thống sẽ dọn theo thời hạn.'),
+    });
   }
 }

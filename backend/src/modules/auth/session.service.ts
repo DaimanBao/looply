@@ -1,10 +1,10 @@
-import type { User } from "../../../generated/prisma/client";
-import type { DatabaseTransaction } from "../../../shared/database/prisma";
-import type { AuthRepository } from "../auth.repository";
-import type { IssuedSession, Principal } from "../auth.types";
-import { unauthorized, forbidden } from "../auth.errors";
-import { digest, secret } from "../security/random";
-import type { AccessTokens } from "../security/access-tokens";
+import type { User } from "../../generated/prisma/client";
+import type { DatabaseTransaction } from "../../shared/database/prisma";
+import type { AuthRepository } from "./auth.repository";
+import type { IssuedSession, Principal } from "./auth.types";
+import { unauthorized, forbidden } from "./auth.errors";
+import { digest, secret } from "./security/random";
+import type { AccessTokens } from "./security/access-tokens";
 
 export const authSessionLifetimeSeconds = 7 * 86400;
 

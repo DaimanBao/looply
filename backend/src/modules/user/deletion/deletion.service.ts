@@ -1,4 +1,4 @@
-import type { IdentityService, Principal, SessionService } from "../../auth";
+import type { CredentialService, Principal, SessionService } from "../../auth";
 import type { DeletionRepository } from "./deletion.repository";
 import { conflict, forbidden } from "../../auth";
 
@@ -7,12 +7,12 @@ export class DeletionService {
   constructor(
     private readonly repository: DeletionRepository,
     private readonly sessions: SessionService,
-    private readonly identity: IdentityService,
+    private readonly credentials: Pick<CredentialService, "authorizeDeletion">,
   ) {}
 
   /** Lập lịch xóa sau 30 ngày và thu hồi mọi phiên kể cả bên yêu cầu, không tác động Listing/Media. */
   async request(principal: Principal, proof: string): Promise<void> {
-    await this.identity.consumeReauth(principal, "DELETE_ACCOUNT", proof);
+    await this.credentials.authorizeDeletion(principal, proof);
     await this.repository.transaction(async (tx) => {
       await this.repository.lock(principal.userId, tx);
       await this.sessions.requireCurrent(principal, tx);

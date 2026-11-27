@@ -55,33 +55,30 @@ export class ReminderState {
   /** Cho phép retry khi lỗi, gộp thao tác lặp và không tự thử lại lượt đã được server cấp. */
   async present(): Promise<void> {
     if (!this.session.active() || this.loading() || this.settled) return;
-    const identity = this.session.identityVersion();
-    const revision = ++this.revision;
-    this.loading.set(true);
-    this.error.set('');
-    try {
-      const items = await this.api.present();
-      if (!this.current(identity, revision)) return;
-      this.items.set(items);
-      this.settled = true;
-    } catch (error) {
-      if (this.current(identity, revision)) this.error.set(apiError(error));
-    } finally {
-      if (this.current(identity, revision)) this.loading.set(false);
-    }
+    await this.read('presentation');
   }
 
   /** Chỉ loại bỏ mục đã hoàn thiện trên card hiện tại; không mở thêm card trong cùng phiên. */
   async recalculate(): Promise<void> {
     if (!this.session.active() || !this.items().length) return;
+    await this.read('evaluation');
+  }
+
+  /** Mỗi request lấy một revision; lỗi và loading chỉ thuộc kết quả hiện hành. */
+  private async read(operation: 'presentation' | 'evaluation'): Promise<void> {
     const identity = this.session.identityVersion();
     const revision = ++this.revision;
     this.loading.set(true);
     this.error.set('');
     try {
-      const missing = await this.api.evaluate();
-      if (this.current(identity, revision))
-        this.items.update((items) => items.filter((item) => missing.includes(item)));
+      const items = await (operation === 'presentation' ? this.api.present() : this.api.evaluate());
+      if (!this.current(identity, revision)) return;
+      if (operation === 'evaluation') {
+        this.items.update((visible) => visible.filter((item) => items.includes(item)));
+        return;
+      }
+      this.items.set(items);
+      this.settled = true;
     } catch (error) {
       if (this.current(identity, revision)) this.error.set(apiError(error));
     } finally {

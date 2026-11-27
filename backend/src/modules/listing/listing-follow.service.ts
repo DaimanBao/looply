@@ -1,13 +1,11 @@
 import type { Principal, SessionService } from "../auth";
 import { AppError } from "../../shared/errors/app-error";
 import { ListingRepository } from "./listing.repository";
-import { ListingFollowRepository } from "./listing-follow.repository";
 
 export class ListingFollowService {
   /** Phối hợp lưu quan hệ với khóa Listing hiện có và kiểm tra phiên có thẩm quyền. */
   constructor(
     private readonly listings: ListingRepository,
-    private readonly repository: ListingFollowRepository,
     private readonly sessions: SessionService,
   ) {}
 
@@ -30,7 +28,7 @@ export class ListingFollowService {
         throw new AppError(404, "NOT_FOUND", "Listing not found.");
       if (row.ownerId === principal.userId)
         throw new AppError(403, "SELF_INTERACTION", "Cannot follow your own listing.");
-      await this.repository.follow(principal.userId, id, tx);
+      await this.listings.follow(principal.userId, id, tx);
     });
   }
 
@@ -40,7 +38,7 @@ export class ListingFollowService {
       await this.listings.lockUsers([principal.userId], tx);
       await this.sessions.requireCurrent(principal, tx);
       await this.listings.lockListing(id, tx);
-      await this.repository.unfollow(principal.userId, id, tx);
+      await this.listings.unfollow(principal.userId, id, tx);
     });
   }
 }

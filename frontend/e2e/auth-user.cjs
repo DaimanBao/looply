@@ -80,6 +80,8 @@ async function main() {
     SMS_PROVIDER: 'fake',
     EMAIL_PROVIDER: 'fake',
     MEDIA_PROVIDER: 'local',
+    MEDIA_LOCAL_DIRECTORY: path.join(temporary, 'objects'),
+    MEDIA_STAGING_DIRECTORY: path.join(temporary, 'staging'),
     DEV_OTP_INSPECTOR_ENABLED: 'true',
     DEV_OTP_INSPECTOR_KEY: inspectorKey,
     DEV_OTP_INSPECTOR_PORT: '3101',
@@ -188,6 +190,23 @@ async function main() {
     const text = await response.text();
     return text ? JSON.parse(text) : undefined;
   }
+  /** Đi qua liên kết RouterLink để giữ phiên và các subscription hiện tại của Angular. */
+  async function followLink(pathname, ready) {
+    const selector = `a[href="${pathname}"]`;
+    assert.equal(
+      await page.evaluate(
+        `(() => {
+          const link = document.querySelector(${JSON.stringify(selector)});
+          if (!link) return false;
+          link.click();
+          return true;
+        })()`,
+      ),
+      true,
+      'Expected navigation link',
+    );
+    await page.wait(`location.pathname === ${JSON.stringify(pathname)} && (${ready})`, pathname);
+  }
   const username = `ui_${randomBytes(7).toString('hex')}`;
   const password = `Looply ${randomBytes(20).toString('base64url')}!`;
   const phone = `+849${randomInt(10000000, 100000000)}`;
@@ -197,7 +216,7 @@ async function main() {
     `location.pathname==='/auth/login' && !!document.querySelector('input[formcontrolname="username"]')`,
   );
   passed('Guest route guard');
-  await page.navigate('/auth/register', `document.querySelectorAll('select option').length>=35`);
+  await followLink('/auth/register', `document.querySelectorAll('select option').length>=35`);
   await page.fill('[formcontrolname="username"]', username);
   await page.fill('[formcontrolname="password"]', password);
   await page.fill('[formcontrolname="phone"]', phone);
@@ -228,23 +247,31 @@ async function main() {
   assert.equal(refresh.path, '/api/auth');
   passed('HttpOnly SameSite Strict refresh cookie');
   await page.navigate('/account', `!!document.querySelector('.profile-hero')`);
+  const restoredCookies = await page.send('Network.getCookies', {
+    urls: ['http://localhost:4200/api/auth/refresh'],
+  });
+  const rotatedRefresh = restoredCookies.cookies.find((cookie) => cookie.name === 'looply_refresh');
+  assert.ok(rotatedRefresh?.value && rotatedRefresh.value !== refresh.value, 'Refresh must rotate');
   passed('Reload restores session through real cookie rotation');
   await page.evaluate(
-    `(()=>{const original=Date.now;Date.now=()=>original()+900000;document.querySelector('a[href="/account/sessions"]').click()})()`,
+    `(() => {
+      const original = Date.now;
+      Date.now = Object.assign(() => original() + 900000, { original });
+      document.querySelector('a[href="/account/sessions"]').click();
+    })()`,
   );
   await page.wait(
     `location.pathname==='/account/sessions' && !!document.querySelector('.list-row')`,
     'refresh before expired request',
   );
   passed('RAM token expiry triggers real refresh without losing the session');
-  await page.navigate('/account', `!!document.querySelector('.profile-hero')`);
+  // Chỉ mô phỏng hết hạn trên bước trên. Các bước sau chạy theo đồng hồ thật.
+  await page.evaluate('Date.now = Date.now.original');
+  await followLink('/account', `!!document.querySelector('.profile-hero')`);
   const ownerId = await page.evaluate(
     `document.querySelector('a[href$="/followers"]').getAttribute('href').split('/')[2]`,
   );
-  await page.navigate(
-    '/account/edit',
-    `!!document.querySelector('[formcontrolname="displayName"]')`,
-  );
+  await followLink('/account/edit', `!!document.querySelector('[formcontrolname="displayName"]')`);
   await page.fill('[formcontrolname="displayName"]', 'Thành viên kiểm thử Angular');
   await page.fill('textarea', 'Kết nối từ những món đồ quen thuộc.');
   await page.click('Lưu thay đổi');
@@ -270,7 +297,8 @@ async function main() {
   await page.click('Xóa ảnh đại diện');
   await page.wait(`document.body.textContent.includes('Đã xóa ảnh đại diện.')`, 'avatar removal');
   passed('Local avatar raw-byte upload, protected rendering and removal');
-  await page.navigate('/account/contacts', `!!document.querySelector('app-reauth-input')`);
+  await followLink('/account', `!!document.querySelector('.profile-hero')`);
+  await followLink('/account/contacts', `!!document.querySelector('app-reauth-input')`);
   await page.fill('input[type=email]', email);
   await otp(email);
   await page.fill('app-reauth-input input[type=password]', password);
@@ -282,7 +310,8 @@ async function main() {
   passed('Verify email with OTP and password re-authentication');
   const newPhone = `+849${randomInt(10000000, 100000000)}`;
   // Control instance mới tách trạng thái thời gian chờ gửi lại cho hai liên hệ khác nhau.
-  await page.navigate('/account/contacts', `!!document.querySelector('app-reauth-input')`);
+  await followLink('/account', `!!document.querySelector('.profile-hero')`);
+  await followLink('/account/contacts', `!!document.querySelector('app-reauth-input')`);
   await page.click('Số điện thoại');
   await page.fill('input[type=tel]', newPhone);
   await otp(newPhone);
@@ -323,7 +352,7 @@ async function main() {
     `document.body.textContent.includes(${JSON.stringify(otherUsername)})`,
   );
   passed('Public profile, Follow and following list');
-  await page.navigate(
+  await followLink(
     `/users/${other.id}`,
     `document.body.textContent.includes(${JSON.stringify(otherUsername)})`,
   );
@@ -340,7 +369,7 @@ async function main() {
   await page.click('Chặn tài khoản');
   await page.click('Xác nhận');
   await page.wait(`document.body.textContent.includes('Đã chặn tài khoản.')`, 'block');
-  await page.navigate('/account/blocked', `!!document.querySelector('.list-row')`);
+  await followLink('/account/blocked', `!!document.querySelector('.list-row')`);
   await page.click('Bỏ chặn');
   await page.click('Xác nhận bỏ chặn');
   await page.wait(`document.body.textContent.includes('Đã bỏ chặn.')`, 'unblock');
@@ -349,7 +378,8 @@ async function main() {
     `document.body.textContent.includes('Chưa có tài khoản nào')`,
   );
   passed('Block hides profile/removes Follow; Unblock does not restore Follow');
-  await page.navigate('/account/username', `!!document.querySelector('input')`);
+  await followLink('/account', `!!document.querySelector('.profile-hero')`);
+  await followLink('/account/username', `!!document.querySelector('input')`);
   const renamed = username + '_new';
   await page.fill('input', renamed);
   await page.click('Lưu tên đăng nhập');
@@ -359,7 +389,7 @@ async function main() {
   await page.wait(`!!document.querySelector('.error')`, 'cooldown rejection');
   passed('Username change and server-enforced cooldown');
   await api('/auth/login/password', { method: 'POST', body: { username: renamed, password } });
-  await page.navigate('/account/sessions', `document.querySelectorAll('.list-row').length>=2`);
+  await followLink('/account/sessions', `document.querySelectorAll('.list-row').length>=2`);
   passed('Own session metadata');
   await page.evaluate(
     `(()=>{const row=[...document.querySelectorAll('.list-row')].find(e=>e.textContent.includes('Phiên đăng nhập khác'));row.querySelector('button').click()})()`,
@@ -368,7 +398,8 @@ async function main() {
   await page.wait(`document.querySelectorAll('.list-row').length===1`, 'revoke other session');
   passed('Revoke another real session');
   const changedPassword = `Looply ${randomBytes(20).toString('base64url')}!`;
-  await page.navigate('/account/password', `!!document.querySelector('app-reauth-input')`);
+  await followLink('/account', `!!document.querySelector('.profile-hero')`);
+  await followLink('/account/password', `!!document.querySelector('app-reauth-input')`);
   await page.fill('form > label input', changedPassword);
   // Tuân thủ thời gian chờ đích thực; không đổi bộ đếm Redis hoặc đồng hồ server.
   while (Date.now() - phoneIssuedAt < 61000)
@@ -379,7 +410,8 @@ async function main() {
   await page.click('Đổi mật khẩu');
   await page.wait(`document.body.textContent.includes('Đã đổi mật khẩu')`, 'password change');
   passed('Change password with verified-phone OTP re-authentication and fresh operation proof');
-  await page.navigate('/account/deletion', `!!document.querySelector('app-reauth-input')`);
+  await followLink('/account', `!!document.querySelector('.profile-hero')`);
+  await followLink('/account/deletion', `!!document.querySelector('app-reauth-input')`);
   await page.fill('app-reauth-input input[type=password]', changedPassword);
   await page.evaluate(`(()=>{const c=document.querySelector('input[type=checkbox]');c.click()})()`);
   await page.click('Yêu cầu xóa tài khoản');
@@ -440,13 +472,13 @@ async function main() {
   await page.click('Đăng xuất');
   await page.wait(`location.pathname==='/auth/login'`, 'logout before reset');
   const recoveredPassword = `Looply ${randomBytes(20).toString('base64url')}!`;
-  await page.navigate('/auth/reset', `!!document.querySelector('[formcontrolname=destination]')`);
+  await followLink('/auth/reset', `!!document.querySelector('[formcontrolname=destination]')`);
   await page.fill('[formcontrolname=destination]', email);
   await otp(email);
   await page.fill('[formcontrolname=password]', recoveredPassword);
   await page.click('Đặt mật khẩu mới');
   await page.wait(`document.body.textContent.includes('Đã đổi mật khẩu.')`, 'password recovery');
-  await page.navigate('/auth/login', `!!document.querySelector('[formcontrolname=username]')`);
+  await followLink('/auth/login', `!!document.querySelector('[formcontrolname=username]')`);
   await page.fill('[formcontrolname=username]', renamed);
   await page.fill('[formcontrolname=password]', recoveredPassword);
   await page.click('Đăng nhập');

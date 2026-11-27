@@ -100,13 +100,12 @@ export class ConversationPage {
         }
         if (
           id &&
-          (scope !== this.loadedScope ||
+          (scope !== this.requestedTarget?.scope ||
             !changedId ||
             changedId === id ||
-            target !== this.loadedTarget)
+            target !== this.requestedTarget?.messageId)
         ) {
-          this.loadedScope = scope;
-          this.loadedTarget = target;
+          this.requestedTarget = { scope, messageId: target };
           void this.loadTarget(id, target);
         }
       });
@@ -115,39 +114,35 @@ export class ConversationPage {
     inject(DestroyRef).onDestroy(() => this.targetGeneration++);
   }
 
-  private loadedScope = '';
-  private loadedTarget = '';
+  private requestedTarget?: { scope: string; messageId: string };
 
   /** Card cũ được tìm qua keyset hiện có, dừng ngay khi đổi route/identity hoặc gặp lỗi. */
   private async loadTarget(id: string, target: string): Promise<void> {
     const generation = ++this.targetGeneration;
     const identity = this.session.identityVersion();
+    /** Cùng ranh giới route và tài khoản cho cả reveal, phân trang và lỗi đích. */
+    const current = () =>
+      generation === this.targetGeneration && identity === this.session.identityVersion();
     this.targetError.set('');
     await this.state.load(id);
+    if (!current()) return;
     const row = this.state.conversation();
-    if (row && generation === this.targetGeneration && identity === this.session.identityVersion())
-      this.inbox.reveal(row);
-    while (
-      target &&
-      generation === this.targetGeneration &&
-      identity === this.session.identityVersion() &&
-      !this.state.messages().some((message) => message.id === target) &&
-      this.state.nextCursor() &&
-      !this.state.error()
-    ) {
-      const before = this.state.nextCursor();
+    if (row) this.inbox.reveal(row);
+    if (!target) return;
+
+    let previousCursor: string | undefined;
+    while (current()) {
+      if (this.state.messages().some((message) => message.id === target)) return;
+      const cursor = this.state.nextCursor();
+      // Trang lỗi có thể giữ cursor cũ; dừng thay vì gọi lại cùng trang.
+      if (!cursor || cursor === previousCursor || this.state.error()) break;
+      previousCursor = cursor;
       await this.state.older();
-      if (this.state.nextCursor() === before) break;
     }
-    if (
-      target &&
-      generation === this.targetGeneration &&
-      identity === this.session.identityVersion() &&
-      !this.state.messages().some((message) => message.id === target)
-    )
-      this.targetError.set(
-        'Nội dung được nhắc đến không còn khả dụng. Bạn vẫn có thể xem hội thoại.',
-      );
+    if (!current()) return;
+    this.targetError.set(
+      'Nội dung được nhắc đến không còn khả dụng. Bạn vẫn có thể xem hội thoại.',
+    );
   }
 
   /** Lấy lại nội dung khi người dùng quay lại tab, cập nhật read cursor sau render. */

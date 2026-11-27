@@ -1,6 +1,5 @@
 import type { ScriptStore, SessionService } from "../auth";
 import type { UserService } from "../user";
-import { ReminderPresentationStore } from "./reminder-presentation.store";
 import { ReminderService } from "./reminder.service";
 import { createReminderController } from "./reminder.controller";
 import { createReminderRouter } from "./reminder.routes";
@@ -12,6 +11,6 @@ export function createReminderModule(
   store: ScriptStore,
   prefix = "looply:",
 ) {
-  const service = new ReminderService(users, new ReminderPresentationStore(store, prefix));
+  const service = new ReminderService(users, store, prefix);
   return { service, router: createReminderRouter(createReminderController(service), sessions) };
 }

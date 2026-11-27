@@ -2,7 +2,6 @@ import { Router } from "express";
 import { authenticate, type SessionService } from "../auth";
 import type { createAvatarController } from "./http/avatar.controller";
 import { avatarBytes, requireAvatarBytes } from "./http/avatar.middleware";
-import { validateUserId } from "./http/user.validation";
 
 /** Nối upload nhị phân có phân quyền mà không triển khai quy tắc Media hoặc sở hữu trong route. */
 export function createAvatarRouter(
@@ -18,11 +17,6 @@ export function createAvatarRouter(
     controller.upload,
   );
   router.delete("/users/me/avatar", authenticate(sessions), controller.remove);
-  router.get(
-    "/users/:userId/avatar",
-    authenticate(sessions, { optional: true }),
-    validateUserId,
-    controller.get,
-  );
+  router.get("/users/:userId/avatar", authenticate(sessions, { optional: true }), controller.get);
   return router;
 }

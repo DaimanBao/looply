@@ -23,7 +23,6 @@ export class MessageService {
 
   /** Lưu nội dung đúng một lần; replay không unhide, không tăng activity hoặc phát sự kiện mới. */
   async send(principal: Principal, id: string, input: MessageInput) {
-    let created = false;
     const result = await this.access.withConversation(principal, id, async (row, tx) => {
       const repository = this.access.repository;
       const hash = payloadHash(["TEXT", input.content ?? null, input.imageMediaId ?? null]);
@@ -31,7 +30,7 @@ export class MessageService {
       if (old) {
         if (old.payloadHash !== hash)
           throw new AppError(409, "REQUEST_CONFLICT", "Use a new requestId for different content.");
-        return messageDto(old, row, await repository.now(tx));
+        return { message: messageDto(old, row, await repository.now(tx)), created: false };
       }
       await this.access.writable(row, tx);
       if (input.imageMediaId) await this.media.attach(input.imageMediaId, principal.userId, id, tx);
@@ -57,6 +56,7 @@ export class MessageService {
         tx,
       );
       await repository.restore(id, tx);
+      const recipientId = row.participants.find((p) => p.userId !== principal.userId)!.userId;
       await repository.event(
         id,
         "chat.message.created",
@@ -64,19 +64,15 @@ export class MessageService {
           conversationId: id,
           messageId: message.id,
           senderId: principal.userId,
-          recipientId: row.participants.find((p) => p.userId !== principal.userId)!.userId,
-          suppressNotification: await this.isViewing(
-            row.participants.find((p) => p.userId !== principal.userId)!.userId,
-            id,
-          ),
+          recipientId,
+          suppressNotification: await this.isViewing(recipientId, id),
         },
         tx,
       );
-      created = true;
-      return messageDto(message, row, now);
+      return { message: messageDto(message, row, now), created: true };
     });
-    if (created) await this.events.changed(id);
-    return result;
+    if (result.created) await this.events.changed(id);
+    return result.message;
   }
 
   /** Chỉ tải một trang đã phân quyền; cursor không thay thế membership. */
@@ -105,8 +101,7 @@ export class MessageService {
 
   /** Cursor tăng đơn điệu; đọc bao hàm nhận, không chấp nhận Message khác Conversation. */
   async receipt(principal: Principal, id: string, messageId: string, read: boolean): Promise<void> {
-    let changed = false;
-    await this.access.withConversation(principal, id, async (row, tx) => {
+    const changed = await this.access.withConversation(principal, id, async (row, tx) => {
       const repository = this.access.repository;
       const message = await repository.message(messageId, tx);
       if (!message || message.conversationId !== id)
@@ -117,10 +112,9 @@ export class MessageService {
         data.lastDeliveredMessageId = message.id;
       if (read && (!participant.lastReadMessage || isAfter(message, participant.lastReadMessage)))
         data.lastReadMessageId = message.id;
-      if (Object.keys(data).length) {
-        await repository.receipt(id, principal.userId, data, tx);
-        changed = true;
-      }
+      if (!data.lastDeliveredMessageId && !data.lastReadMessageId) return false;
+      await repository.receipt(id, principal.userId, data, tx);
+      return true;
     });
     if (changed) await this.events.changed(id);
   }

@@ -99,6 +99,20 @@ export class ListingRepository {
     return tx.listing.updateMany({ where: { id, ownerId, version }, data });
   }
 
+  /** Theo dõi idempotent bằng khóa duy nhất của quan hệ User–Listing. */
+  follow(userId: string, listingId: string, tx: DatabaseTransaction) {
+    return tx.listingFollow.upsert({
+      where: { userId_listingId: { userId, listingId } },
+      create: { userId, listingId },
+      update: {},
+    });
+  }
+
+  /** Gỡ quan hệ của riêng người gọi, kể cả khi bài đăng không còn hiển thị. */
+  unfollow(userId: string, listingId: string, tx: DatabaseTransaction) {
+    return tx.listingFollow.deleteMany({ where: { userId, listingId } });
+  }
+
   /** Dùng thời gian thực của database sau khi khóa thay vì thời điểm bắt đầu transaction. */
   async now(tx: DatabaseTransaction): Promise<Date> {
     const [row] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS now`;
@@ -151,4 +165,17 @@ export class ListingRepository {
       },
     });
   }
+}
+
+/** Đọc scalar Listing trong transaction nhận proposal đã giữ khóa Listing. */
+export function transactionListing(id: string, tx: DatabaseTransaction) {
+  return tx.listing.findUnique({ where: { id } });
+}
+
+/** Lưu chuyển trạng thái đã được Listing kiểm tra trong transaction nhận proposal. */
+export function hideAcceptedListing(id: string, tx: DatabaseTransaction) {
+  return tx.listing.update({
+    where: { id },
+    data: { status: "HIDDEN", version: { increment: 1 } },
+  });
 }

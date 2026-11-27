@@ -4,6 +4,7 @@ import type { Principal, SessionService } from "../auth";
 import type { ListingManifestService } from "../media";
 import type { DatabaseTransaction } from "../../shared/database/prisma";
 import { AppError } from "../../shared/errors/app-error";
+import { cursorPage } from "../../shared/http/pagination";
 import { ListingRepository, type ListingRow } from "./listing.repository";
 import { listingDetail, listingItem } from "./listing.dto";
 import {
@@ -112,12 +113,10 @@ export class ListingService {
       );
       const page = rows.slice(0, query.limit);
       const last = page.at(-1);
-      return {
-        data: page.map((row) => listingItem(row)),
-        pagination: {
-          nextCursor: rows.length > query.limit && last ? encodeMyCursor(cursor, last) : null,
-        },
-      };
+      return cursorPage(
+        page.map((row) => listingItem(row)),
+        rows.length > query.limit && last ? encodeMyCursor(cursor, last) : null,
+      );
     });
   }
 

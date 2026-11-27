@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { authenticate, type SessionService } from "../auth";
 import { noStore } from "../../shared/middleware/no-store";
-import { validateMediaId } from "./listing-media.middleware";
 import { stageListingUpload } from "./listing-staging";
 import type { createListingUploadController } from "./listing-upload.controller";
 
@@ -14,6 +13,6 @@ export function createListingUploadRouter(
   const active = authenticate(sessions);
   router.use("/media/listing-uploads", noStore);
   router.post("/media/listing-uploads", active, stageListingUpload, controller.upload);
-  router.delete("/media/listing-uploads/:mediaId", active, validateMediaId, controller.cancel);
+  router.delete("/media/listing-uploads/:mediaId", active, controller.cancel);
   return router;
 }

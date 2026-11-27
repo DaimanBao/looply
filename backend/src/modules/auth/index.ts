@@ -1,6 +1,5 @@
-export { SessionService, authSessionLifetimeSeconds } from "./sessions/session.service";
-export { CredentialService } from "./credentials/credential.service";
-export { IdentityService } from "./identity/identity.service";
+export { SessionService, authSessionLifetimeSeconds } from "./session.service";
+export { CredentialService } from "./credential.service";
 export type { Principal } from "./auth.types";
 export { authenticate } from "./http/auth.middleware";
 export { principal } from "./http/auth.middleware";

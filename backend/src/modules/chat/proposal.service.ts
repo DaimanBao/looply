@@ -29,7 +29,7 @@ export class ProposalService {
       if (old) {
         if (old.payloadHash !== hash)
           throw new AppError(409, "REQUEST_CONFLICT", "Use a new requestId.");
-        return { replay: messageDto(old, row, await repository.now(tx)) };
+        return { kind: "replay" as const, message: messageDto(old, row, await repository.now(tx)) };
       }
       await this.access.writable(row, tx);
       const listing = row.listingId ? await repository.listing(row.listingId, tx) : null;
@@ -71,24 +71,23 @@ export class ProposalService {
         },
         tx,
       );
-      return { snapshot, source };
+      return { kind: "prepared" as const, snapshot, source };
     });
-    if (preparation.replay) return preparation.replay;
-    const snapshot = preparation.snapshot!;
+    if (preparation.kind === "replay") return preparation.message;
+    const { snapshot, source } = preparation;
     try {
-      const size = await this.media.copySnapshot(preparation.source!, snapshot.id);
-      let created = false;
+      const size = await this.media.copySnapshot(source, snapshot.id);
       const result = await this.access.withConversation(principal, id, async (row, tx) => {
         const old = await repository.replay(id, principal.userId, input.requestId, tx);
         if (old) {
           if (old.payloadHash !== hash)
             throw new AppError(409, "REQUEST_CONFLICT", "Use a new requestId.");
           await this.retention.revoke(snapshot.id, id, await repository.now(tx), tx);
-          return messageDto(old, row, await repository.now(tx));
+          return { message: messageDto(old, row, await repository.now(tx)), created: false };
         }
         await this.access.writable(row, tx);
         const listing = row.listingId ? await repository.listing(row.listingId, tx) : null;
-        await lockResources(tx, [`media:${preparation.source!.id}`]);
+        await lockResources(tx, [`media:${source.id}`]);
         const current = await repository.snapshot(snapshot.id, tx);
         let now = await repository.now(tx);
         if (
@@ -159,15 +158,17 @@ export class ProposalService {
           },
           tx,
         );
-        created = true;
-        return messageDto(
-          (await repository.message(message.id, tx))!,
-          { ...row, lastActivityAt: now },
-          now,
-        );
+        return {
+          message: messageDto(
+            (await repository.message(message.id, tx))!,
+            { ...row, lastActivityAt: now },
+            now,
+          ),
+          created: true,
+        };
       });
-      if (created) await this.events.changed(id);
-      return result;
+      if (result.created) await this.events.changed(id);
+      return result.message;
     } catch (error) {
       await repository.transaction(async (tx) => {
         await lockResources(tx, [`conversation:${id}`]);
@@ -189,7 +190,6 @@ export class ProposalService {
     proposalId: string,
     status: "ACCEPTED" | "REJECTED",
   ) {
-    let changed = false;
     const result = await this.access.withConversation(principal, id, async (row, tx) => {
       const repository = this.access.repository;
       const card = await repository.proposalCard(proposalId, tx);
@@ -205,7 +205,7 @@ export class ProposalService {
       if (card.proposal.status !== "PENDING") {
         if (card.proposal.status !== status)
           throw new AppError(409, "PROPOSAL_RESOLVED", "Proposal has already been resolved.");
-        return messageDto(card, row, await repository.now(tx));
+        return { message: messageDto(card, row, await repository.now(tx)), changed: false };
       }
       await this.access.writable(row, tx);
       if (listing.status !== "ACTIVE")
@@ -240,15 +240,17 @@ export class ProposalService {
         { conversationId: id, proposalId, status },
         tx,
       );
-      changed = true;
-      return messageDto(
-        (await repository.proposalCard(proposalId, tx))!,
-        { ...row, lastActivityAt: now },
-        now,
-      );
+      return {
+        message: messageDto(
+          (await repository.proposalCard(proposalId, tx))!,
+          { ...row, lastActivityAt: now },
+          now,
+        ),
+        changed: true,
+      };
     });
-    if (changed) await this.events.changed(id);
-    return result;
+    if (result.changed) await this.events.changed(id);
+    return result.message;
   }
 
   /** Membership/expiry kiểm tra trước và sau storage read để không phát bytes qua biên retention. */

@@ -1,6 +1,6 @@
 import type { DatabaseTransaction } from "../../shared/database/prisma";
 import { AppError } from "../../shared/errors/app-error";
-import { transactionListing, hideAcceptedListing } from "./listing-chat.repository";
+import { transactionListing, hideAcceptedListing } from "./listing.repository";
 
 /** Giao diện công khai hẹp cho Chat; caller giữ User→Listing lock và transaction proposal. */
 export async function acceptListingTransaction(

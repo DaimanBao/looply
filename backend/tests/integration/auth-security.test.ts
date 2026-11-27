@@ -2,7 +2,7 @@ import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createAuthFixture, type AuthFixture } from "../helpers/auth-fixture";
-import { otpBinding } from "../../src/modules/auth/otp/otp.service";
+import { otpBinding } from "../../src/modules/auth/otp.service";
 import { digest, otpDigest } from "../../src/modules/auth/security/random";
 
 let fixture: AuthFixture;
@@ -47,14 +47,12 @@ describe("Auth API with real PostgreSQL and Redis", () => {
           ? await request(fixture.app)
               .post("/api/auth/login/phone")
               .send({ phone: destination, challengeId: challenge.challengeId, code })
-          : await request(fixture.app)
-              .post("/api/auth/password/reset")
-              .send({
-                destination,
-                challengeId: challenge.challengeId,
-                code,
-                password: "Attacker replacement phrase 527!",
-              });
+          : await request(fixture.app).post("/api/auth/password/reset").send({
+              destination,
+              challengeId: challenge.challengeId,
+              code,
+              password: "Attacker replacement phrase 527!",
+            });
       expect(response.status).toBe(401);
       expect(
         (await fixture.db.user.findUniqueOrThrow({ where: { id: replacement.id } }))

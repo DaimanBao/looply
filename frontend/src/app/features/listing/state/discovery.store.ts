@@ -1,9 +1,9 @@
-import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import { Observable, Subscription, defer, tap } from 'rxjs';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { apiError } from '../../../core/http/api-error';
 import { ListingApi } from '../data-access/listing.api';
 import type { DiscoveryQuery } from '../models/discovery-query';
-import type { ListingItem, ListingPage } from '../models/listing.models';
+import type { ListingItem } from '../models/listing.models';
 import { ListingFollowApi } from '../data-access/listing-follow.api';
 import { ListingFollowState } from './listing-follow.state';
 
@@ -13,58 +13,46 @@ export class DiscoveryStore {
   private readonly followApi = inject(ListingFollowApi);
   private readonly follows = inject(ListingFollowState);
   private request?: Subscription;
-  private source: ((after?: string) => Observable<ListingPage>) | null = null;
+  private source: DiscoveryQuery | 'followed' | null = null;
   private revision = 0;
-  private started = false;
+  // undefined là trang đầu, null là đã hết trang, string là mốc tiếp tục.
+  private readonly nextCursor = signal<string | null | undefined>(undefined);
   readonly items = signal<ListingItem[]>([]);
-  readonly cursor = signal<string | null>(null);
+  readonly cursor = computed(() => this.nextCursor() ?? null);
   readonly loading = signal(false);
   readonly error = signal('');
-  readonly finished = signal(false);
+  readonly finished = computed(() => this.nextCursor() === null);
 
   /** Hủy yêu cầu khi store theo phạm vi trang bị hủy. */
   constructor() {
     inject(DestroyRef).onDestroy(() => this.cancel());
   }
 
-  /** Xóa trạng thái gắn query ngay, kể cả khi tìm kiếm đã đổi đang debounce. */
-  reset(query: DiscoveryQuery | null): void {
-    this.resetSource(query ? (after) => this.api.discover(query, after) : null);
-  }
-
-  /** Dùng cùng cursor/dedup/retry cho scope theo dõi, không thay đổi query khám phá. */
-  resetFollowed(): void {
-    this.resetSource((after) =>
-      defer(() => {
-        const read = this.follows.beginRead();
-        return this.followApi
-          .followed(after)
-          .pipe(tap((page) => this.follows.accept(page.data, read)));
-      }),
-    );
-  }
-
-  /** Đặt lại nguồn trang và vô hiệu hóa request/cursor cũ trong một lượt. */
-  private resetSource(source: ((after?: string) => Observable<ListingPage>) | null): void {
+  /** Đổi nguồn trang và hủy request cũ ngay, kể cả lúc query mới đang debounce. */
+  reset(source: DiscoveryQuery | 'followed' | null): void {
     this.cancel();
     this.source = source;
-    this.started = false;
     this.items.set([]);
-    this.cursor.set(null);
+    this.nextCursor.set(undefined);
     this.error.set('');
-    this.finished.set(false);
     if (source) this.loadMore();
   }
 
   /** Lấy từng trang một, giữ thông tin phân trang sau lỗi để thử lại tường minh. */
   loadMore(): void {
-    if (!this.source || this.loading() || this.finished()) return;
+    const source = this.source;
+    const after = this.nextCursor();
+    if (!source || this.loading() || after === null) return;
     this.loading.set(true);
     this.error.set('');
     const revision = this.revision;
     const identity = this.follows.session.identityVersion();
-    this.request = this.source(this.started ? (this.cursor() ?? undefined) : undefined).subscribe({
+    const followRead = source === 'followed' ? this.follows.beginRead() : null;
+    const request =
+      source === 'followed' ? this.followApi.followed(after) : this.api.discover(source, after);
+    this.request = request.subscribe({
       next: (page) => {
+        if (followRead) this.follows.accept(page.data, followRead);
         if (revision !== this.revision || identity !== this.follows.session.identityVersion())
           return;
         const seen = new Set(this.items().map((listing) => listing.id));
@@ -74,9 +62,7 @@ export class DiscoveryStore {
           return true;
         });
         this.items.update((items) => [...items, ...additions]);
-        this.cursor.set(page.pagination.nextCursor);
-        this.finished.set(page.pagination.nextCursor === null);
-        this.started = true;
+        this.nextCursor.set(page.pagination.nextCursor);
         this.loading.set(false);
       },
       error: (error: unknown) => {

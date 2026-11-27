@@ -1,10 +1,10 @@
 import type { z } from "zod";
-import { emailSchema, phoneSchema, type requestOtpSchema } from "../auth.schema";
-import type { AuthRepository } from "../auth.repository";
-import type { EphemeralAuth } from "../redis/ephemeral-auth";
-import type { MessageProvider, OtpBinding, OtpPurpose, Principal } from "../auth.types";
-import { forbidden } from "../auth.errors";
-import { AppError } from "../../../shared/errors/app-error";
+import { emailSchema, phoneSchema, type requestOtpSchema } from "./auth.schema";
+import type { AuthRepository } from "./auth.repository";
+import type { EphemeralAuth } from "./redis/ephemeral-auth";
+import type { MessageProvider, OtpBinding, OtpPurpose, Principal } from "./auth.types";
+import { forbidden } from "./auth.errors";
+import { AppError } from "../../shared/errors/app-error";
 
 /** Chuẩn hóa liên hệ bằng cùng giá trị chuẩn cho ràng buộc Redis và quyền sở hữu database. */
 export function normalizeContact(value: string, field?: "email" | "phone"): string {
@@ -36,7 +36,7 @@ export class OtpService {
   /** Tách adapter gửi mã khỏi trạng thái Redis và điều kiện tài khoản. */
   constructor(
     private readonly repository: AuthRepository,
-    readonly ephemeral: EphemeralAuth,
+    private readonly ephemeral: EphemeralAuth,
     private readonly sms: MessageProvider,
     private readonly email: MessageProvider,
   ) {}

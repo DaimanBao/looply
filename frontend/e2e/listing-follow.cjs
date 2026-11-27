@@ -33,7 +33,7 @@ module.exports = async function follow({ page, fixture, owner, listing, passed }
   await login(viewer);
   assert.equal(await page.evaluate(`location.pathname === '/listings/${listing.id}'`), true);
   passed('Guest invitation returns to Listing after real login');
-  await page.click('Theo dõi bài đăng');
+  await page.click(`Theo dõi: ${listing.title}`);
   await page.wait(
     `!!document.querySelector('app-listing-follow button[aria-pressed=true]:not(:disabled)')`,
     'follow success',
@@ -57,7 +57,7 @@ module.exports = async function follow({ page, fixture, owner, listing, passed }
     'discovery follow state',
   );
   passed('Discovery uses server/shared Follow state after navigation');
-  await page.click('Bỏ theo dõi');
+  await page.click(`Bỏ theo dõi: ${listing.title}`);
   await page.wait(
     `!!document.querySelector('app-listing-follow button[aria-pressed=false]:not(:disabled)')`,
     'unfollow success',
@@ -76,7 +76,7 @@ module.exports = async function follow({ page, fixture, owner, listing, passed }
     `/listings/${listing.id}`,
     `!!document.querySelector('app-listing-follow button[aria-pressed=false]:not(:disabled)')`,
   );
-  await page.click('Theo dõi bài đăng');
+  await page.click(`Theo dõi: ${listing.title}`);
   await page.wait(
     `!!document.querySelector('app-listing-follow button[aria-pressed=true]:not(:disabled)')`,
     'refollow',

@@ -39,20 +39,7 @@ export class ListingUploadService {
     await this.current(principal);
     const reservation = await this.lifecycle.reserve(principal.userId, video.sizeBytes, video);
     await this.lifecycle.writeVideo(reservation.id, principal.userId, video);
-    await this.repository.transaction(async (tx) => {
-      await this.repository.lockUser(principal.userId, tx);
-      await this.repository.lockMedia([reservation.id], tx);
-      await this.sessions.requireCurrent(principal, tx);
-      const asset = await this.repository.asset(reservation.id, tx);
-      if (
-        !asset ||
-        asset.status !== "TEMP" ||
-        asset.deletedAt ||
-        !asset.expiresAt ||
-        asset.expiresAt <= (await this.repository.now(tx))
-      )
-        throw new AppError(409, "MEDIA_NOT_AVAILABLE", "Upload is no longer available.");
-    });
+    await this.requireAvailableUpload(principal, reservation.id);
     return {
       id: reservation.id,
       status: "TEMP",
@@ -70,20 +57,7 @@ export class ListingUploadService {
     await this.current(principal);
     const reservation = await this.lifecycle.reserve(principal.userId, images.detail.length);
     await this.lifecycle.write(reservation.id, principal.userId, images);
-    await this.repository.transaction(async (tx) => {
-      await this.repository.lockUser(principal.userId, tx);
-      await this.repository.lockMedia([reservation.id], tx);
-      await this.sessions.requireCurrent(principal, tx);
-      const asset = await this.repository.asset(reservation.id, tx);
-      if (
-        !asset ||
-        asset.status !== "TEMP" ||
-        asset.deletedAt ||
-        !asset.expiresAt ||
-        asset.expiresAt <= (await this.repository.now(tx))
-      )
-        throw new AppError(409, "MEDIA_NOT_AVAILABLE", "Upload is no longer available.");
-    });
+    await this.requireAvailableUpload(principal, reservation.id);
     return {
       id: reservation.id,
       status: "TEMP",
@@ -95,6 +69,24 @@ export class ListingUploadService {
     };
   }
 
+  /** Dưới khóa User rồi Media, kiểm tra lại phiên trước khi xét hạn upload đã ghi storage. */
+  private async requireAvailableUpload(principal: Principal, id: string): Promise<void> {
+    await this.repository.transaction(async (tx) => {
+      await this.repository.lockUser(principal.userId, tx);
+      await this.repository.lockMedia([id], tx);
+      await this.sessions.requireCurrent(principal, tx);
+      const asset = await this.repository.asset(id, tx);
+      if (
+        !asset ||
+        asset.status !== "TEMP" ||
+        asset.deletedAt ||
+        !asset.expiresAt ||
+        asset.expiresAt <= (await this.repository.now(tx))
+      )
+        throw new AppError(409, "MEDIA_NOT_AVAILABLE", "Upload is no longer available.");
+    });
+  }
+
   /** Kiểm tra phiên hiện tại trong transaction hủy trước khi đổi vòng đời. */
   async cancel(principal: Principal, id: string): Promise<void> {
     await this.repository.transaction(async (tx) => {
@@ -104,7 +96,7 @@ export class ListingUploadService {
     });
   }
 
-  /** Kiểm tra lại thu hồi phiên sau xử lý tốn tài nguyên và sau công bố storage. */
+  /** Kiểm tra lại phiên sau khi xử lý tốn tài nguyên, trước khi đặt chỗ. */
   private async current(principal: Principal): Promise<void> {
     await this.repository.transaction(async (tx) => {
       await this.repository.lockUser(principal.userId, tx);

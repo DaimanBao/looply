@@ -73,6 +73,22 @@ async function card(conversationId: string) {
 }
 
 describe("Chat PostgreSQL/HTTP integration", () => {
+  it("reports invalid message path and query before validating the body", async () => {
+    const response = await request(fixture.app)
+      .post("/api/conversations/invalid-id/messages")
+      .query({ unexpected: "value" })
+      .auth(contact.token, { type: "bearer" })
+      .send({})
+      .expect(400);
+    expect(response.body.error).toMatchObject({
+      code: "VALIDATION_ERROR",
+      details: [
+        { path: "params.conversationId", code: "invalid_format" },
+        { path: "query", code: "unrecognized_keys" },
+      ],
+    });
+  });
+
   it("keeps snapshot bytes and historical text after real owner account cleanup", async () => {
     const item = await listing();
     const row = await fixture.chat.conversations.create(contact.principal, {

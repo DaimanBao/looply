@@ -83,12 +83,7 @@ export class ListingMediaService {
         await this.storage.put(key[1], Buffer.from("looply-video-v1"), "application/octet-stream");
       });
     } catch (error) {
-      await this.repository.transaction(async (tx) => {
-        await this.repository.lockUser(userId, tx);
-        await this.repository.lockMedia([id], tx);
-        const asset = await this.repository.asset(id, tx);
-        if (asset && asset.status !== "ATTACHED") await this.repository.abandon(id, userId, tx);
-      });
+      await this.abandonFailedWrite(id, userId);
       throw error instanceof AppError
         ? error
         : new AppError(503, "MEDIA_UNAVAILABLE", "Video storage is temporarily unavailable.");
@@ -146,15 +141,19 @@ export class ListingMediaService {
         await this.storage.put(keys[2], Buffer.from("looply-listing-v1"));
       });
     } catch (error) {
-      // Mọi lượt ghi đã kết thúc. Đối soát ngay cả khi cleanup đã xóa object gốc của metadata.
-      await this.repository.transaction(async (tx) => {
-        await this.repository.lockUser(userId, tx);
-        await this.repository.lockMedia([id], tx);
-        const current = await this.repository.asset(id, tx);
-        if (current && current.status !== "ATTACHED") await this.repository.abandon(id, userId, tx);
-      });
+      await this.abandonFailedWrite(id, userId);
       throw error;
     }
+  }
+
+  /** Sau khi mọi lượt ghi đã kết thúc, mở lại cleanup dưới khóa nếu asset chưa được gắn. */
+  private async abandonFailedWrite(id: string, userId: string): Promise<void> {
+    await this.repository.transaction(async (tx) => {
+      await this.repository.lockUser(userId, tx);
+      await this.repository.lockMedia([id], tx);
+      const asset = await this.repository.asset(id, tx);
+      if (asset && asset.status !== "ATTACHED") await this.repository.abandon(id, userId, tx);
+    });
   }
 
   /** Từ chối đính kèm cho đến khi server hoàn tất bền vững các bản ảnh hoặc video gốc. */
@@ -219,7 +218,12 @@ export class ListingMediaService {
 
   /** Kiểm tra một ảnh sau khi giữ khóa cả lô; lỗi sau đó rollback mọi đính kèm. */
   private async attachAsset(
-    input: { id: string; userId: string; listingId: string; position: number | null },
+    input: {
+      id: string;
+      userId: string;
+      listingId: string;
+      position: number | null;
+    },
     tx: DatabaseTransaction,
   ): Promise<void> {
     const media = await this.repository.asset(input.id, tx);

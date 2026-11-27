@@ -84,7 +84,7 @@ export const deleteListingSchema = z.strictObject({
   expectedVersion: version,
   confirmDelete: z.literal(true),
 });
-export const myListingsInput = z.strictObject({
+const myListingsInput = z.strictObject({
   status: z.enum(["ACTIVE", "HIDDEN"]).optional(),
   limit: z.number().int().min(1).max(48),
   after: z

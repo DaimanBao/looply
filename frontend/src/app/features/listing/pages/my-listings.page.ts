@@ -65,7 +65,7 @@ export class MyListingsPage {
       .mine(this.ownerId, this.status(), this.cursor() ?? undefined)
       .subscribe({
         next: (page) => {
-          if (epoch !== this.epoch || identity !== this.session.identityVersion()) return;
+          if (!this.isCurrent(epoch, identity)) return;
           this.rows.update((rows) => [
             ...rows,
             ...page.data.filter((row) => !rows.some((old) => old.id === row.id)),
@@ -74,7 +74,7 @@ export class MyListingsPage {
           this.loading.set(false);
         },
         error: (error: unknown) => {
-          if (epoch !== this.epoch || identity !== this.session.identityVersion()) return;
+          if (!this.isCurrent(epoch, identity)) return;
           this.error.set(listingError(error));
           this.loading.set(false);
         },
@@ -94,14 +94,19 @@ export class MyListingsPage {
     this.error.set('');
     try {
       const profile = await this.user.me();
-      if (epoch !== this.epoch || identity !== this.session.identityVersion()) return;
+      if (!this.isCurrent(epoch, identity)) return;
       this.ownerId = profile.id;
       this.loading.set(false);
       this.load();
     } catch (error) {
-      if (epoch !== this.epoch || identity !== this.session.identityVersion()) return;
+      if (!this.isCurrent(epoch, identity)) return;
       this.error.set(listingError(error));
       this.loading.set(false);
     }
+  }
+
+  /** Từ chối cả kết quả đọc hồ sơ và trang của filter hoặc tài khoản đã đổi. */
+  private isCurrent(epoch: number, identity: number): boolean {
+    return epoch === this.epoch && identity === this.session.identityVersion();
   }
 }

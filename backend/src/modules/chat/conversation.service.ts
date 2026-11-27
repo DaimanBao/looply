@@ -16,9 +16,8 @@ export class ConversationService {
   async create(principal: Principal, input: z.infer<typeof conversationInput>) {
     const repository = this.access.repository;
     const listing = input.type === "LISTING" ? await repository.listing(input.listingId) : null;
-    if (input.type === "LISTING" && !listing)
-      throw new AppError(404, "NOT_FOUND", "Listing not found.");
-    const peerId = input.type === "DIRECT" ? input.userId : listing!.ownerId;
+    const peerId = input.type === "DIRECT" ? input.userId : listing?.ownerId;
+    if (peerId === undefined) throw new AppError(404, "NOT_FOUND", "Listing not found.");
     if (peerId === principal.userId) throw new AppError(403, "CHAT_SELF", "Choose another user.");
     const ids = [principal.userId, peerId].sort();
     return repository.transaction(async (tx) => {

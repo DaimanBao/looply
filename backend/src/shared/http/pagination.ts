@@ -20,7 +20,7 @@ export function createPaginationSchema(options: { defaultLimit: number; maxLimit
     .strict();
 }
 
-/** Tạo response cursor công khai từ DTO do controller sở hữu chọn tường minh. */
+/** Bọc DTO do module sở hữu chọn tường minh trong cấu trúc phân trang công khai. */
 export function cursorPage<T>(data: T[], nextCursor: string | null): CursorPage<T> {
   return { data, pagination: { nextCursor } };
 }

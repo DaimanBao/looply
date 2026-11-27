@@ -1,8 +1,13 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { listingId } from "./listing.schema";
 import type { DiscoveryQuery, PageQuery } from "./listing-discovery.schema";
-import { AppError } from "../../shared/errors/app-error";
+import {
+  hashCursorQuery,
+  invalidListingCursor,
+  readCursorPayload,
+  writeCursorPayload,
+} from "./listing-cursor-codec";
 
 // Adapter mã hóa trực tiếp timestamp ISO; PostgreSQL từ chối năm ISO bằng không, kể cả biên cửa sổ suy ra.
 const minimumTimestamp = Date.parse("0001-01-01T00:00:00.000Z");
@@ -47,7 +52,7 @@ function queryHash(query: DiscoveryQuery | PageQuery): string {
           limit: query.limit,
         }
       : { sort: "NEWEST", limit: query.limit };
-  return createHash("sha256").update(JSON.stringify(semantics)).digest("hex");
+  return hashCursorQuery(semantics);
 }
 /** Kiểm tra metadata phân trang không ký; điều kiện hiển thị và lọc vẫn áp dụng tại database cho từng trang. */
 export function decodeDiscoveryCursor(
@@ -69,9 +74,7 @@ export function decodeDiscoveryCursor(
       last: null,
     };
   try {
-    const bytes = Buffer.from(query.after, "base64url");
-    if (bytes.toString("base64url") !== query.after) throw new Error("Invalid encoding");
-    const cursor = cursorSchema.parse(JSON.parse(bytes.toString("utf8")));
+    const cursor = cursorSchema.parse(readCursorPayload(query.after));
     if (
       cursor.scope !== scope ||
       cursor.viewerId !== viewerId ||
@@ -100,14 +103,12 @@ export function decodeDiscoveryCursor(
     }
     return cursor;
   } catch {
-    throw new AppError(400, "VALIDATION_ERROR", "Invalid continuation cursor.", [
-      { path: "query.after", code: "custom" },
-    ]);
+    throw invalidListingCursor();
   }
 }
 /** Mã hóa hàng cuối đã trả thay vì ứng viên đọc trước. */
 export function encodeDiscoveryCursor(cursor: DiscoveryCursor, last: PageBoundary): string {
-  return Buffer.from(JSON.stringify({ ...cursor, last })).toString("base64url");
+  return writeCursorPayload({ ...cursor, last });
 }
 /** Neo bộ lọc ngày tương đối vào cùng thời điểm UTC suốt phiên cuộn. */
 export function postedWindow(value: DiscoveryQuery["postedWithin"]): number | null {

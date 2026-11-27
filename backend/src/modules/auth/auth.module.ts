@@ -5,10 +5,10 @@ import { AccessTokens } from "./security/access-tokens";
 import { PwnedPasswordScreen } from "./security/password";
 import { RedisStore } from "./redis/redis-store";
 import { EphemeralAuth } from "./redis/ephemeral-auth";
-import { SessionService } from "./sessions/session.service";
-import { IdentityService } from "./identity/identity.service";
-import { CredentialService } from "./credentials/credential.service";
-import { OtpService } from "./otp/otp.service";
+import { SessionService } from "./session.service";
+import { IdentityService } from "./identity.service";
+import { CredentialService } from "./credential.service";
+import { OtpService } from "./otp.service";
 import { FakeMessageProvider, HttpMessageProvider } from "./providers/message-provider";
 import { GoogleOidcVerifier } from "./providers/google-verifier";
 import { createAuthController } from "./http/auth.controller";
@@ -28,7 +28,7 @@ function messageProvider(kind: "fake" | "http", url?: string, key?: string): Mes
   return new HttpMessageProvider(url, key);
 }
 /** Tạo provider bên ngoài có thể thay thế mà không đổi logic service giữa các môi trường. */
-export function createAuthProviders(config: AuthConfig): AuthProviders {
+function createAuthProviders(config: AuthConfig): AuthProviders {
   if (
     config.environment === "production" &&
     (config.SMS_PROVIDER === "fake" || config.EMAIL_PROVIDER === "fake")
